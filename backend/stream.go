@@ -22,7 +22,7 @@ func NewStreamResolver(pool *InstancePool, ttl time.Duration) *StreamResolver {
 		pool:  pool,
 		cache: NewStreamCache(ttl),
 		client: &http.Client{
-			Timeout: 8 * time.Second,
+			Timeout: 4500 * time.Millisecond,
 		},
 	}
 }

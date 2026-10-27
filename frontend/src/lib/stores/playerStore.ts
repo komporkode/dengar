@@ -35,6 +35,7 @@ function createPlayerStore() {
 
   let audioElement: HTMLAudioElement | null = null
   let videoElement: HTMLVideoElement | null = null
+  let currentRequestId = 0
 
   function bindMedia(audio: HTMLAudioElement | null, video: HTMLVideoElement | null) {
     audioElement = audio
@@ -47,6 +48,7 @@ function createPlayerStore() {
   }
 
   async function playTrack(track: SearchResultItem, modeOverride?: PlayMode) {
+    const requestId = ++currentRequestId
     const s = get({ subscribe })
     const activeMode = modeOverride || s.mode
 
@@ -64,6 +66,10 @@ function createPlayerStore() {
 
     try {
       const stream = await GetStream(track.id, false)
+      if (requestId !== currentRequestId) {
+        // Obsolete request, ignore
+        return
+      }
       if (!stream.audioUrl && !stream.videoUrl) {
         throw new Error('Tidak ada stream audio/video yang valid')
       }
@@ -75,9 +81,8 @@ function createPlayerStore() {
         isLoading: false,
         isPlaying: true,
       }))
-
-      // Media play will be triggered by reactive binding in PlayerBar/VideoModal
     } catch (e: any) {
+      if (requestId !== currentRequestId) return
       console.error('Failed to resolve stream:', e)
       update(st => ({
         ...st,

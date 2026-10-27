@@ -21,7 +21,7 @@ func NewSearchService(customPiped, customInvidious []string) *SearchService {
 	return &SearchService{
 		pool: NewInstancePool(customPiped, customInvidious),
 		client: &http.Client{
-			Timeout: 6 * time.Second,
+			Timeout: 3500 * time.Millisecond,
 		},
 	}
 }
