@@ -3,16 +3,39 @@
   import TrackItem from './TrackItem.svelte'
   import { playerStore } from '../stores/playerStore'
   import { queueStore } from '../stores/queueStore'
+  import { t } from '../stores/i18nStore'
 
   export let title = 'Daftar Lagu'
   export let tracks: SearchResultItem[] = []
   export let isLoading = false
   export let emptyMessage = 'Tidak ada lagu yang ditemukan.'
 
+  $: isCurrentListPlaying = tracks.length > 0 &&
+    $playerStore.isPlaying &&
+    tracks.some(t => t.id === $playerStore.currentTrack?.id)
+
+  $: totalDurationFormatted = formatTotalDuration(tracks)
+
+  function formatTotalDuration(items: SearchResultItem[]): string {
+    if (!items || items.length === 0) return ''
+    const totalSec = items.reduce((acc, item) => acc + (item.duration || 0), 0)
+    if (totalSec <= 0) return ''
+    const hrs = Math.floor(totalSec / 3600)
+    const mins = Math.floor((totalSec % 3600) / 60)
+    if (hrs > 0) {
+      return `~${hrs} jam ${mins} mnt`
+    }
+    return `~${mins} mnt`
+  }
+
   function handlePlayAll() {
     if (tracks.length === 0) return
-    queueStore.setQueue(tracks, 0)
-    playerStore.playTrack(tracks[0])
+    if (isCurrentListPlaying) {
+      playerStore.togglePlay()
+    } else {
+      queueStore.setQueue(tracks, 0)
+      playerStore.playTrack(tracks[0])
+    }
   }
 
   function handleShuffleAll() {
@@ -29,42 +52,59 @@
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
       <div>
         <div class="flex items-center gap-2 mb-1">
-          <span class="text-xs uppercase tracking-widest font-semibold text-crimson-400">Audio Eksplorasi</span>
+          <span class="text-xs uppercase tracking-widest font-semibold text-crimson-400">{$t('audio_exploration')}</span>
           <span class="text-zinc-600">•</span>
-          <span class="text-xs text-zinc-400">Stream Master Audio</span>
+          <span class="text-xs text-zinc-400">{$t('stream_engine')}</span>
         </div>
         <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
           <span>{title}</span>
           {#if !isLoading && tracks.length > 0}
-            <span class="text-xs font-mono font-medium px-2.5 py-1 rounded-full bg-white/[0.08] text-zinc-300 border border-white/10">
-              {tracks.length} item
+            <span class="text-xs font-mono font-medium px-2.5 py-1 rounded-full bg-white/[0.08] text-zinc-300 border border-white/10 flex items-center gap-1.5">
+              <span>{tracks.length} {$t('items_count')}</span>
+              {#if totalDurationFormatted}
+                <span class="text-zinc-500">•</span>
+                <span class="text-zinc-400">{totalDurationFormatted}</span>
+              {/if}
             </span>
           {/if}
         </h1>
       </div>
 
-      <!-- Play All & Shuffle Controls -->
+      <!-- Play All & Shuffle Controls (Dynamic state) -->
       {#if !isLoading && tracks.length > 0}
         <div class="flex items-center gap-2.5">
           <button
             class="px-5 py-2.5 rounded-full bg-crimson-500 hover:bg-crimson-600 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-crimson-500/30 transition transform active:scale-95 cursor-pointer"
             on:click={handlePlayAll}
+            title={isCurrentListPlaying ? $t('pause_all') : $t('play_all')}
           >
-            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-            <span>Putar Semua</span>
+            {#if isCurrentListPlaying}
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <rect height="14" width="3.5" x="6" y="5"></rect>
+                <rect height="14" width="3.5" x="14.5" y="5"></rect>
+              </svg>
+              <span>{$t('pause_all')}</span>
+            {:else}
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <span>{$t('play_all')}</span>
+            {/if}
           </button>
+
           <button
             class="px-4 py-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-zinc-300 font-semibold text-sm flex items-center gap-2 transition active:scale-95 cursor-pointer"
             on:click={handleShuffleAll}
+            title={$t('shuffle')}
           >
             <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <polyline points="16 3 21 3 21 8"></polyline>
-              <line x1="4" x2="21" y1="20" y2="3"></line>
+              <line x1="4" y1="20" x2="21" y2="3"></line>
               <polyline points="21 16 21 21 16 21"></polyline>
-              <line x1="15" x2="21" y1="15" y2="21"></line>
-              <line x1="4" x2="9" y1="4" y2="9"></line>
+              <line x1="15" y1="15" x2="21" y2="21"></line>
+              <line x1="4" y1="4" x2="9" y2="9"></line>
             </svg>
-            <span>Acak</span>
+            <span>{$t('shuffle')}</span>
           </button>
         </div>
       {/if}
@@ -76,10 +116,10 @@
     <!-- Table Column Headers -->
     <div class="grid grid-cols-12 gap-4 px-4 py-2.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider border-b border-white/[0.08]">
       <div class="col-span-1 text-center">#</div>
-      <div class="col-span-6 md:col-span-5">Judul Lagu & Penyanyi</div>
-      <div class="hidden md:block col-span-3">Channel / Penyanyi</div>
-      <div class="col-span-3 md:col-span-2 text-right">Kualitas & Durasi</div>
-      <div class="col-span-2 md:col-span-1 text-right pr-2">Aksi</div>
+      <div class="col-span-6 md:col-span-5">{$t('title_and_artist')}</div>
+      <div class="hidden md:block col-span-3">{$t('channel_or_artist')}</div>
+      <div class="col-span-3 md:col-span-2 text-right">{$t('quality_and_duration')}</div>
+      <div class="col-span-2 md:col-span-1 text-right pr-2">{$t('actions')}</div>
     </div>
 
     <!-- Track List Items Container -->
@@ -118,7 +158,7 @@
           </svg>
         </div>
         <p class="text-sm font-medium text-zinc-300">{emptyMessage}</p>
-        <span class="text-xs text-zinc-500">Coba ketik kata kunci lain pada kolom pencarian di atas</span>
+        <span class="text-xs text-zinc-500">{$t('empty_search_tip')}</span>
       </div>
     {:else}
       <div class="divide-y divide-white/[0.03] mt-1 font-medium">

@@ -3,6 +3,8 @@
   import { playerStore } from '../stores/playerStore'
   import { queueStore } from '../stores/queueStore'
   import { userDataStore } from '../stores/userDataStore'
+  import { showToast } from '../stores/settingsStore'
+  import { t } from '../stores/i18nStore'
 
   let audioElement: HTMLAudioElement
 
@@ -19,7 +21,6 @@
 
   $: repeatMode = $queueStore.repeatMode
   $: isShuffle = $queueStore.isShuffle
-  $: queueCount = $queueStore.items.length
 
   $: progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0
   $: volumePercent = isMuted ? 0 : Math.round(volume * 100)
@@ -56,6 +57,13 @@
     playerStore.setVolume(val)
   }
 
+  function handleToggleFav() {
+    if (!currentTrack) return
+    const wasFav = isFav
+    userDataStore.toggleFavorite(currentTrack)
+    showToast(wasFav ? $t('removed_from_favorites') : $t('added_to_favorites'))
+  }
+
   function formatTime(sec: number): string {
     if (!sec || isNaN(sec) || sec <= 0) return '00:00'
     const m = Math.floor(sec / 60)
@@ -77,7 +85,7 @@
 <footer class="fixed bottom-4 left-6 right-6 md:left-72 md:right-8 z-40 pointer-events-none select-none">
   <div class="pointer-events-auto floating-island rounded-2xl border border-white/[0.12] shadow-island-glow px-4 py-3 flex items-center justify-between gap-4 transition-all duration-300">
     
-    <!-- Sisi Kiri: Album art melengkung, interaktif favorit, detail lagu & bit-perfect info -->
+    <!-- Sisi Kiri: Album art melengkung, interaktif favorit, detail lagu & HQ stream info -->
     <div class="flex items-center gap-3.5 min-w-[200px] max-w-[280px] shrink-0">
       <div class="relative w-12 h-12 rounded-xl overflow-hidden shadow-md shadow-black/80 border border-white/10 shrink-0 bg-surface-highlight flex items-center justify-center">
         {#if currentTrack?.thumbnailUrl}
@@ -95,25 +103,25 @@
             <h4 class="text-sm font-bold text-white truncate hover:text-crimson-400 transition" title={currentTrack.title}>
               {currentTrack.title}
             </h4>
-            <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 shrink-0">24-BIT</span>
+            <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 shrink-0">HQ</span>
           </div>
           <p class="text-xs text-zinc-400 truncate hover:text-zinc-200" title={currentTrack.uploaderName}>
             {currentTrack.uploaderName}
           </p>
           <div class="flex items-center gap-1 text-[10px] text-zinc-400 font-mono">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span>Bit-Perfect • Direct Stream</span>
+            <span>{$t('bit_perfect')}</span>
           </div>
         {:else}
-          <span class="text-xs text-zinc-400">Belum ada lagu yang diputar</span>
-          <span class="text-[10px] text-zinc-500">Pilih lagu untuk memutar</span>
+          <span class="text-xs text-zinc-400">{$t('no_track_playing')}</span>
+          <span class="text-[10px] text-zinc-500">{$t('select_track_prompt')}</span>
         {/if}
       </div>
 
       {#if currentTrack}
         <button
           class="p-1.5 text-crimson-500 hover:text-crimson-400 hover:scale-110 active:scale-95 transition shrink-0 ml-0.5 cursor-pointer"
-          on:click={() => currentTrack && userDataStore.toggleFavorite(currentTrack)}
+          on:click={handleToggleFav}
           title={isFav ? 'Hapus dari favorit' : 'Tambah ke favorit'}
         >
           <svg class="w-4 h-4 {isFav ? 'fill-current drop-shadow-[0_0_6px_rgba(230,30,56,0.6)]' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -131,14 +139,14 @@
         <button
           class="p-1.5 transition active:scale-95 cursor-pointer {isShuffle ? 'text-crimson-400' : 'text-zinc-400 hover:text-zinc-200'}"
           on:click={queueStore.toggleShuffle}
-          title="Acak Lagu"
+          title={$t('shuffle')}
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <polyline points="16 3 21 3 21 8"></polyline>
-            <line x1="4" x2="21" y1="20" y2="3"></line>
+            <line x1="4" y1="20" x2="21" y2="3"></line>
             <polyline points="21 16 21 21 16 21"></polyline>
-            <line x1="15" x2="21" y1="15" y2="21"></line>
-            <line x1="4" x2="9" y1="4" y2="9"></line>
+            <line x1="15" y1="15" x2="21" y2="21"></line>
+            <line x1="4" y1="4" x2="9" y2="9"></line>
           </svg>
         </button>
 
@@ -234,43 +242,30 @@
       </div>
     </div>
 
-    <!-- Sisi Kanan: Audio Device Switcher, Mode Toggle, Queue, dan Volume -->
-    <div class="flex items-center justify-end gap-2.5 min-w-[200px] shrink-0">
-      <!-- Mode Switcher Pill (Audio vs Video) -->
+    <!-- Sisi Kanan: Audio/Video Switcher, Volume Slider (Removed Queue button from here) -->
+    <div class="flex items-center justify-end gap-3 min-w-[200px] shrink-0">
+      <!-- Mode Switcher Pill (Audio vs Video) with pure SVG -->
       <button
         class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer {mode === 'video' ? 'bg-crimson-500/20 border-crimson-500/40 text-crimson-300' : 'bg-white/[0.06] hover:bg-white/[0.1] border-white/10 text-zinc-200'}"
         on:click={playerStore.toggleMode}
         title="Ganti Mode Audio / Video (V)"
       >
-        <svg class="w-3.5 h-3.5 {mode === 'video' ? 'text-crimson-400' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
-          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
-        </svg>
-        <span class="text-[11px] hidden sm:inline">{mode === 'video' ? 'Video MV' : 'Hi-Fi Audio'}</span>
-      </button>
-
-      <!-- Queue Button with badge -->
-      <button
-        class="p-2 text-zinc-400 hover:text-white transition rounded-xl hover:bg-white/[0.06] relative cursor-pointer {$queueStore.isDrawerOpen ? 'bg-white/[0.1] text-white' : ''}"
-        on:click={() => queueStore.toggleDrawer()}
-        title="Antrean Pemutaran"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <line x1="8" x2="21" y1="6" y2="6"></line>
-          <line x1="8" x2="21" y1="12" y2="12"></line>
-          <line x1="8" x2="21" y1="18" y2="18"></line>
-          <line x1="3" x2="3.01" y1="6" y2="6"></line>
-          <line x1="3" x2="3.01" y1="12" y2="12"></line>
-          <line x1="3" x2="3.01" y1="18" y2="18"></line>
-        </svg>
-        {#if queueCount > 0}
-          <span class="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-crimson-500 text-[9px] font-bold text-white flex items-center justify-center font-mono shadow-sm">
-            {queueCount}
-          </span>
+        {#if mode === 'video'}
+          <svg class="w-3.5 h-3.5 text-crimson-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="23 7 16 12 23 17 23 7"></polygon>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+          </svg>
+          <span class="text-[11px] hidden sm:inline">{$t('video_mode')}</span>
+        {:else}
+          <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+          </svg>
+          <span class="text-[11px] hidden sm:inline">{$t('audio_mode_hq')}</span>
         {/if}
       </button>
 
-      <!-- Volume Slider Ramping -->
+      <!-- Volume Slider -->
       <div class="flex items-center gap-1.5 group w-24">
         <button
           class="p-1 text-zinc-400 hover:text-white transition cursor-pointer"

@@ -3,6 +3,8 @@
   import { playerStore } from '../stores/playerStore'
   import { queueStore } from '../stores/queueStore'
   import { userDataStore } from '../stores/userDataStore'
+  import { showToast } from '../stores/settingsStore'
+  import { t } from '../stores/i18nStore'
 
   export let track: SearchResultItem
   export let index: number
@@ -23,11 +25,14 @@
   function handleAddToQueue(e: MouseEvent) {
     e.stopPropagation()
     queueStore.addToQueue(track)
+    showToast($t('added_to_queue'))
   }
 
   function handleToggleFav(e: MouseEvent) {
     e.stopPropagation()
+    const wasFav = isFav
     userDataStore.toggleFavorite(track)
+    showToast(wasFav ? $t('removed_from_favorites') : $t('added_to_favorites'))
   }
 </script>
 
@@ -87,7 +92,7 @@
           {track.title}
         </span>
         {#if isPlaying}
-          <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-crimson-500/20 text-crimson-300 border border-crimson-500/30 shrink-0">Memutar</span>
+          <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-crimson-500/20 text-crimson-300 border border-crimson-500/30 shrink-0">{$t('playing')}</span>
         {/if}
       </div>
       <span class="text-xs text-zinc-400 truncate">{track.uploaderName}</span>
@@ -102,28 +107,31 @@
   <!-- Col 4: Quality & Duration -->
   <div class="col-span-3 md:col-span-2 flex items-center justify-end gap-2 text-right">
     <span class="text-[10px] font-mono px-1.5 py-0.5 rounded {isCurrent ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' : 'bg-white/[0.06] text-zinc-300'}">
-      {track.duration > 300 ? 'FLAC 24b' : 'Lossless'}
+      {track.duration > 300 ? 'HQ Opus' : 'HQ Audio'}
     </span>
     <span class="text-xs font-mono {isCurrent ? 'text-crimson-400 font-bold' : 'text-zinc-400'}">
       {track.durationFormatted || '00:00'}
     </span>
   </div>
 
-  <!-- Col 5: Actions -->
+  <!-- Col 5: Actions (Only Favorite & Add to Queue with functioning feedback) -->
   <div class="col-span-2 md:col-span-1 flex items-center justify-end gap-1.5 text-zinc-400">
+    <!-- Favorite button -->
     <button
       class="p-1.5 hover:text-crimson-400 transition cursor-pointer"
       on:click={handleToggleFav}
-      title={isFav ? 'Hapus dari favorit' : 'Tambah ke favorit'}
+      title={isFav ? $t('removed_from_favorites') : $t('added_to_favorites')}
     >
       <svg class="w-4 h-4 {isFav ? 'fill-crimson-500 text-crimson-500' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
       </svg>
     </button>
+
+    <!-- Add to Queue button -->
     <button
       class="p-1.5 hover:text-white transition cursor-pointer"
       on:click={handleAddToQueue}
-      title="Tambah ke Antrean"
+      title={$t('added_to_queue')}
     >
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <line x1="12" y1="5" x2="12" y2="19"></line>

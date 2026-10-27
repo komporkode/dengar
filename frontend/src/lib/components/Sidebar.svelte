@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { NavigationTab } from '../types'
   import { userDataStore } from '../stores/userDataStore'
+  import { isSettingsOpen } from '../stores/settingsStore'
+  import { t } from '../stores/i18nStore'
 
   export let activeTab: NavigationTab = 'search'
 
@@ -31,25 +33,25 @@
 
     <!-- Section: Menjelajah -->
     <div class="space-y-1">
-      <p class="px-2.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Menjelajah</p>
+      <p class="px-2.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">{$t('section_browse')}</p>
       <button
         class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition cursor-pointer text-left {activeTab === 'search' ? 'bg-white/[0.08] text-white shadow-sm border border-white/[0.04]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'}"
         on:click={() => (activeTab = 'search')}
       >
         <svg class="w-4 h-4 {activeTab === 'search' ? 'text-crimson-400' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <line x1="21" x2="16.65" y1="21" y2="16.65"></line>
         </svg>
-        <span>Eksplorasi & Cari</span>
+        <span>{$t('nav_explore')}</span>
         {#if activeTab === 'search'}
-          <span class="ml-auto text-[10px] bg-crimson-500/20 text-crimson-400 font-semibold px-1.5 py-0.5 rounded">Aktif</span>
+          <span class="ml-auto text-[10px] bg-crimson-500/20 text-crimson-400 font-semibold px-1.5 py-0.5 rounded">{$t('nav_active')}</span>
         {/if}
       </button>
     </div>
 
     <!-- Section: Koleksi Saya -->
     <div class="space-y-1">
-      <p class="px-2.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Koleksi Saya</p>
+      <p class="px-2.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">{$t('section_collection')}</p>
       <button
         class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition cursor-pointer group text-left {activeTab === 'favorites' ? 'bg-white/[0.08] text-white shadow-sm border border-white/[0.04]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'}"
         on:click={() => (activeTab = 'favorites')}
@@ -58,7 +60,7 @@
           <svg class="w-4 h-4 {activeTab === 'favorites' ? 'fill-crimson-500 text-crimson-500' : 'text-zinc-400 group-hover:text-crimson-400'} transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
           </svg>
-          <span>Lagu Favorit</span>
+          <span>{$t('nav_favorites')}</span>
         </div>
         {#if favCount > 0}
           <span class="text-xs bg-white/[0.06] text-zinc-300 px-2 py-0.5 rounded-full font-mono">{favCount}</span>
@@ -74,7 +76,7 @@
             <circle cx="12" cy="12" r="10"></circle>
             <polyline points="12 6 12 12 16 14"></polyline>
           </svg>
-          <span>Riwayat Putar</span>
+          <span>{$t('nav_history')}</span>
         </div>
         {#if histCount > 0}
           <span class="text-xs bg-white/[0.06] text-zinc-300 px-2 py-0.5 rounded-full font-mono">{histCount}</span>
@@ -83,26 +85,18 @@
     </div>
   </div>
 
-  <!-- Bottom Sidebar: Backend Status Chip -->
-  <div class="p-3 border-t border-white/[0.06] bg-[#0E1017] space-y-2">
-    <!-- Backend status -->
-    <div class="flex items-center justify-between px-2.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-      <div class="flex items-center gap-2.5">
-        <span class="relative flex h-2 w-2">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-        </span>
-        <div>
-          <p class="text-[11px] font-semibold text-zinc-200 leading-tight">Server Hi-Fi Publik</p>
-          <p class="text-[10px] text-emerald-400 font-mono">Terhubung • 24-bit/96kHz</p>
-        </div>
-      </div>
-      <svg class="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <rect height="8" rx="2" ry="2" width="20" x="2" y="2"></rect>
-        <rect height="8" rx="2" ry="2" width="20" x="2" y="14"></rect>
-        <line x1="6" x2="6.01" y1="6" y2="6"></line>
-        <line x1="6" x2="6.01" y1="18" y2="18"></line>
+  <!-- Bottom Sidebar: Clean Settings & About trigger button (removed server card) -->
+  <div class="p-3 border-t border-white/[0.06] bg-[#0E1017]">
+    <button
+      class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.05] transition group border border-transparent hover:border-white/[0.06] cursor-pointer"
+      on:click={() => isSettingsOpen.set(true)}
+      title={$t('settings_title')}
+    >
+      <svg class="w-4 h-4 text-zinc-400 group-hover:text-crimson-400 group-hover:rotate-45 transition duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
       </svg>
-    </div>
+      <span>{$t('settings_title')}</span>
+    </button>
   </div>
 </aside>

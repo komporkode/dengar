@@ -1,6 +1,7 @@
 <script lang="ts">
   import { queueStore } from '../stores/queueStore'
   import { playerStore } from '../stores/playerStore'
+  import { t } from '../stores/i18nStore'
 
   $: items = $queueStore.items
   $: currentIndex = $queueStore.currentIndex
@@ -24,17 +25,19 @@
   <!-- Backdrop for click outside -->
   <div class="fixed inset-0 bg-black/50 z-40 backdrop-blur-xs" on:click={() => queueStore.toggleDrawer(false)} role="presentation"></div>
 
-  <aside class="fixed top-9 right-0 bottom-24 w-84 sm:w-96 bg-surface/95 backdrop-blur-xl border-l border-white/[0.08] shadow-2xl flex flex-col z-50 animate-slide-in select-none">
+  <aside class="fixed top-0 right-0 bottom-24 w-84 sm:w-96 bg-surface/95 backdrop-blur-xl border-l border-white/[0.08] shadow-2xl flex flex-col z-50 animate-slide-in select-none">
     <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.08]">
       <div class="flex items-center gap-2.5">
-        <h3 class="font-bold text-sm tracking-wide text-white">Antrean Pemutaran</h3>
-        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.08] text-zinc-300 border border-white/10">{items.length} lagu</span>
+        <h3 class="font-bold text-sm tracking-wide text-white">{$t('queue_title')}</h3>
+        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.08] text-zinc-300 border border-white/10">
+          {items.length} {$t('items_count')}
+        </span>
       </div>
 
       <div class="flex items-center gap-2">
         {#if items.length > 0}
           <button class="text-xs text-crimson-400 hover:text-crimson-300 px-2 py-1 rounded hover:bg-crimson-500/10 transition cursor-pointer" on:click={queueStore.clearQueue}>
-            Hapus Semua
+            {$t('clear_all')}
           </button>
         {/if}
         <button class="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition cursor-pointer" on:click={() => queueStore.toggleDrawer(false)} title="Tutup Antrean">
@@ -56,8 +59,8 @@
               <line x1="8" y1="18" x2="21" y2="18"></line>
             </svg>
           </div>
-          <p class="text-xs font-medium text-zinc-400">Antrean lagu masih kosong</p>
-          <span class="text-[11px] text-zinc-500">Pilih lagu dari pencarian untuk menambahkan</span>
+          <p class="text-xs font-medium text-zinc-400">{$t('queue_empty')}</p>
+          <span class="text-[11px] text-zinc-500">{$t('queue_empty_tip')}</span>
         </div>
       {:else}
         {#each items as item, i (item.id + '-' + i)}
@@ -80,7 +83,9 @@
               {#if item.thumbnailUrl}
                 <img src={item.thumbnailUrl} alt={item.title} class="w-full h-full object-cover" />
               {:else}
-                <span class="text-xs">🎵</span>
+                <svg class="w-4 h-4 text-zinc-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
               {/if}
             </div>
 
