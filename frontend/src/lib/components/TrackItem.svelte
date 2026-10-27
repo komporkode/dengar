@@ -48,7 +48,7 @@
       </div>
     {:else}
       <span class="index-num">{index + 1}</span>
-      <button class="hover-play-btn" on:click|stopPropagation={handlePlay}>
+      <button class="hover-play-btn" on:click|stopPropagation={handlePlay} title="Putar Lagu" aria-label="Putar Lagu">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
           <polygon points="5 3 19 12 5 21 5 3"></polygon>
         </svg>
