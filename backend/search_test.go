@@ -87,3 +87,81 @@ func TestSearchFailover(t *testing.T) {
 		t.Errorf("Expected result from second server, got: %+v", results)
 	}
 }
+
+func TestInnertubeSearch(t *testing.T) {
+	mockResponse := `{
+		"contents": {
+			"twoColumnSearchResultsRenderer": {
+				"primaryContents": {
+					"sectionListRenderer": {
+						"contents": [
+							{
+								"itemSectionRenderer": {
+									"contents": [
+										{
+											"videoRenderer": {
+												"videoId": "innertube123",
+												"title": {
+													"simpleText": "Direct YouTube Track"
+												},
+												"ownerText": {
+													"runs": [
+														{"text": "Official Artist"}
+													]
+												},
+												"lengthText": {
+													"simpleText": "03:45"
+												},
+												"thumbnail": {
+													"thumbnails": [
+														{"url": "https://i.ytimg.com/vi/innertube123/hqdefault.jpg"}
+													]
+												}
+											}
+										}
+									]
+								}
+							}
+						]
+					}
+				}
+			}
+		}
+	}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(mockResponse))
+	}))
+	defer server.Close()
+
+	svc := NewSearchService(nil, nil)
+	svc.SetInnertubeURL(server.URL)
+
+	results, err := svc.Search("Direct Track", "music_songs")
+	if err != nil {
+		t.Fatalf("Innertube search failed: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Fatalf("Expected 1 result, got %d", len(results))
+	}
+
+	r := results[0]
+	if r.ID != "innertube123" {
+		t.Errorf("Expected ID 'innertube123', got '%s'", r.ID)
+	}
+	if r.Title != "Direct YouTube Track" {
+		t.Errorf("Expected Title 'Direct YouTube Track', got '%s'", r.Title)
+	}
+	if r.UploaderName != "Official Artist" {
+		t.Errorf("Expected UploaderName 'Official Artist', got '%s'", r.UploaderName)
+	}
+	if r.Duration != 225 {
+		t.Errorf("Expected Duration 225s, got %d", r.Duration)
+	}
+	if r.DurationFormatted != "03:45" {
+		t.Errorf("Expected DurationFormatted '03:45', got '%s'", r.DurationFormatted)
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -40,17 +41,7 @@ func (r *StreamResolver) Resolve(videoID string, forceRefresh bool) (*StreamResu
 		}
 	}
 
-	// 1. Try Piped instances
-	for _, inst := range r.pool.GetPipedInstances() {
-		res, err := r.resolvePiped(inst, vid)
-		if err == nil && res.AudioURL != "" {
-			r.cache.Set(vid, res)
-			return res, nil
-		}
-		r.pool.RotatePiped()
-	}
-
-	// 2. Fallback to Invidious instances
+	// 1. Try Invidious instances first (highest availability for audio streams)
 	for _, inst := range r.pool.GetInvidiousInstances() {
 		res, err := r.resolveInvidious(inst, vid)
 		if err == nil && res.AudioURL != "" {
@@ -60,6 +51,18 @@ func (r *StreamResolver) Resolve(videoID string, forceRefresh bool) (*StreamResu
 		r.pool.RotateInvidious()
 	}
 
+	// 2. Fallback to Piped instances
+	for _, inst := range r.pool.GetPipedInstances() {
+		res, err := r.resolvePiped(inst, vid)
+		if err == nil && res.AudioURL != "" {
+			r.cache.Set(vid, res)
+			return res, nil
+		}
+		r.pool.RotatePiped()
+	}
+
+	// Trigger instance refresh for future requests if all failed
+	r.pool.RefreshInvidiousInstances()
 	return nil, fmt.Errorf("gagal memutar media dari seluruh instance")
 }
 
@@ -160,10 +163,10 @@ func (r *StreamResolver) resolvePiped(instanceURL, videoID string) (*StreamResul
 }
 
 type invidiousAdaptiveFormat struct {
-	URL      string `json:"url"`
-	Type     string `json:"type"`
-	Bitrate  int64  `json:"bitrate,string"`
-	Encoding string `json:"encoding"`
+	URL      string          `json:"url"`
+	Type     string          `json:"type"`
+	Bitrate  json.RawMessage `json:"bitrate"`
+	Encoding string          `json:"encoding"`
 }
 
 type invidiousFormatStream struct {
@@ -179,6 +182,12 @@ type invidiousVideoResponse struct {
 	VideoThumbnails []struct{ URL string }    `json:"videoThumbnails"`
 	AdaptiveFormats []invidiousAdaptiveFormat `json:"adaptiveFormats"`
 	FormatStreams   []invidiousFormatStream   `json:"formatStreams"`
+}
+
+func parseRawBitrate(raw json.RawMessage) int64 {
+	s := strings.Trim(string(raw), `"`)
+	val, _ := strconv.ParseInt(s, 10, 64)
+	return val
 }
 
 func (r *StreamResolver) resolveInvidious(instanceURL, videoID string) (*StreamResult, error) {
@@ -207,9 +216,10 @@ func (r *StreamResolver) resolveInvidious(instanceURL, videoID string) (*StreamR
 	bestAudioURL := ""
 	var maxBitrate int64 = -1
 	for _, f := range data.AdaptiveFormats {
-		if strings.HasPrefix(f.Type, "audio/") {
-			if f.Bitrate > maxBitrate {
-				maxBitrate = f.Bitrate
+		if strings.Contains(f.Type, "audio") {
+			bitrate := parseRawBitrate(f.Bitrate)
+			if bitrate > maxBitrate || bestAudioURL == "" {
+				maxBitrate = bitrate
 				bestAudioURL = f.URL
 			}
 		}

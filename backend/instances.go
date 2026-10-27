@@ -1,21 +1,24 @@
 package backend
 
 import (
+	"encoding/json"
+	"net/http"
 	"sync"
+	"time"
 )
 
 var defaultPipedInstances = []string{
-	"https://pipedapi.kavin.rocks",
-	"https://api.piped.privacydev.net",
-	"https://piped-api.lunar.icu",
-	"https://piped-api.garudalinux.org",
+	"https://pipedapi.ducks.party",
+	"https://api.piped.private.coffee",
+	"https://pipedapi.leptons.xyz",
+	"https://pipedapi.adminforge.de",
 }
 
 var defaultInvidiousInstances = []string{
-	"https://inv.tux.pizza",
+	"https://yt.chocolatemoo53.com",
 	"https://invidious.nerdvpn.de",
-	"https://vid.puffyan.us",
-	"https://invidious.flokinet.to",
+	"https://inv.nadeko.net",
+	"https://invidious.private.coffee",
 }
 
 // InstancePool manages rotating instance endpoints for failover.
@@ -37,10 +40,73 @@ func NewInstancePool(customPiped, customInvidious []string) *InstancePool {
 	if len(inv) == 0 {
 		inv = append([]string{}, defaultInvidiousInstances...)
 	}
-	return &InstancePool{
+	pool := &InstancePool{
 		piped:     p,
 		invidious: inv,
 	}
+	pool.RefreshInvidiousInstances()
+	return pool
+}
+
+// RefreshInvidiousInstances asynchronously fetches verified live instances from the official registry.
+func (ip *InstancePool) RefreshInvidiousInstances() {
+	go func() {
+		client := &http.Client{Timeout: 5 * time.Second}
+		resp, err := client.Get("https://api.invidious.io/instances.json")
+		if err != nil {
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return
+		}
+
+		var raw [][]json.RawMessage
+		if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+			return
+		}
+
+		var newInstances []string
+		for _, item := range raw {
+			if len(item) < 2 {
+				continue
+			}
+			var domain string
+			if err := json.Unmarshal(item[0], &domain); err != nil {
+				continue
+			}
+			var meta struct {
+				Type string `json:"type"`
+				API  bool   `json:"api"`
+			}
+			if err := json.Unmarshal(item[1], &meta); err != nil {
+				continue
+			}
+			if meta.Type == "https" && meta.API {
+				newInstances = append(newInstances, "https://"+domain)
+			}
+		}
+
+		if len(newInstances) > 0 {
+			ip.mu.Lock()
+			seen := make(map[string]bool)
+			merged := make([]string, 0, len(newInstances)+len(ip.invidious))
+			for _, inst := range newInstances {
+				if !seen[inst] {
+					seen[inst] = true
+					merged = append(merged, inst)
+				}
+			}
+			for _, inst := range ip.invidious {
+				if !seen[inst] {
+					seen[inst] = true
+					merged = append(merged, inst)
+				}
+			}
+			ip.invidious = merged
+			ip.mu.Unlock()
+		}
+	}()
 }
 
 // GetPipedInstances returns the list of Piped instances in failover order.

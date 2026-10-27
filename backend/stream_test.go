@@ -91,3 +91,61 @@ func TestStreamResolverPiped(t *testing.T) {
 		t.Errorf("Expected muxed 720p video stream, got '%s'", res.VideoURL)
 	}
 }
+
+func TestStreamResolverInvidious(t *testing.T) {
+	mockInvidiousStream := `{
+		"title": "Fix You",
+		"author": "Coldplay",
+		"lengthSeconds": 295,
+		"videoThumbnails": [
+			{"url": "https://img.youtube.com/vi/fixyou/hqdefault.jpg"}
+		],
+		"adaptiveFormats": [
+			{
+				"type": "audio/webm; codecs=\"opus\"",
+				"url": "https://googlevideo.com/audio-low.webm",
+				"bitrate": "70000"
+			},
+			{
+				"type": "audio/mp4; codecs=\"mp4a.40.2\"",
+				"url": "https://googlevideo.com/audio-high.m4a",
+				"bitrate": "130000"
+			}
+		],
+		"formatStreams": [
+			{
+				"quality": "medium",
+				"resolution": "720p",
+				"url": "https://googlevideo.com/video-720p.mp4"
+			}
+		]
+	}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(mockInvidiousStream))
+	}))
+	defer server.Close()
+
+	pool := NewInstancePool(nil, []string{server.URL})
+	resolver := NewStreamResolver(pool, 30*time.Minute)
+
+	res, err := resolver.Resolve("fixyou", false)
+	if err != nil {
+		t.Fatalf("Invidious resolve failed: %v", err)
+	}
+
+	if res.Title != "Fix You" {
+		t.Errorf("Expected title 'Fix You', got '%s'", res.Title)
+	}
+	if res.Artist != "Coldplay" {
+		t.Errorf("Expected artist 'Coldplay', got '%s'", res.Artist)
+	}
+	if res.AudioURL != "https://googlevideo.com/audio-high.m4a" {
+		t.Errorf("Expected highest bitrate audio stream, got '%s'", res.AudioURL)
+	}
+	if res.VideoURL != "https://googlevideo.com/video-720p.mp4" {
+		t.Errorf("Expected 720p format stream, got '%s'", res.VideoURL)
+	}
+}
