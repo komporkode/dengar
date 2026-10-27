@@ -22,21 +22,23 @@
 
 {#if isOpen}
   <!-- Backdrop for click outside -->
-  <div class="backdrop" on:click={() => queueStore.toggleDrawer(false)} role="presentation"></div>
+  <div class="fixed inset-0 bg-black/50 z-40 backdrop-blur-xs" on:click={() => queueStore.toggleDrawer(false)} role="presentation"></div>
 
-  <aside class="queue-drawer">
-    <div class="drawer-header">
-      <div class="header-title">
-        <h3>Antrean Lagu</h3>
-        <span class="count-badge">{items.length} lagu</span>
+  <aside class="fixed top-9 right-0 bottom-24 w-84 sm:w-96 bg-surface/95 backdrop-blur-xl border-l border-white/[0.08] shadow-2xl flex flex-col z-50 animate-slide-in select-none">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.08]">
+      <div class="flex items-center gap-2.5">
+        <h3 class="font-bold text-sm tracking-wide text-white">Antrean Pemutaran</h3>
+        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.08] text-zinc-300 border border-white/10">{items.length} lagu</span>
       </div>
 
-      <div class="header-actions">
+      <div class="flex items-center gap-2">
         {#if items.length > 0}
-          <button class="clear-btn" on:click={queueStore.clearQueue}>Hapus Semua</button>
+          <button class="text-xs text-crimson-400 hover:text-crimson-300 px-2 py-1 rounded hover:bg-crimson-500/10 transition cursor-pointer" on:click={queueStore.clearQueue}>
+            Hapus Semua
+          </button>
         {/if}
-        <button class="close-btn" on:click={() => queueStore.toggleDrawer(false)} title="Tutup Antrean" aria-label="Tutup Antrean">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition cursor-pointer" on:click={() => queueStore.toggleDrawer(false)} title="Tutup Antrean">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
@@ -44,273 +46,64 @@
       </div>
     </div>
 
-    <div class="drawer-body">
+    <div class="flex-1 overflow-y-auto p-3 space-y-1">
       {#if items.length === 0}
-        <div class="empty-queue">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <line x1="8" y1="6" x2="21" y2="6"></line>
-            <line x1="8" y1="12" x2="21" y2="12"></line>
-            <line x1="8" y1="18" x2="21" y2="18"></line>
-          </svg>
-          <p>Antrean kosong</p>
-          <span class="text-muted">Tambahkan lagu dari pencarian atau favorit</span>
+        <div class="h-full flex flex-col items-center justify-center text-center p-6 text-zinc-500 gap-2">
+          <div class="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center">
+            <svg class="w-5 h-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </div>
+          <p class="text-xs font-medium text-zinc-400">Antrean lagu masih kosong</p>
+          <span class="text-[11px] text-zinc-500">Pilih lagu dari pencarian untuk menambahkan</span>
         </div>
       {:else}
-        <div class="queue-items-list">
-          {#each items as item, i (item.id + '-' + i)}
-            <div
-              class="queue-item"
-              class:current-playing={i === currentIndex}
-              on:click={() => handlePlayQueueItem(i)}
-              role="button"
-              tabindex="0"
-              on:keydown={(e) => e.key === 'Enter' && handlePlayQueueItem(i)}
-            >
-              <div class="item-status">
-                {#if i === currentIndex}
-                  <div class="playing-pulse"></div>
-                {:else}
-                  <span class="item-idx">{i + 1}</span>
-                {/if}
-              </div>
-
-              <div class="item-thumb">
-                {#if item.thumbnailUrl}
-                  <img src={item.thumbnailUrl} alt={item.title} />
-                {:else}
-                  <div class="no-thumb">🎵</div>
-                {/if}
-              </div>
-
-              <div class="item-meta">
-                <span class="item-title text-truncate" class:active={i === currentIndex}>{item.title}</span>
-                <span class="item-artist text-truncate text-secondary">{item.uploaderName}</span>
-              </div>
-
-              <button
-                class="remove-btn"
-                on:click={(e) => handleRemoveItem(e, i)}
-                title="Hapus dari antrean"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
+        {#each items as item, i (item.id + '-' + i)}
+          <div
+            class="group flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition {i === currentIndex ? 'bg-crimson-500/15 border border-crimson-500/30' : 'hover:bg-white/[0.04]'}"
+            on:click={() => handlePlayQueueItem(i)}
+            role="button"
+            tabindex="0"
+            on:keydown={(e) => e.key === 'Enter' && handlePlayQueueItem(i)}
+          >
+            <div class="w-5 flex items-center justify-center shrink-0">
+              {#if i === currentIndex}
+                <span class="w-2 h-2 rounded-full bg-crimson-400 shadow-[0_0_8px_#FF4D62]"></span>
+              {:else}
+                <span class="text-xs font-mono text-zinc-500">{i + 1}</span>
+              {/if}
             </div>
-          {/each}
-        </div>
+
+            <div class="w-9 h-9 rounded-lg overflow-hidden bg-surface-highlight shrink-0 flex items-center justify-center border border-white/10">
+              {#if item.thumbnailUrl}
+                <img src={item.thumbnailUrl} alt={item.title} class="w-full h-full object-cover" />
+              {:else}
+                <span class="text-xs">🎵</span>
+              {/if}
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <span class="text-xs font-medium truncate block {i === currentIndex ? 'text-crimson-300 font-bold' : 'text-zinc-200'}">
+                {item.title}
+              </span>
+              <span class="text-[11px] text-zinc-400 truncate block">{item.uploaderName}</span>
+            </div>
+
+            <button
+              class="p-1 text-zinc-500 hover:text-crimson-400 hover:bg-crimson-500/10 rounded opacity-0 group-hover:opacity-100 transition cursor-pointer"
+              on:click={(e) => handleRemoveItem(e, i)}
+              title="Hapus dari antrean"
+            >
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        {/each}
       {/if}
     </div>
   </aside>
 {/if}
-
-<style>
-  .backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: var(--player-height);
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 105;
-  }
-
-  .queue-drawer {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: var(--player-height);
-    width: 360px;
-    background: var(--bg-surface);
-    border-left: 1px solid var(--border-subtle);
-    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.5);
-    display: flex;
-    flex-direction: column;
-    z-index: 110;
-    animation: slideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  @keyframes slideIn {
-    from { transform: translateX(100%); }
-    to { transform: translateX(0); }
-  }
-
-  .drawer-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 20px;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-
-  .header-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .header-title h3 {
-    font-size: 16px;
-    font-weight: 700;
-  }
-
-  .count-badge {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--text-muted);
-  }
-
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .clear-btn {
-    font-size: 12px;
-    color: var(--accent-red);
-    padding: 4px 8px;
-    border-radius: 6px;
-  }
-
-  .clear-btn:hover {
-    background: rgba(255, 0, 0, 0.1);
-  }
-
-  .close-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    color: var(--text-muted);
-  }
-
-  .close-btn:hover {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .drawer-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px 14px;
-  }
-
-  .empty-queue {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    gap: 8px;
-    text-align: center;
-  }
-
-  .queue-items-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .queue-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.15s ease;
-  }
-
-  .queue-item:hover {
-    background: var(--bg-hover);
-  }
-
-  .queue-item.current-playing {
-    background: var(--bg-card);
-  }
-
-  .item-status {
-    width: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .item-idx {
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
-  .playing-pulse {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--accent-red);
-    box-shadow: 0 0 8px var(--accent-red);
-  }
-
-  .item-thumb {
-    width: 38px;
-    height: 38px;
-    border-radius: 6px;
-    overflow: hidden;
-    background: var(--bg-card);
-    flex-shrink: 0;
-  }
-
-  .item-thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .no-thumb {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-  }
-
-  .item-meta {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .item-title {
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  .item-title.active {
-    color: var(--accent-red);
-    font-weight: 600;
-  }
-
-  .item-artist {
-    font-size: 11px;
-  }
-
-  .remove-btn {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    color: var(--text-muted);
-    opacity: 0;
-    transition: all 0.15s ease;
-  }
-
-  .queue-item:hover .remove-btn {
-    opacity: 1;
-  }
-
-  .remove-btn:hover {
-    color: var(--accent-red);
-    background: rgba(255, 0, 0, 0.1);
-  }
-</style>

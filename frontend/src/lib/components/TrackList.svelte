@@ -14,179 +14,118 @@
     queueStore.setQueue(tracks, 0)
     playerStore.playTrack(tracks[0])
   }
+
+  function handleShuffleAll() {
+    if (tracks.length === 0) return
+    const shuffled = [...tracks].sort(() => Math.random() - 0.5)
+    queueStore.setQueue(shuffled, 0)
+    playerStore.playTrack(shuffled[0])
+  }
 </script>
 
-<div class="track-list-wrapper">
-  <div class="header-row">
-    <div class="title-meta">
-      <h2 class="section-title">{title}</h2>
+<div class="w-full flex flex-col select-none">
+  <!-- Search Results Header -->
+  <section class="px-8 pt-6 pb-4">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-xs uppercase tracking-widest font-semibold text-crimson-400">Audio Eksplorasi</span>
+          <span class="text-zinc-600">•</span>
+          <span class="text-xs text-zinc-400">Stream Master Audio</span>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+          <span>{title}</span>
+          {#if !isLoading && tracks.length > 0}
+            <span class="text-xs font-mono font-medium px-2.5 py-1 rounded-full bg-white/[0.08] text-zinc-300 border border-white/10">
+              {tracks.length} item
+            </span>
+          {/if}
+        </h1>
+      </div>
+
+      <!-- Play All & Shuffle Controls -->
       {#if !isLoading && tracks.length > 0}
-        <span class="track-count">{tracks.length} item</span>
+        <div class="flex items-center gap-2.5">
+          <button
+            class="px-5 py-2.5 rounded-full bg-crimson-500 hover:bg-crimson-600 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-crimson-500/30 transition transform active:scale-95 cursor-pointer"
+            on:click={handlePlayAll}
+          >
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <span>Putar Semua</span>
+          </button>
+          <button
+            class="px-4 py-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-zinc-300 font-semibold text-sm flex items-center gap-2 transition active:scale-95 cursor-pointer"
+            on:click={handleShuffleAll}
+          >
+            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="16 3 21 3 21 8"></polyline>
+              <line x1="4" x2="21" y1="20" y2="3"></line>
+              <polyline points="21 16 21 21 16 21"></polyline>
+              <line x1="15" x2="21" y1="15" y2="21"></line>
+              <line x1="4" x2="9" y1="4" y2="9"></line>
+            </svg>
+            <span>Acak</span>
+          </button>
+        </div>
       {/if}
     </div>
+  </section>
 
-    {#if !isLoading && tracks.length > 0}
-      <button class="play-all-btn" on:click={handlePlayAll}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <polygon points="5 3 19 12 5 21 5 3"></polygon>
-        </svg>
-        <span>Putar Semua</span>
-      </button>
-    {/if}
-  </div>
+  <!-- Track Table Section -->
+  <section class="px-8 mt-2">
+    <!-- Table Column Headers -->
+    <div class="grid grid-cols-12 gap-4 px-4 py-2.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider border-b border-white/[0.08]">
+      <div class="col-span-1 text-center">#</div>
+      <div class="col-span-6 md:col-span-5">Judul Lagu & Penyanyi</div>
+      <div class="hidden md:block col-span-3">Channel / Penyanyi</div>
+      <div class="col-span-3 md:col-span-2 text-right">Kualitas & Durasi</div>
+      <div class="col-span-2 md:col-span-1 text-right pr-2">Aksi</div>
+    </div>
 
-  {#if isLoading}
-    <div class="skeleton-list">
-      {#each Array(6) as _}
-        <div class="skeleton-row">
-          <div class="skeleton-num"></div>
-          <div class="skeleton-thumb"></div>
-          <div class="skeleton-text">
-            <div class="skeleton-line long"></div>
-            <div class="skeleton-line short"></div>
+    <!-- Track List Items Container -->
+    {#if isLoading}
+      <div class="divide-y divide-white/[0.03] mt-2 font-medium">
+        {#each Array(6) as _}
+          <div class="grid grid-cols-12 gap-4 px-4 py-3.5 items-center">
+            <div class="col-span-1 flex justify-center">
+              <div class="w-4 h-4 rounded bg-white/[0.05] animate-pulse"></div>
+            </div>
+            <div class="col-span-6 md:col-span-5 flex items-center gap-3.5">
+              <div class="w-11 h-11 rounded-xl bg-white/[0.05] animate-pulse shrink-0"></div>
+              <div class="flex-1 space-y-1.5">
+                <div class="w-3/4 h-3.5 rounded bg-white/[0.05] animate-pulse"></div>
+                <div class="w-1/2 h-2.5 rounded bg-white/[0.05] animate-pulse"></div>
+              </div>
+            </div>
+            <div class="hidden md:block col-span-3">
+              <div class="w-2/3 h-3 rounded bg-white/[0.05] animate-pulse"></div>
+            </div>
+            <div class="col-span-3 md:col-span-2 flex justify-end">
+              <div class="w-16 h-3 rounded bg-white/[0.05] animate-pulse"></div>
+            </div>
+            <div class="col-span-2 md:col-span-1 flex justify-end">
+              <div class="w-8 h-3 rounded bg-white/[0.05] animate-pulse"></div>
+            </div>
           </div>
-        </div>
-      {/each}
-    </div>
-  {:else if tracks.length === 0}
-    <div class="empty-state">
-      <div class="empty-icon">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M8 12h8"></path>
-        </svg>
+        {/each}
       </div>
-      <p>{emptyMessage}</p>
-    </div>
-  {:else}
-    <div class="tracks-container">
-      {#each tracks as track, i (track.id + '-' + i)}
-        <TrackItem {track} index={i} />
-      {/each}
-    </div>
-  {/if}
+    {:else if tracks.length === 0}
+      <div class="flex flex-col items-center justify-center py-20 text-center gap-3">
+        <div class="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-zinc-500">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+          </svg>
+        </div>
+        <p class="text-sm font-medium text-zinc-300">{emptyMessage}</p>
+        <span class="text-xs text-zinc-500">Coba ketik kata kunci lain pada kolom pencarian di atas</span>
+      </div>
+    {:else}
+      <div class="divide-y divide-white/[0.03] mt-1 font-medium">
+        {#each tracks as track, i (track.id + '-' + i)}
+          <TrackItem {track} index={i} />
+        {/each}
+      </div>
+    {/if}
+  </section>
 </div>
-
-<style>
-  .track-list-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-  }
-
-  .header-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-
-  .title-meta {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-  }
-
-  .section-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-
-  .track-count {
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
-  .play-all-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 20px;
-    background: var(--text-primary);
-    color: var(--bg-primary);
-    font-weight: 600;
-    font-size: 13px;
-    transition: transform 0.15s ease, background 0.15s ease;
-  }
-
-  .play-all-btn:hover {
-    transform: scale(1.03);
-    background: #ffffff;
-  }
-
-  .tracks-container {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  /* Skeleton Loading */
-  .skeleton-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .skeleton-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 12px;
-  }
-
-  .skeleton-num {
-    width: 20px;
-    height: 14px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .skeleton-thumb {
-    width: 44px;
-    height: 44px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .skeleton-text {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .skeleton-line {
-    height: 12px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.05);
-    animation: shimmer 1.2s infinite ease-in-out;
-  }
-
-  .skeleton-line.long { width: 45%; }
-  .skeleton-line.short { width: 25%; }
-
-  @keyframes shimmer {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 0.9; }
-  }
-
-  /* Empty State */
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    color: var(--text-muted);
-    text-align: center;
-    gap: 12px;
-  }
-
-  .empty-icon {
-    opacity: 0.6;
-  }
-</style>

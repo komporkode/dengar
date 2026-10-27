@@ -32,222 +32,103 @@
 </script>
 
 <div
-  class="track-row"
-  class:current={isCurrent}
+  class="track-row group grid grid-cols-12 gap-4 px-4 py-3 rounded-2xl items-center transition-all duration-150 cursor-pointer {isCurrent ? 'bg-crimson-500/[0.08] border border-crimson-500/25 hover:bg-crimson-500/[0.12]' : 'hover:bg-white/[0.04] border border-transparent'}"
   on:click={handlePlay}
   role="button"
   tabindex="0"
   on:keydown={(e) => e.key === 'Enter' && handlePlay()}
 >
-  <div class="index-col">
+  <!-- Col 1: Index / Play Icon / Equalizer -->
+  <div class="col-span-1 flex items-center justify-center relative">
     {#if isPlaying}
-      <div class="equalizer">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+      <span class="track-index text-crimson-400 font-mono text-sm font-bold flex items-center gap-0.5">
+        <span class="inline-block w-1 h-3.5 bg-crimson-500 rounded-sm animate-pulse"></span>
+        <span class="inline-block w-1 h-4 bg-crimson-400 rounded-sm animate-bounce"></span>
+        <span class="inline-block w-1 h-2 bg-crimson-500 rounded-sm animate-pulse"></span>
+      </span>
+      <button
+        class="play-hover-btn absolute inset-0 m-auto w-7 h-7 rounded-full bg-crimson-500 text-white flex items-center justify-center opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-md cursor-pointer"
+        on:click|stopPropagation={handlePlay}
+        title="Jeda Lagu"
+      >
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+          <rect height="16" width="4" x="6" y="4"></rect>
+          <rect height="16" width="4" x="14" y="4"></rect>
+        </svg>
+      </button>
     {:else}
-      <span class="index-num">{index + 1}</span>
-      <button class="hover-play-btn" on:click|stopPropagation={handlePlay} title="Putar Lagu" aria-label="Putar Lagu">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <span class="track-index text-zinc-400 font-mono text-xs group-hover:opacity-0 group-hover:invisible transition-opacity">{index + 1}</span>
+      <button
+        class="play-hover-btn absolute inset-0 m-auto w-7 h-7 rounded-full bg-crimson-500 text-white flex items-center justify-center opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-md hover:scale-105 cursor-pointer"
+        on:click|stopPropagation={handlePlay}
+        title="Putar Lagu"
+      >
+        <svg class="w-3.5 h-3.5 fill-current ml-0.5" viewBox="0 0 24 24">
           <polygon points="5 3 19 12 5 21 5 3"></polygon>
         </svg>
       </button>
     {/if}
   </div>
 
-  <div class="thumb-col">
-    {#if track.thumbnailUrl}
-      <img src={track.thumbnailUrl} alt={track.title} loading="lazy" />
-    {:else}
-      <div class="thumb-placeholder">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M9 18V5l12-2v13"></path>
+  <!-- Col 2: Title, Artist, Thumbnail -->
+  <div class="col-span-6 md:col-span-5 flex items-center gap-3.5 min-w-0">
+    <div class="relative shrink-0 w-11 h-11 rounded-xl overflow-hidden shadow-md border border-white/10 group-hover:scale-105 transition-transform duration-200 bg-surface-highlight flex items-center justify-center">
+      {#if track.thumbnailUrl}
+        <img alt={track.title} class="w-full h-full object-cover" src={track.thumbnailUrl} loading="lazy" />
+      {:else}
+        <svg class="w-5 h-5 text-zinc-500" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
         </svg>
+      {/if}
+    </div>
+    <div class="min-w-0 flex flex-col">
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-semibold truncate {isCurrent ? 'text-crimson-400 font-bold' : 'text-zinc-100 group-hover:text-crimson-400 transition'}">
+          {track.title}
+        </span>
+        {#if isPlaying}
+          <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-crimson-500/20 text-crimson-300 border border-crimson-500/30 shrink-0">Memutar</span>
+        {/if}
       </div>
-    {/if}
-  </div>
-
-  <div class="meta-col">
-    <div class="track-title text-truncate" class:active-title={isCurrent}>
-      {track.title}
-    </div>
-    <div class="track-artist text-truncate text-secondary">
-      {track.uploaderName}
+      <span class="text-xs text-zinc-400 truncate">{track.uploaderName}</span>
     </div>
   </div>
 
-  <div class="actions-col">
+  <!-- Col 3: Channel / Uploader -->
+  <div class="hidden md:block col-span-3 text-xs text-zinc-400 truncate">
+    {track.uploaderName}
+  </div>
+
+  <!-- Col 4: Quality & Duration -->
+  <div class="col-span-3 md:col-span-2 flex items-center justify-end gap-2 text-right">
+    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded {isCurrent ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' : 'bg-white/[0.06] text-zinc-300'}">
+      {track.duration > 300 ? 'FLAC 24b' : 'Lossless'}
+    </span>
+    <span class="text-xs font-mono {isCurrent ? 'text-crimson-400 font-bold' : 'text-zinc-400'}">
+      {track.durationFormatted || '00:00'}
+    </span>
+  </div>
+
+  <!-- Col 5: Actions -->
+  <div class="col-span-2 md:col-span-1 flex items-center justify-end gap-1.5 text-zinc-400">
     <button
-      class="action-btn fav-btn"
-      class:is-fav={isFav}
+      class="p-1.5 hover:text-crimson-400 transition cursor-pointer"
       on:click={handleToggleFav}
       title={isFav ? 'Hapus dari favorit' : 'Tambah ke favorit'}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? '#ff0000' : 'none'} stroke="currentColor" stroke-width="2">
+      <svg class="w-4 h-4 {isFav ? 'fill-crimson-500 text-crimson-500' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
       </svg>
     </button>
-
     <button
-      class="action-btn"
+      class="p-1.5 hover:text-white transition cursor-pointer"
       on:click={handleAddToQueue}
       title="Tambah ke Antrean"
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <line x1="12" y1="5" x2="12" y2="19"></line>
         <line x1="5" y1="12" x2="19" y2="12"></line>
       </svg>
     </button>
-
-    <div class="duration-col text-muted">
-      {track.durationFormatted || '00:00'}
-    </div>
   </div>
 </div>
-
-<style>
-  .track-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-    user-select: none;
-  }
-
-  .track-row:hover {
-    background: var(--bg-hover);
-  }
-
-  .track-row.current {
-    background: var(--bg-card);
-  }
-
-  .index-col {
-    width: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    font-size: 13px;
-    position: relative;
-  }
-
-  .hover-play-btn {
-    display: none;
-    color: var(--text-primary);
-  }
-
-  .track-row:hover .index-num {
-    display: none;
-  }
-
-  .track-row:hover .hover-play-btn {
-    display: inline-flex;
-  }
-
-  .thumb-col {
-    width: 44px;
-    height: 44px;
-    border-radius: 6px;
-    overflow: hidden;
-    background: var(--bg-card);
-    flex-shrink: 0;
-  }
-
-  .thumb-col img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .thumb-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    background: var(--bg-surface);
-  }
-
-  .meta-col {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .track-title {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .active-title {
-    color: var(--accent-red);
-    font-weight: 600;
-  }
-
-  .track-artist {
-    font-size: 12px;
-  }
-
-  .actions-col {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-  }
-
-  .action-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    color: var(--text-muted);
-    opacity: 0.7;
-    transition: all 0.15s ease;
-  }
-
-  .action-btn:hover {
-    color: var(--text-primary);
-    opacity: 1;
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  .fav-btn.is-fav {
-    color: var(--accent-red);
-    opacity: 1;
-  }
-
-  .duration-col {
-    font-size: 12px;
-    width: 45px;
-    text-align: right;
-  }
-
-  /* Equalizer Animation */
-  .equalizer {
-    display: flex;
-    align-items: flex-end;
-    gap: 2px;
-    height: 14px;
-  }
-
-  .equalizer span {
-    width: 3px;
-    background: var(--accent-red);
-    border-radius: 1px;
-    animation: bounce 0.8s ease-in-out infinite alternate;
-  }
-
-  .equalizer span:nth-child(1) { height: 60%; animation-delay: 0.1s; }
-  .equalizer span:nth-child(2) { height: 100%; animation-delay: 0.3s; }
-  .equalizer span:nth-child(3) { height: 40%; animation-delay: 0.2s; }
-
-  @keyframes bounce {
-    0% { height: 20%; }
-    100% { height: 100%; }
-  }
-</style>
