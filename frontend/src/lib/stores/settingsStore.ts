@@ -64,8 +64,8 @@ export function showToast(message: string) {
 
 export function enterMiniPlayer() {
   try {
-    WindowSetMinSize(360, 145)
-    WindowSetSize(380, 160)
+    WindowSetMinSize(360, 140)
+    WindowSetSize(390, 160)
     const pinned = get(isMiniPlayerPinned)
     WindowSetAlwaysOnTop(pinned)
     isMiniPlayer.set(true)
