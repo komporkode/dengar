@@ -16,6 +16,12 @@
   import QueueDrawer from './lib/components/QueueDrawer.svelte'
   import SettingsModal from './lib/components/SettingsModal.svelte'
   import MiniPlayer from './lib/components/MiniPlayer.svelte'
+  import HomeSections from './lib/components/HomeSections.svelte'
+  import PlaylistView from './lib/components/PlaylistView.svelte'
+  import PlaylistModal from './lib/components/PlaylistModal.svelte'
+  import AddToPlaylistModal from './lib/components/AddToPlaylistModal.svelte'
+  import PlaylistShareModal from './lib/components/PlaylistShareModal.svelte'
+  import { activePlaylistId } from './lib/stores/playlistStore'
 
   let activeTab: NavigationTab = 'search'
   let searchQuery = ''
@@ -279,6 +285,10 @@
             </div>
           {/if}
 
+          {#if !searchQuery.trim()}
+            <HomeSections />
+          {/if}
+
           <TrackList
             title={searchQuery ? `${$t('search_results_prefix')}“${searchQuery}”` : $t('popular_songs')}
             tracks={searchResults}
@@ -304,6 +314,16 @@
             isLoading={$userDataStore.isLoading}
             emptyMessage="Belum ada riwayat putar. Mulai putar lagu untuk mencatat riwayat."
           />
+
+        {:else if activeTab === 'playlist'}
+          {@const selectedPl = $userDataStore.playlists.find(p => p.id === $activePlaylistId)}
+          {#if selectedPl}
+            <PlaylistView playlist={selectedPl} on:close={() => activeTab = 'search'} />
+          {:else}
+            <div class="p-8 text-center text-zinc-500 text-sm">
+              Playlist tidak ditemukan.
+            </div>
+          {/if}
         {/if}
       </main>
     </div>
@@ -319,6 +339,11 @@
 
     <!-- Settings & About Modal -->
     <SettingsModal />
+
+    <!-- Playlist Modals -->
+    <PlaylistModal />
+    <AddToPlaylistModal />
+    <PlaylistShareModal />
 
     <!-- Toast Notification -->
     {#if $toastMessage}

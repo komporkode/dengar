@@ -3,6 +3,7 @@
   import type { NavigationTab } from '../types'
   import { userDataStore } from '../stores/userDataStore'
   import { isSettingsOpen, isSidebarCollapsed, toggleSidebar } from '../stores/settingsStore'
+  import { activePlaylistId, openCreatePlaylistModal, openImportPlaylistModal } from '../stores/playlistStore'
   import { t } from '../stores/i18nStore'
 
   export let activeTab: NavigationTab = 'search'
@@ -12,6 +13,11 @@
   function setTab(tab: NavigationTab) {
     activeTab = tab
     dispatch('tabChange', tab)
+  }
+
+  function selectPlaylist(id: string) {
+    activePlaylistId.set(id)
+    setTab('playlist')
   }
 
   $: favCount = $userDataStore.favorites.length
@@ -206,6 +212,91 @@
             <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#161824]/95"></span>
           </div>
         {/if}
+      </div>
+
+      <!-- Playlists Section -->
+      <div class="pt-2">
+        <div class="flex items-center justify-between px-2.5 mb-1.5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-h-0 opacity-0 pointer-events-none my-0' : 'max-h-6 opacity-100'}">
+          <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+            {$t('section_playlists')}
+          </p>
+          <div class="flex items-center gap-1">
+            <button
+              class="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition cursor-pointer"
+              on:click={() => openImportPlaylistModal()}
+              title={$t('import_playlist')}
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </button>
+            <button
+              class="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition cursor-pointer"
+              on:click={() => openCreatePlaylistModal()}
+              title={$t('create_playlist')}
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {#if $isSidebarCollapsed}
+          <div class="relative group flex justify-center mb-1">
+            <button
+              class="w-full h-9 flex items-center justify-center rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.05] transition cursor-pointer"
+              on:click={() => openCreatePlaylistModal()}
+              title={$t('create_playlist')}
+            >
+              <svg class="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+            <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[60] px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center">
+              <span>{$t('create_playlist')}</span>
+              <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#161824]/95"></span>
+            </div>
+          </div>
+        {/if}
+
+        <div class="space-y-0.5">
+          {#each $userDataStore.playlists as pl (pl.id)}
+            <div class="relative group flex justify-center">
+              <button
+                class="w-full h-9 flex items-center rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'playlist' && $activePlaylistId === pl.id ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3 gap-2.5'}"
+                on:click={() => selectPlaylist(pl.id)}
+              >
+                <div class="w-4 h-4 flex items-center justify-center shrink-0">
+                  <svg class="w-3.5 h-3.5 {activeTab === 'playlist' && $activePlaylistId === pl.id ? 'text-crimson-400' : 'text-zinc-500'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M9 18V5l12-2v13"></path>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <circle cx="18" cy="16" r="3"></circle>
+                  </svg>
+                </div>
+
+                <div class="flex items-center flex-1 min-w-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 pointer-events-none' : 'max-w-[160px] opacity-100'}">
+                  <span class="truncate">{pl.name}</span>
+                  {#if (pl.tracks || []).length > 0}
+                    <span class="ml-auto text-[10px] text-zinc-500 font-mono shrink-0">{(pl.tracks || []).length}</span>
+                  {/if}
+                </div>
+              </button>
+
+              {#if $isSidebarCollapsed}
+                <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[60] px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center gap-1.5">
+                  <span>{pl.name}</span>
+                  <span class="text-[10px] text-zinc-400 font-mono">({(pl.tracks || []).length})</span>
+                  <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#161824]/95"></span>
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </div>
       </div>
     </div>
   </div>
