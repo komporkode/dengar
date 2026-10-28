@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, onDestroy } from 'svelte'
   import type { NavigationTab, SearchResultItem, SearchFilter } from './lib/types'
   import { Search, SearchMore } from '../wailsjs/go/main/App'
   import { Quit, WindowMinimise, WindowToggleMaximise } from '../wailsjs/runtime/runtime.js'
@@ -26,6 +26,9 @@
   let isLoadingMore = false
   let searchError: string | null = null
 
+  let scrollTimer: any
+  let handleScrollActivity: (e: Event) => void
+
   onMount(async () => {
     // 1. Load user favorites & history from backend JSON storage
     await userDataStore.load()
@@ -37,8 +40,7 @@
     window.addEventListener('keydown', handleGlobalKeydown)
 
     // 4. Global autohide scrollbar indicator
-    let scrollTimer: any
-    const handleScrollActivity = (e: Event) => {
+    handleScrollActivity = (e: Event) => {
       const target = e.target as HTMLElement
       if (target?.classList) {
         target.classList.add('is-scrolling')
@@ -53,12 +55,14 @@
       }, 900)
     }
     window.addEventListener('scroll', handleScrollActivity, { capture: true, passive: true })
+  })
 
-    return () => {
-      window.removeEventListener('keydown', handleGlobalKeydown)
+  onDestroy(() => {
+    window.removeEventListener('keydown', handleGlobalKeydown)
+    if (handleScrollActivity) {
       window.removeEventListener('scroll', handleScrollActivity, { capture: true })
-      clearTimeout(scrollTimer)
     }
+    clearTimeout(scrollTimer)
   })
 
   async function performSearch(query: string, filter: SearchFilter) {
