@@ -3,14 +3,53 @@
   import { cubicOut } from 'svelte/easing'
   import { isSettingsOpen, audioQualityStore, showToast } from '../stores/settingsStore'
   import { currentLocale, t } from '../stores/i18nStore'
+  import { BrowserOpenURL } from '../../../wailsjs/runtime/runtime.js'
+  import { CheckForUpdates } from '../../../wailsjs/go/main/App'
 
   let activeTab: 'general' | 'audio' | 'about' = 'general'
+  let updateStatus: 'idle' | 'checking' | 'latest' | 'update_available' | 'error' = 'idle'
+  let latestVersion = ''
+  let releaseUrl = ''
 
   function handleClearCache() {
     try {
       showToast($t('toast_cleared_cache'))
     } catch (e) {
       console.warn('Clear cache error:', e)
+    }
+  }
+
+  async function handleCheckUpdate() {
+    updateStatus = 'checking'
+    try {
+      const res = await CheckForUpdates()
+      if (res && res.hasUpdate) {
+        updateStatus = 'update_available'
+        latestVersion = res.latestVersion
+        releaseUrl = res.releaseUrl || 'https://github.com/komporkode/dengar/releases'
+      } else {
+        updateStatus = 'latest'
+      }
+    } catch (e) {
+      console.warn('Update check failed:', e)
+      updateStatus = 'error'
+    }
+  }
+
+  function openGithub() {
+    try {
+      BrowserOpenURL('https://github.com/komporkode/dengar')
+    } catch (e) {
+      window.open('https://github.com/komporkode/dengar', '_blank')
+    }
+  }
+
+  function openReleasePage() {
+    const url = releaseUrl || 'https://github.com/komporkode/dengar/releases'
+    try {
+      BrowserOpenURL(url)
+    } catch (e) {
+      window.open(url, '_blank')
     }
   }
 </script>
@@ -255,6 +294,76 @@
                   <span class="px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10">💰 100% Free / Rp0</span>
                   <span class="px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10">⚡ Go + Svelte + Wails</span>
                   <span class="px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10">🪶 Low RAM Usage</span>
+                </div>
+              </div>
+
+              <!-- GitHub & Update Checker Card -->
+              <div class="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2.5">
+                    <!-- GitHub Octocat Icon -->
+                    <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-white">
+                      <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 class="text-xs font-bold text-white">Repository & Version Control</h4>
+                      <p class="text-[10px] text-zinc-400 font-mono">github.com/komporkode/dengar</p>
+                    </div>
+                  </div>
+
+                  <!-- Open GitHub Button -->
+                  <button
+                    class="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-zinc-200 transition cursor-pointer flex items-center gap-1.5"
+                    on:click={openGithub}
+                    title="Buka Repositori di GitHub"
+                  >
+                    <span>Kunjungi</span>
+                    <svg class="w-3 h-3 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                      <polyline points="15 3 21 3 21 9"></polyline>
+                      <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Update Status & Action Row -->
+                <div class="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs">
+                  <div class="flex items-center gap-2">
+                    {#if updateStatus === 'checking'}
+                      <div class="w-3 h-3 border-2 border-white/20 border-t-crimson-500 rounded-full animate-spin"></div>
+                      <span class="text-zinc-400 text-[11px]">Memeriksa pembaruan di GitHub...</span>
+                    {:else if updateStatus === 'latest'}
+                      <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34D399]"></span>
+                      <span class="text-emerald-400 text-[11px] font-medium">Aplikasi sudah versi terbaru (v1.0.0)</span>
+                    {:else if updateStatus === 'update_available'}
+                      <span class="w-2 h-2 rounded-full bg-crimson-400 shadow-[0_0_6px_#E61E38] animate-pulse"></span>
+                      <span class="text-crimson-300 text-[11px] font-bold">Versi baru tersedia: {latestVersion}</span>
+                    {:else if updateStatus === 'error'}
+                      <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                      <span class="text-zinc-400 text-[11px]">Belum ada rilis baru di GitHub</span>
+                    {:else}
+                      <span class="text-zinc-400 text-[11px]">Versi saat ini: <strong class="text-zinc-200 font-mono">v1.0.0</strong></span>
+                    {/if}
+                  </div>
+
+                  {#if updateStatus === 'update_available'}
+                    <button
+                      class="px-3 py-1 rounded-xl bg-crimson-500 hover:bg-crimson-600 text-white font-bold text-xs transition cursor-pointer shadow-sm shadow-crimson-500/30"
+                      on:click={openReleasePage}
+                    >
+                      Unduh Update
+                    </button>
+                  {:else}
+                    <button
+                      class="px-3 py-1 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-[11px] font-medium text-zinc-300 hover:text-white transition cursor-pointer disabled:opacity-50"
+                      on:click={handleCheckUpdate}
+                      disabled={updateStatus === 'checking'}
+                    >
+                      {updateStatus === 'checking' ? 'Memeriksa...' : 'Cek Pembaruan'}
+                    </button>
+                  {/if}
                 </div>
               </div>
 

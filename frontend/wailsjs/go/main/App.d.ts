@@ -7,6 +7,8 @@ export function AddToHistory(arg1:backend.SearchResultItem):Promise<void>;
 
 export function AddTrackToPlaylist(arg1:string,arg2:backend.SearchResultItem):Promise<void>;
 
+export function CheckForUpdates():Promise<main.UpdateInfo>;
+
 export function CreatePlaylist(arg1:string,arg2:string):Promise<backend.Playlist>;
 
 export function DeletePlaylist(arg1:string):Promise<void>;
@@ -22,6 +24,8 @@ export function GetUserData():Promise<backend.UserData>;
 export function ImportPlaylist(arg1:string):Promise<backend.Playlist>;
 
 export function RecordPlay(arg1:backend.SearchResultItem):Promise<void>;
+
+export function RefreshHomeData():Promise<main.HomeData>;
 
 export function RemoveTrackFromPlaylist(arg1:string,arg2:string):Promise<void>;
 

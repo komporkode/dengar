@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import type { SearchResultItem } from '../types'
-  import { GetHomeData } from '../../../wailsjs/go/main/App'
+  import { GetHomeData, RefreshHomeData } from '../../../wailsjs/go/main/App'
   import { playerStore } from '../stores/playerStore'
   import { queueStore } from '../stores/queueStore'
   import { openAddToPlaylistModal } from '../stores/playlistStore'
@@ -10,6 +10,7 @@
   let topPlayed: SearchResultItem[] = []
   let recommended: SearchResultItem[] = []
   let isLoading = true
+  let isRefreshing = false
 
   onMount(async () => {
     await loadHomeData()
@@ -25,6 +26,20 @@
       console.warn('Failed to load home data:', e)
     } finally {
       isLoading = false
+    }
+  }
+
+  async function handleRefreshRecommendations() {
+    if (isRefreshing) return
+    isRefreshing = true
+    try {
+      const data = await RefreshHomeData()
+      topPlayed = data.topPlayed || []
+      recommended = data.recommended || []
+    } catch (e) {
+      console.warn('Failed to refresh recommendations:', e)
+    } finally {
+      isRefreshing = false
     }
   }
 
@@ -118,6 +133,20 @@
               {$t('home_recommended')}
             </h2>
           </div>
+
+          <button
+            class="text-[11px] text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            on:click={handleRefreshRecommendations}
+            disabled={isRefreshing}
+            title="Segarkan Rekomendasi"
+          >
+            <svg class="w-3 h-3 {isRefreshing ? 'animate-spin text-crimson-400' : 'text-zinc-400'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6"></path>
+              <path d="M1 20v-6h6"></path>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            <span>{isRefreshing ? 'Memuat...' : 'Segarkan'}</span>
+          </button>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">

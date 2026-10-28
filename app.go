@@ -5,7 +5,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"dengar/backend"
@@ -13,16 +15,29 @@ import (
 
 // App struct manages runtime context and backend services.
 type App struct {
-	ctx      context.Context
-	search   *backend.SearchService
-	resolver *backend.StreamResolver
-	storage  *backend.StorageService
+	ctx           context.Context
+	search        *backend.SearchService
+	resolver      *backend.StreamResolver
+	storage       *backend.StorageService
+	recCacheMutex sync.Mutex
+	cachedRec     []backend.SearchResultItem
+	lastRecFetch  time.Time
 }
 
 // HomeData holds sections for the personalized home feed.
 type HomeData struct {
 	TopPlayed   []backend.SearchResultItem `json:"topPlayed"`
 	Recommended []backend.SearchResultItem `json:"recommended"`
+}
+
+// UpdateInfo holds details for GitHub application release updates.
+type UpdateInfo struct {
+	CurrentVersion string `json:"currentVersion"`
+	LatestVersion  string `json:"latestVersion"`
+	HasUpdate      bool   `json:"hasUpdate"`
+	ReleaseURL     string `json:"releaseUrl"`
+	ReleaseNotes   string `json:"releaseNotes"`
+	PublishedAt    string `json:"publishedAt"`
 }
 
 // NewApp creates a new App application struct.
@@ -217,8 +232,17 @@ func (a *App) ImportPlaylist(payload string) (*backend.Playlist, error) {
 	return pl, nil
 }
 
-// GetHomeData returns personalized recommendations and frequently played tracks.
+// GetHomeData returns personalized recommendations and frequently played tracks with 2-hour cache.
 func (a *App) GetHomeData() (*HomeData, error) {
+	return a.getHomeDataInternal(false)
+}
+
+// RefreshHomeData forces fresh recommendations directly from network.
+func (a *App) RefreshHomeData() (*HomeData, error) {
+	return a.getHomeDataInternal(true)
+}
+
+func (a *App) getHomeDataInternal(forceRefresh bool) (*HomeData, error) {
 	result := &HomeData{
 		TopPlayed:   []backend.SearchResultItem{},
 		Recommended: []backend.SearchResultItem{},
@@ -227,8 +251,18 @@ func (a *App) GetHomeData() (*HomeData, error) {
 		return result, nil
 	}
 
+	// TopPlayed is 100% local from disk
 	top := a.storage.GetTopPlayed(8)
 	result.TopPlayed = top
+
+	// Check recommendation in-memory cache (2-hour TTL)
+	a.recCacheMutex.Lock()
+	if !forceRefresh && len(a.cachedRec) > 0 && time.Since(a.lastRecFetch) < 2*time.Hour {
+		result.Recommended = a.cachedRec
+		a.recCacheMutex.Unlock()
+		return result, nil
+	}
+	a.recCacheMutex.Unlock()
 
 	userData, _ := a.storage.Load()
 	artistMap := make(map[string]int)
@@ -295,7 +329,53 @@ func (a *App) GetHomeData() (*HomeData, error) {
 		}
 	}
 
+	a.recCacheMutex.Lock()
+	a.cachedRec = recTracks
+	a.lastRecFetch = time.Now()
+	a.recCacheMutex.Unlock()
+
 	result.Recommended = recTracks
 	return result, nil
+}
+
+// CheckForUpdates checks GitHub releases API for newer version of Dengar.
+func (a *App) CheckForUpdates() (*UpdateInfo, error) {
+	const currentVersion = "v1.0.0"
+	client := &http.Client{Timeout: 6 * time.Second}
+	req, err := http.NewRequest("GET", "https://api.github.com/repos/komporkode/dengar/releases/latest", nil)
+	if err != nil {
+		return &UpdateInfo{CurrentVersion: currentVersion, HasUpdate: false}, nil
+	}
+	req.Header.Set("User-Agent", "Dengar-Desktop-App")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return &UpdateInfo{CurrentVersion: currentVersion, HasUpdate: false}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return &UpdateInfo{CurrentVersion: currentVersion, HasUpdate: false}, nil
+	}
+
+	var release struct {
+		TagName string `json:"tag_name"`
+		HTMLURL string `json:"html_url"`
+		Body    string `json:"body"`
+		PubAt   string `json:"published_at"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return &UpdateInfo{CurrentVersion: currentVersion, HasUpdate: false}, nil
+	}
+
+	hasUpdate := release.TagName != "" && release.TagName != currentVersion
+	return &UpdateInfo{
+		CurrentVersion: currentVersion,
+		LatestVersion:  release.TagName,
+		HasUpdate:      hasUpdate,
+		ReleaseURL:     release.HTMLURL,
+		ReleaseNotes:   release.Body,
+		PublishedAt:    release.PubAt,
+	}, nil
 }
 

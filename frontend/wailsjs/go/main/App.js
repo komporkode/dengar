@@ -10,6 +10,10 @@ export function AddTrackToPlaylist(arg1, arg2) {
   return window['go']['main']['App']['AddTrackToPlaylist'](arg1, arg2);
 }
 
+export function CheckForUpdates() {
+  return window['go']['main']['App']['CheckForUpdates']();
+}
+
 export function CreatePlaylist(arg1, arg2) {
   return window['go']['main']['App']['CreatePlaylist'](arg1, arg2);
 }
@@ -40,6 +44,10 @@ export function ImportPlaylist(arg1) {
 
 export function RecordPlay(arg1) {
   return window['go']['main']['App']['RecordPlay'](arg1);
+}
+
+export function RefreshHomeData() {
+  return window['go']['main']['App']['RefreshHomeData']();
 }
 
 export function RemoveTrackFromPlaylist(arg1, arg2) {
