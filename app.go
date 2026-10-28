@@ -35,6 +35,7 @@ func NewApp() *App {
 // startup is called when the app starts.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	setupWindowsAppIcon()
 }
 
 // Search queries YouTube/Piped/Invidious instances for songs or videos with query caching.
