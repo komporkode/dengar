@@ -5,7 +5,7 @@
   import { Quit, WindowMinimise, WindowToggleMaximise } from '../wailsjs/runtime/runtime.js'
   import { playerStore } from './lib/stores/playerStore'
   import { userDataStore } from './lib/stores/userDataStore'
-  import { isMiniPlayer, toastMessage } from './lib/stores/settingsStore'
+  import { isMiniPlayer, toastMessage, togglePinMiniPlayer, exitMiniPlayer } from './lib/stores/settingsStore'
   import { t } from './lib/stores/i18nStore'
 
   import Sidebar from './lib/components/Sidebar.svelte'
@@ -155,6 +155,16 @@
       case 'KeyF':
         if ($playerStore.currentTrack) {
           userDataStore.toggleFavorite($playerStore.currentTrack)
+        }
+        break
+      case 'KeyP':
+        if ($isMiniPlayer) {
+          togglePinMiniPlayer()
+        }
+        break
+      case 'Escape':
+        if ($isMiniPlayer) {
+          exitMiniPlayer()
         }
         break
     }

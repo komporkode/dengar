@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store'
+import { writable, get } from 'svelte/store'
 import { WindowSetSize, WindowSetAlwaysOnTop, WindowSetMinSize } from '../../../wailsjs/runtime/runtime.js'
 
 export type AudioQuality = 'high' | 'saver'
@@ -16,6 +16,28 @@ audioQualityStore.subscribe((val) => {
 export const isSettingsOpen = writable<boolean>(false)
 export const isMiniPlayer = writable<boolean>(false)
 export const toastMessage = writable<string | null>(null)
+
+// Mini Player Pin (Always on top) store
+const savedMiniPlayerPinned = typeof localStorage !== 'undefined' ? localStorage.getItem('dengar_mini_pinned') !== 'false' : true
+export const isMiniPlayerPinned = writable<boolean>(savedMiniPlayerPinned)
+
+isMiniPlayerPinned.subscribe((pinned) => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('dengar_mini_pinned', String(pinned))
+  }
+})
+
+export function togglePinMiniPlayer(): boolean {
+  const next = !get(isMiniPlayerPinned)
+  isMiniPlayerPinned.set(next)
+  try {
+    WindowSetAlwaysOnTop(next)
+  } catch (e) {
+    console.warn('Wails WindowSetAlwaysOnTop error:', e)
+  }
+  showToast(next ? 'Disematkan di atas (Always on Top)' : 'Sematan dilepas')
+  return next
+}
 
 const savedSidebarCollapsed = typeof localStorage !== 'undefined' ? localStorage.getItem('dengar_sidebar_collapsed') === 'true' : false
 export const isSidebarCollapsed = writable<boolean>(savedSidebarCollapsed)
@@ -42,9 +64,10 @@ export function showToast(message: string) {
 
 export function enterMiniPlayer() {
   try {
-    WindowSetMinSize(360, 140)
-    WindowSetSize(380, 150)
-    WindowSetAlwaysOnTop(true)
+    WindowSetMinSize(360, 145)
+    WindowSetSize(380, 160)
+    const pinned = get(isMiniPlayerPinned)
+    WindowSetAlwaysOnTop(pinned)
     isMiniPlayer.set(true)
   } catch (e) {
     console.warn('Wails WindowSetSize error:', e)
