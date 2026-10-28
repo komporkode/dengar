@@ -37,9 +37,17 @@ function createPlayerStore() {
   let videoElement: HTMLVideoElement | null = null
   let currentRequestId = 0
 
-  function bindMedia(audio: HTMLAudioElement | null, video: HTMLVideoElement | null) {
+  function bindAudio(audio: HTMLAudioElement | null) {
     audioElement = audio
+  }
+
+  function bindVideo(video: HTMLVideoElement | null) {
     videoElement = video
+  }
+
+  function bindMedia(audio: HTMLAudioElement | null, video: HTMLVideoElement | null) {
+    if (audio !== null) audioElement = audio
+    if (video !== null) videoElement = video
   }
 
   function getActiveMedia(): HTMLMediaElement | null {
@@ -47,11 +55,29 @@ function createPlayerStore() {
     return s.mode === 'video' ? videoElement : audioElement
   }
 
-  async function playTrack(track: SearchResultItem, modeOverride?: PlayMode) {
-    const requestId = ++currentRequestId
+  async function playTrack(track: SearchResultItem, modeOverride?: PlayMode, forceRestart = false) {
     const s = get({ subscribe })
     const activeMode = modeOverride || s.mode
 
+    // Replay check for the exact same track (repeat-one or re-clicking current song)
+    if (s.currentTrack?.id === track.id && s.streamResult) {
+      const media = getActiveMedia()
+      if (media) {
+        media.currentTime = 0
+        media.play().catch(console.error)
+      }
+      update(st => ({
+        ...st,
+        isPlaying: true,
+        currentTime: 0,
+        isLoading: false,
+        error: null,
+        mode: activeMode,
+      }))
+      return
+    }
+
+    const requestId = ++currentRequestId
     update(st => ({
       ...st,
       currentTrack: track,
@@ -78,9 +104,19 @@ function createPlayerStore() {
         ...st,
         streamResult: stream,
         duration: stream.duration || track.duration || 0,
+        currentTime: 0,
         isLoading: false,
         isPlaying: true,
       }))
+
+      // Ensure active media starts playing
+      setTimeout(() => {
+        const media = getActiveMedia()
+        if (media) {
+          media.currentTime = 0
+          media.play().catch(console.error)
+        }
+      }, 20)
     } catch (e: any) {
       if (requestId !== currentRequestId) return
       console.error('Failed to resolve stream:', e)
@@ -202,31 +238,50 @@ function createPlayerStore() {
   }
 
   function onTrackEnded() {
-    const nextTrack = queueStore.next()
+    const s = get({ subscribe })
+    const q = get(queueStore)
+
+    // Repeat one mode: loop same track immediately
+    if (q.repeatMode === 'one' && s.currentTrack) {
+      const media = getActiveMedia()
+      if (media) {
+        media.currentTime = 0
+        media.play().catch(console.error)
+      }
+      update(st => ({ ...st, isPlaying: true, currentTime: 0 }))
+      return
+    }
+
+    const nextTrack = queueStore.next(false)
     if (nextTrack) {
-      playTrack(nextTrack)
+      playTrack(nextTrack, undefined, true)
     } else {
       update(st => ({ ...st, isPlaying: false, currentTime: 0 }))
     }
   }
 
   function playNext() {
-    const nextTrack = queueStore.next()
+    // When manually clicking next, advance forward even if repeat one is set
+    const nextTrack = queueStore.next(true)
     if (nextTrack) {
-      playTrack(nextTrack)
+      playTrack(nextTrack, undefined, true)
     }
   }
 
   function playPrev() {
     const prevTrack = queueStore.prev()
     if (prevTrack) {
-      playTrack(prevTrack)
+      playTrack(prevTrack, undefined, true)
+    } else {
+      seek(0)
     }
   }
 
   return {
     subscribe,
     bindMedia,
+    bindAudio,
+    bindVideo,
     playTrack,
     togglePlay,
     seek,

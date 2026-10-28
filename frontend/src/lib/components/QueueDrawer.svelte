@@ -11,10 +11,9 @@
   $: isPlaying = $playerStore.isPlaying
 
   function handlePlayQueueItem(index: number) {
-    const track = items[index]
+    const track = queueStore.jumpToIndex(index)
     if (track) {
-      queueStore.setQueue(items, index)
-      playerStore.playTrack(track)
+      playerStore.playTrack(track, undefined, true)
     }
   }
 

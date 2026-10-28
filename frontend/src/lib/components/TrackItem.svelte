@@ -8,6 +8,7 @@
 
   export let track: SearchResultItem
   export let index: number
+  export let tracksContext: SearchResultItem[] = []
 
   $: isCurrent = $playerStore.currentTrack?.id === track.id
   $: isPlaying = isCurrent && $playerStore.isPlaying
@@ -17,8 +18,12 @@
     if (isCurrent) {
       playerStore.togglePlay()
     } else {
+      if (tracksContext && tracksContext.length > 0) {
+        queueStore.setQueue(tracksContext, index)
+      } else {
+        queueStore.addToQueue(track)
+      }
       playerStore.playTrack(track)
-      queueStore.addToQueue(track)
     }
   }
 

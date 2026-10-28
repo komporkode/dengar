@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, onDestroy } from 'svelte'
   import { playerStore } from '../stores/playerStore'
 
   let videoElement: HTMLVideoElement
@@ -12,8 +12,12 @@
 
   onMount(() => {
     if (videoElement) {
-      playerStore.bindMedia(null, videoElement)
+      playerStore.bindVideo(videoElement)
     }
+  })
+
+  onDestroy(() => {
+    playerStore.bindVideo(null)
   })
 
   // Synchronize video element playback when stream or isPlaying changes in video mode
@@ -24,6 +28,8 @@
       if (isPlaying) {
         videoElement.play().catch(e => console.warn('Video play error:', e))
       }
+    } else if (isPlaying && videoElement.paused) {
+      videoElement.play().catch(e => console.warn('Video play error:', e))
     }
   }
 

@@ -27,7 +27,7 @@
 
   onMount(() => {
     if (audioElement) {
-      playerStore.bindMedia(audioElement, null)
+      playerStore.bindAudio(audioElement)
     }
   })
 
@@ -38,6 +38,8 @@
       if (isPlaying) {
         audioElement.play().catch(e => console.warn('Audio play error:', e))
       }
+    } else if (isPlaying && audioElement.paused) {
+      audioElement.play().catch(e => console.warn('Audio play error:', e))
     }
   }
 
@@ -137,9 +139,9 @@
       <div class="flex items-center gap-2 sm:gap-4 mb-0.5 sm:mb-1">
         <!-- Shuffle -->
         <button
-          class="p-1 sm:p-1.5 transition active:scale-95 cursor-pointer hidden sm:block {isShuffle ? 'text-crimson-400' : 'text-zinc-400 hover:text-zinc-200'}"
+          class="p-1 sm:p-1.5 transition relative active:scale-95 cursor-pointer hidden sm:block {isShuffle ? 'text-crimson-400' : 'text-zinc-400 hover:text-zinc-200'}"
           on:click={queueStore.toggleShuffle}
-          title={$t('shuffle')}
+          title={isShuffle ? 'Putar Acak: Aktif' : 'Putar Acak: Nonaktif'}
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <polyline points="16 3 21 3 21 8"></polyline>
@@ -148,6 +150,9 @@
             <line x1="15" y1="15" x2="21" y2="21"></line>
             <line x1="4" y1="4" x2="9" y2="9"></line>
           </svg>
+          {#if isShuffle}
+            <span class="absolute -bottom-0.5 right-1 w-1 h-1 rounded-full bg-crimson-400 shadow-[0_0_4px_#FF4D62]"></span>
+          {/if}
         </button>
 
         <!-- Previous -->
@@ -198,7 +203,7 @@
         <button
           class="p-1 sm:p-1.5 transition relative active:scale-95 cursor-pointer hidden sm:block {repeatMode !== 'off' ? 'text-crimson-400' : 'text-zinc-400 hover:text-zinc-200'}"
           on:click={queueStore.cycleRepeat}
-          title="Ulangi: {repeatMode.toUpperCase()}"
+          title={repeatMode === 'one' ? 'Ulangi: Satu Lagu (1)' : repeatMode === 'all' ? 'Ulangi: Semua Lagu' : 'Ulangi: Mati'}
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <polyline points="17 1 21 5 17 9"></polyline>

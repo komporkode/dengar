@@ -70,9 +70,12 @@
 
   function handleShuffleAll() {
     if (tracks.length === 0) return
-    const shuffled = [...tracks].sort(() => Math.random() - 0.5)
-    queueStore.setQueue(shuffled, 0)
-    playerStore.playTrack(shuffled[0])
+    queueStore.enableShuffle()
+    queueStore.setQueue(tracks, 0)
+    const current = queueStore.getCurrent()
+    if (current) {
+      playerStore.playTrack(current)
+    }
   }
 </script>
 
@@ -193,7 +196,7 @@
     {:else}
       <div class="divide-y divide-white/[0.03] mt-1 font-medium">
         {#each tracks as track, i (track.id + '-' + i)}
-          <TrackItem {track} index={i} />
+          <TrackItem {track} index={i} tracksContext={tracks} />
         {/each}
       </div>
 
