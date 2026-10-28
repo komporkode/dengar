@@ -6,12 +6,44 @@ export function AddToHistory(arg1) {
   return window['go']['main']['App']['AddToHistory'](arg1);
 }
 
+export function AddTrackToPlaylist(arg1, arg2) {
+  return window['go']['main']['App']['AddTrackToPlaylist'](arg1, arg2);
+}
+
+export function CreatePlaylist(arg1, arg2) {
+  return window['go']['main']['App']['CreatePlaylist'](arg1, arg2);
+}
+
+export function DeletePlaylist(arg1) {
+  return window['go']['main']['App']['DeletePlaylist'](arg1);
+}
+
+export function ExportPlaylist(arg1) {
+  return window['go']['main']['App']['ExportPlaylist'](arg1);
+}
+
+export function GetHomeData() {
+  return window['go']['main']['App']['GetHomeData']();
+}
+
 export function GetStream(arg1, arg2) {
   return window['go']['main']['App']['GetStream'](arg1, arg2);
 }
 
 export function GetUserData() {
   return window['go']['main']['App']['GetUserData']();
+}
+
+export function ImportPlaylist(arg1) {
+  return window['go']['main']['App']['ImportPlaylist'](arg1);
+}
+
+export function RecordPlay(arg1) {
+  return window['go']['main']['App']['RecordPlay'](arg1);
+}
+
+export function RemoveTrackFromPlaylist(arg1, arg2) {
+  return window['go']['main']['App']['RemoveTrackFromPlaylist'](arg1, arg2);
 }
 
 export function Search(arg1, arg2) {
@@ -24,4 +56,8 @@ export function SearchMore(arg1) {
 
 export function ToggleFavorite(arg1) {
   return window['go']['main']['App']['ToggleFavorite'](arg1);
+}
+
+export function UpdatePlaylist(arg1, arg2, arg3) {
+  return window['go']['main']['App']['UpdatePlaylist'](arg1, arg2, arg3);
 }
