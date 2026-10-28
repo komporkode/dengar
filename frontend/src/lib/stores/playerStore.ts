@@ -4,6 +4,44 @@ import { GetStream, RecordPlay } from '../../../wailsjs/go/main/App'
 import { userDataStore } from './userDataStore'
 import { queueStore } from './queueStore'
 
+const STORAGE_VOLUME_KEY = 'dengar_player_volume'
+const STORAGE_MUTED_KEY = 'dengar_player_muted'
+
+function loadSavedVolume(): number {
+  if (typeof localStorage === 'undefined') return 0.8
+  try {
+    const raw = localStorage.getItem(STORAGE_VOLUME_KEY)
+    if (raw !== null) {
+      const parsed = parseFloat(raw)
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+        return parsed
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load volume from localStorage:', e)
+  }
+  return 0.8
+}
+
+function loadSavedMuted(): boolean {
+  if (typeof localStorage === 'undefined') return false
+  try {
+    return localStorage.getItem(STORAGE_MUTED_KEY) === 'true'
+  } catch (e) {
+    return false
+  }
+}
+
+function saveVolumeState(volume: number, isMuted: boolean) {
+  if (typeof localStorage === 'undefined') return
+  try {
+    localStorage.setItem(STORAGE_VOLUME_KEY, volume.toString())
+    localStorage.setItem(STORAGE_MUTED_KEY, isMuted.toString())
+  } catch (e) {
+    console.warn('Failed to save volume to localStorage:', e)
+  }
+}
+
 interface PlayerState {
   currentTrack: SearchResultItem | null
   streamResult: StreamResult | null
@@ -19,14 +57,18 @@ interface PlayerState {
 }
 
 function createPlayerStore() {
+  const initialVolume = loadSavedVolume()
+  const initialMuted = loadSavedMuted()
+  let lastNonZeroVolume = initialVolume > 0 ? initialVolume : 0.8
+
   const { subscribe, set, update } = writable<PlayerState>({
     currentTrack: null,
     streamResult: null,
     isPlaying: false,
     currentTime: 0,
     duration: 0,
-    volume: 0.8,
-    isMuted: false,
+    volume: initialVolume,
+    isMuted: initialMuted,
     mode: 'audio',
     isLoading: false,
     error: null,
@@ -34,27 +76,35 @@ function createPlayerStore() {
   })
 
   let audioElement: HTMLAudioElement | null = null
-  let videoElement: HTMLVideoElement | null = null
   let currentRequestId = 0
   let hasRecordedPlay = false
   let recordedTrackId = ''
 
+  function applyVolumeToAudio() {
+    if (!audioElement) return
+    const s = get({ subscribe })
+    audioElement.volume = s.volume
+    audioElement.muted = s.isMuted
+  }
+
   function bindAudio(audio: HTMLAudioElement | null) {
     audioElement = audio
+    applyVolumeToAudio()
   }
 
-  function bindVideo(video: HTMLVideoElement | null) {
-    videoElement = video
+  function bindVideo(_video: HTMLVideoElement | null) {
+    // Pure audio mode - video no-op for backward compatibility
   }
 
-  function bindMedia(audio: HTMLAudioElement | null, video: HTMLVideoElement | null) {
-    if (audio !== null) audioElement = audio
-    if (video !== null) videoElement = video
+  function bindMedia(audio: HTMLAudioElement | null, _video: HTMLVideoElement | null) {
+    if (audio !== null) {
+      audioElement = audio
+      applyVolumeToAudio()
+    }
   }
 
   function getActiveMedia(): HTMLMediaElement | null {
-    const s = get({ subscribe })
-    return s.mode === 'video' ? videoElement : audioElement
+    return audioElement
   }
 
   async function playTrack(track: SearchResultItem, modeOverride?: PlayMode, forceRestart = false) {
@@ -195,42 +245,43 @@ function createPlayerStore() {
   }
 
   function setVolume(v: number) {
-    const vol = Math.max(0, Math.min(1, v))
-    const media = getActiveMedia()
-    if (media) {
-      media.volume = vol
+    const vol = Math.max(0, Math.min(1, Math.round(v * 100) / 100))
+    const isMuted = vol === 0
+    if (vol > 0) {
+      lastNonZeroVolume = vol
     }
-    update(st => ({ ...st, volume: vol, isMuted: vol === 0 }))
+    update(st => {
+      saveVolumeState(vol, isMuted)
+      return { ...st, volume: vol, isMuted }
+    })
+    applyVolumeToAudio()
+  }
+
+  function adjustVolume(delta: number) {
+    const s = get({ subscribe })
+    if (s.isMuted && delta > 0) {
+      setVolume(Math.min(1, (lastNonZeroVolume || 0.5) + delta))
+      return
+    }
+    const target = Math.max(0, Math.min(1, Math.round((s.volume + delta) * 100) / 100))
+    setVolume(target)
   }
 
   function toggleMute() {
     update(st => {
-      const newMuted = !st.isMuted
-      const media = getActiveMedia()
-      if (media) {
-        media.muted = newMuted
+      const nextMuted = !st.isMuted
+      let nextVol = st.volume
+      if (!nextMuted && nextVol === 0) {
+        nextVol = lastNonZeroVolume > 0 ? lastNonZeroVolume : 0.5
       }
-      return { ...st, isMuted: newMuted }
+      saveVolumeState(nextVol, nextMuted)
+      return { ...st, isMuted: nextMuted, volume: nextVol }
     })
+    applyVolumeToAudio()
   }
 
   function toggleMode() {
-    const s = get({ subscribe })
-    const newMode: PlayMode = s.mode === 'audio' ? 'video' : 'audio'
-    const currentTime = s.currentTime
-
-    update(st => ({ ...st, mode: newMode }))
-
-    // Resume time in newly active element
-    setTimeout(() => {
-      const media = getActiveMedia()
-      if (media) {
-        media.currentTime = currentTime
-        if (s.isPlaying) {
-          media.play().catch(console.error)
-        }
-      }
-    }, 50)
+    // Pure audio mode - kept for backward compatibility
   }
 
   function onTimeUpdate(currentTime: number, duration: number) {
@@ -303,6 +354,7 @@ function createPlayerStore() {
     togglePlay,
     seek,
     setVolume,
+    adjustVolume,
     toggleMute,
     toggleMode,
     onTimeUpdate,

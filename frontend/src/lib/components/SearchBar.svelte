@@ -6,7 +6,6 @@
   import { t } from '../stores/i18nStore'
 
   export let query = ''
-  export let filter: SearchFilter = 'music_songs'
   export let isLoading = false
 
   const dispatch = createEventDispatcher<{
@@ -22,22 +21,16 @@
     }
   }
 
-  function setFilter(newFilter: SearchFilter) {
-    if (filter === newFilter) return
-    filter = newFilter
-    dispatch('search', { query: query.trim(), filter: newFilter })
-  }
-
   function clearQuery() {
     query = ''
   }
 
   function triggerSearch() {
-    dispatch('search', { query: query.trim(), filter })
+    dispatch('search', { query: query.trim(), filter: 'music_songs' })
   }
 </script>
 
-<section class="sticky top-0 z-30 px-4 sm:px-8 pt-3.5 sm:pt-4 pb-3 sm:pb-3.5 bg-[#0E1017]/85 backdrop-blur-xl border-b border-white/[0.04] flex flex-col gap-3 select-none">
+<section class="sticky top-0 z-30 px-4 sm:px-8 py-3.5 bg-[#0E1017]/85 backdrop-blur-xl border-b border-white/[0.04] select-none">
   <!-- Search Input Bar & Top Right Actions -->
   <div class="flex items-center justify-between gap-2.5 sm:gap-4">
     <!-- Search Bar Input with Clickable Magnifying Glass -->
@@ -117,46 +110,5 @@
         </svg>
       </button>
     </div>
-  </div>
-
-  <!-- Filter Tags / Chips (Active tab is clearly prominent in vivid crimson) -->
-  <div class="flex items-center gap-2 overflow-x-auto pb-0.5 text-xs font-medium">
-    <!-- Lagu / Songs -->
-    <button
-      class="px-4 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5 {filter === 'music_songs' ? 'bg-crimson-600 text-white font-bold shadow-md shadow-crimson-600/35 ring-1 ring-crimson-400/50' : 'bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white border border-white/[0.08]'}"
-      on:click={() => setFilter('music_songs')}
-    >
-      <svg class="w-3.5 h-3.5 {filter === 'music_songs' ? 'text-white' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M9 18V5l12-2v13"></path>
-        <circle cx="6" cy="18" r="3" fill="currentColor"></circle>
-        <circle cx="18" cy="16" r="3" fill="currentColor"></circle>
-      </svg>
-      <span>{$t('filter_songs')}</span>
-    </button>
-
-    <!-- Video / Videos -->
-    <button
-      class="px-4 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5 {filter === 'videos' ? 'bg-crimson-600 text-white font-bold shadow-md shadow-crimson-600/35 ring-1 ring-crimson-400/50' : 'bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white border border-white/[0.08]'}"
-      on:click={() => setFilter('videos')}
-    >
-      <svg class="w-3.5 h-3.5 {filter === 'videos' ? 'text-white' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <polygon points="23 7 16 12 23 17 23 7"></polygon>
-        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-      </svg>
-      <span>{$t('filter_videos')}</span>
-    </button>
-
-    <!-- Semua / All -->
-    <button
-      class="px-4 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5 {filter === 'all' ? 'bg-crimson-600 text-white font-bold shadow-md shadow-crimson-600/35 ring-1 ring-crimson-400/50' : 'bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white border border-white/[0.08]'}"
-      on:click={() => setFilter('all')}
-    >
-      <svg class="w-3.5 h-3.5 {filter === 'all' ? 'text-white' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="2" y1="12" x2="22" y2="12"></line>
-        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-      </svg>
-      <span>{$t('filter_all')}</span>
-    </button>
   </div>
 </section>

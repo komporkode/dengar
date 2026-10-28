@@ -12,7 +12,6 @@
   import SearchBar from './lib/components/SearchBar.svelte'
   import TrackList from './lib/components/TrackList.svelte'
   import PlayerBar from './lib/components/PlayerBar.svelte'
-  import VideoModal from './lib/components/VideoModal.svelte'
   import QueueDrawer from './lib/components/QueueDrawer.svelte'
   import SettingsModal from './lib/components/SettingsModal.svelte'
   import MiniPlayer from './lib/components/MiniPlayer.svelte'
@@ -166,17 +165,14 @@
         break
       case 'ArrowUp':
         e.preventDefault()
-        playerStore.setVolume(Math.min(1, $playerStore.volume + 0.05))
+        playerStore.adjustVolume(0.05)
         break
       case 'ArrowDown':
         e.preventDefault()
-        playerStore.setVolume(Math.max(0, $playerStore.volume - 0.05))
+        playerStore.adjustVolume(-0.05)
         break
       case 'KeyM':
         playerStore.toggleMute()
-        break
-      case 'KeyV':
-        playerStore.toggleMode()
         break
       case 'KeyJ':
         playerStore.playPrev()
@@ -269,7 +265,6 @@
         {#if activeTab === 'search'}
           <SearchBar
             bind:query={searchQuery}
-            bind:filter={currentFilter}
             isLoading={isSearching}
             on:search={handleSearchEvent}
           />
@@ -327,9 +322,6 @@
         {/if}
       </main>
     </div>
-
-    <!-- Video Floating Player Overlay -->
-    <VideoModal />
 
     <!-- Ultra-Premium Queue Drawer -->
     <QueueDrawer />

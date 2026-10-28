@@ -226,17 +226,23 @@
 
     <span class="w-7 text-zinc-400 shrink-0">{formatTime(duration)}</span>
 
-    <!-- Quick Mute / Unmute -->
+    <!-- Quick Mute / Unmute & Volume Scroll -->
     <button
       class="p-1 rounded-md hover:bg-white/[0.08] text-zinc-400 hover:text-white transition cursor-pointer shrink-0"
       on:click={playerStore.toggleMute}
-      title={isMuted || volume === 0 ? 'Bunyikan (M)' : 'Bisukan (M)'}
+      on:wheel={(e) => { e.preventDefault(); playerStore.adjustVolume(e.deltaY < 0 ? 0.05 : -0.05); }}
+      title={isMuted || volume === 0 ? 'Bunyikan (M)' : `Volume: ${Math.round(volume * 100)}% (Scroll / M)`}
     >
       {#if isMuted || volume === 0}
         <svg class="w-3.5 h-3.5 text-crimson-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
           <line x1="23" y1="9" x2="17" y2="15"></line>
           <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+      {:else if volume < 0.5}
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
         </svg>
       {:else}
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

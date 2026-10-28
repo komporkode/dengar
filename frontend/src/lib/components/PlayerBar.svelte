@@ -15,7 +15,6 @@
   $: duration = $playerStore.duration
   $: volume = $playerStore.volume
   $: isMuted = $playerStore.isMuted
-  $: mode = $playerStore.mode
   $: isLoading = $playerStore.isLoading
   $: isFav = currentTrack ? $userDataStore.favorites.some(f => f.id === currentTrack?.id) : false
 
@@ -31,10 +30,12 @@
     }
   })
 
-  // Synchronize audio element playback when stream or isPlaying changes in audio mode
-  $: if (audioElement && stream?.audioUrl && mode === 'audio') {
+  // Synchronize audio element playback when stream or isPlaying changes
+  $: if (audioElement && stream?.audioUrl) {
     if (audioElement.src !== stream.audioUrl) {
       audioElement.src = stream.audioUrl
+      audioElement.volume = volume
+      audioElement.muted = isMuted
       if (isPlaying) {
         audioElement.play().catch(e => console.warn('Audio play error:', e))
       }
@@ -44,9 +45,15 @@
   }
 
   function handleTimeUpdate() {
-    if (audioElement && mode === 'audio') {
+    if (audioElement) {
       playerStore.onTimeUpdate(audioElement.currentTime, audioElement.duration)
     }
+  }
+
+  function handleVolumeWheel(e: WheelEvent) {
+    e.preventDefault()
+    const delta = e.deltaY < 0 ? 0.05 : -0.05
+    playerStore.adjustVolume(delta)
   }
 
   function handleSeek(e: Event) {
@@ -247,54 +254,44 @@
       </div>
     </div>
 
-    <!-- Sisi Kanan: Audio/Video Switcher, Volume Slider -->
-    <div class="flex items-center justify-end gap-2 sm:gap-3 shrink-0">
-      <!-- Mode Switcher Pill (Audio vs Video) with pure SVG -->
-      <button
-        class="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer {mode === 'video' ? 'bg-crimson-500/20 border-crimson-500/40 text-crimson-300' : 'bg-white/[0.06] hover:bg-white/[0.1] border-white/10 text-zinc-200'}"
-        on:click={playerStore.toggleMode}
-        title="Ganti Mode Audio / Video (V)"
+    <!-- Sisi Kanan: Pure Music Volume Control -->
+    <div class="flex items-center justify-end shrink-0">
+      <div
+        class="flex items-center gap-2 group px-2.5 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all"
+        on:wheel={handleVolumeWheel}
+        title="Volume (Scroll / Panah Atas-Bawah)"
       >
-        {#if mode === 'video'}
-          <svg class="w-3.5 h-3.5 text-crimson-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="23 7 16 12 23 17 23 7"></polygon>
-            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-          </svg>
-          <span class="text-[11px] hidden lg:inline">{$t('video_mode')}</span>
-        {:else}
-          <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
-            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
-          </svg>
-          <span class="text-[11px] hidden lg:inline">{$t('audio_mode_hq')}</span>
-        {/if}
-      </button>
-
-      <!-- Volume Slider (hidden on compact viewports to avoid cramping) -->
-      <div class="hidden sm:flex items-center gap-1.5 group w-20 sm:w-24">
+        <!-- Mute / Unmute Button -->
         <button
-          class="p-1 text-zinc-400 hover:text-white transition cursor-pointer"
+          type="button"
+          class="p-0.5 text-zinc-400 hover:text-white transition cursor-pointer"
           on:click={playerStore.toggleMute}
-          title="Mute/Unmute (M)"
+          title={isMuted || volume === 0 ? 'Bunyikan (M)' : 'Bisukan (M)'}
         >
           {#if isMuted || volume === 0}
-            <svg class="w-3.5 h-3.5 text-crimson-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
               <line x1="23" y1="9" x2="17" y2="15"></line>
               <line x1="17" y1="9" x2="23" y2="15"></line>
             </svg>
+          {:else if volume < 0.5}
+            <svg class="w-4 h-4 text-zinc-300 group-hover:text-white transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
           {:else}
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-zinc-300 group-hover:text-white transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
               <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
             </svg>
           {/if}
         </button>
 
-        <div class="relative flex-1 py-1 flex items-center">
+        <!-- Slider Bar -->
+        <div class="relative w-16 sm:w-20 md:w-24 py-1 flex items-center">
           <div class="h-1 w-full bg-white/[0.15] rounded-full group-hover:h-1.5 transition-all relative overflow-hidden">
             <div
-              class="h-full bg-zinc-200 group-hover:bg-crimson-400 rounded-full transition-colors"
+              class="h-full bg-gradient-to-r from-zinc-200 to-white group-hover:from-crimson-400 group-hover:to-rose-400 rounded-full transition-all"
               style="width: {volumePercent}%"
             ></div>
           </div>
@@ -303,11 +300,16 @@
             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             min="0"
             max="1"
-            step="0.02"
+            step="0.01"
             value={isMuted ? 0 : volume}
             on:input={handleVolumeChange}
           />
         </div>
+
+        <!-- Volume percentage text -->
+        <span class="text-[10px] font-mono text-zinc-400 group-hover:text-zinc-200 w-7 text-right select-none">
+          {volumePercent}%
+        </span>
       </div>
     </div>
   </div>
