@@ -83,7 +83,30 @@ const translations: Record<Locale, Record<string, string>> = {
     creator: 'Pengembang',
     close: 'Tutup',
     mini_player: 'Mini Player',
-    restore_player: 'Kembali ke Layar Penuh'
+    restore_player: 'Kembali ke Layar Penuh',
+
+    // Playlists & Home
+    section_playlists: 'Playlist Saya',
+    create_playlist: 'Buat Playlist',
+    edit_playlist: 'Edit Playlist',
+    delete_playlist: 'Hapus Playlist',
+    share_playlist: 'Bagikan Playlist',
+    import_playlist: 'Impor Playlist',
+    add_to_playlist: 'Tambah ke Playlist',
+    playlist_name: 'Nama Playlist',
+    playlist_desc: 'Deskripsi (Opsional)',
+    playlist_empty: 'Playlist ini masih kosong',
+    playlist_empty_tip: 'Gunakan tombol opsi ⋮ pada lagu untuk menambahkannya ke sini.',
+    home_top_played: 'Sering Kamu Putar',
+    home_recommended: 'Rekomendasi Untuk Kamu',
+    home_trending: 'Trending Hari Ini',
+    share_code: 'Kode Berbagi',
+    copy_code: 'Salin Kode',
+    copied: 'Tersalin ke Clipboard!',
+    export_file: 'Ekspor File JSON',
+    import_code_or_file: 'Tempel Kode atau Unggah File JSON',
+    import_btn: 'Impor Sekarang',
+    confirm_delete_playlist: 'Apakah Anda yakin ingin menghapus playlist ini?'
   },
   en: {
     // Nav
@@ -156,7 +179,30 @@ const translations: Record<Locale, Record<string, string>> = {
     creator: 'Developer',
     close: 'Close',
     mini_player: 'Mini Player',
-    restore_player: 'Restore Full Player'
+    restore_player: 'Restore Full Player',
+
+    // Playlists & Home
+    section_playlists: 'My Playlists',
+    create_playlist: 'Create Playlist',
+    edit_playlist: 'Edit Playlist',
+    delete_playlist: 'Delete Playlist',
+    share_playlist: 'Share Playlist',
+    import_playlist: 'Import Playlist',
+    add_to_playlist: 'Add to Playlist',
+    playlist_name: 'Playlist Name',
+    playlist_desc: 'Description (Optional)',
+    playlist_empty: 'This playlist is empty',
+    playlist_empty_tip: 'Use the ⋮ button on songs to add them here.',
+    home_top_played: 'Frequently Played',
+    home_recommended: 'Recommended For You',
+    home_trending: 'Trending Today',
+    share_code: 'Share Code',
+    copy_code: 'Copy Code',
+    copied: 'Copied to Clipboard!',
+    export_file: 'Export JSON File',
+    import_code_or_file: 'Paste Code or Upload JSON File',
+    import_btn: 'Import Now',
+    confirm_delete_playlist: 'Are you sure you want to delete this playlist?'
   }
 }
 

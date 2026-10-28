@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store'
 import type { SearchResultItem, StreamResult, PlayMode } from '../types'
-import { GetStream } from '../../../wailsjs/go/main/App'
+import { GetStream, RecordPlay } from '../../../wailsjs/go/main/App'
 import { userDataStore } from './userDataStore'
 import { queueStore } from './queueStore'
 
@@ -36,6 +36,8 @@ function createPlayerStore() {
   let audioElement: HTMLAudioElement | null = null
   let videoElement: HTMLVideoElement | null = null
   let currentRequestId = 0
+  let hasRecordedPlay = false
+  let recordedTrackId = ''
 
   function bindAudio(audio: HTMLAudioElement | null) {
     audioElement = audio
@@ -78,6 +80,8 @@ function createPlayerStore() {
     }
 
     const requestId = ++currentRequestId
+    hasRecordedPlay = false
+    recordedTrackId = track.id
     update(st => ({
       ...st,
       currentTrack: track,
@@ -230,6 +234,14 @@ function createPlayerStore() {
   }
 
   function onTimeUpdate(currentTime: number, duration: number) {
+    if (!hasRecordedPlay && currentTime >= 20) {
+      const s = get({ subscribe })
+      if (s.currentTrack && s.currentTrack.id === recordedTrackId) {
+        hasRecordedPlay = true
+        RecordPlay(s.currentTrack).catch(console.error)
+      }
+    }
+
     update(st => ({
       ...st,
       currentTime,
@@ -240,6 +252,11 @@ function createPlayerStore() {
   function onTrackEnded() {
     const s = get({ subscribe })
     const q = get(queueStore)
+
+    if (!hasRecordedPlay && s.currentTrack && s.currentTrack.id === recordedTrackId) {
+      hasRecordedPlay = true
+      RecordPlay(s.currentTrack).catch(console.error)
+    }
 
     // Repeat one mode: loop same track immediately
     if (q.repeatMode === 'one' && s.currentTrack) {
