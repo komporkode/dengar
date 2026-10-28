@@ -84,15 +84,15 @@
   <section class="px-4 sm:px-8 pt-4 sm:pt-6 pb-3 sm:pb-4">
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-4">
       <div>
-        <div class="flex items-center gap-2 mb-1">
-          <span class="text-xs uppercase tracking-widest font-semibold text-crimson-400">{$t('audio_exploration')}</span>
-          <span class="text-zinc-600">•</span>
-          <span class="text-xs text-zinc-400">{$t('stream_engine')}</span>
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="text-[11px] uppercase tracking-wider font-semibold text-crimson-400">{$t('audio_exploration')}</span>
+          <span class="text-zinc-600 text-xs">•</span>
+          <span class="text-[11px] text-zinc-400 font-medium">{$t('stream_engine')}</span>
         </div>
-        <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2 sm:gap-3 flex-wrap">
+        <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5 sm:gap-3 flex-wrap">
           <span>{title}</span>
           {#if !isLoading && tracks.length > 0}
-            <span class="text-xs font-mono font-medium px-2.5 py-1 rounded-full bg-white/[0.08] text-zinc-300 border border-white/10 flex items-center gap-1.5">
+            <span class="text-xs font-mono font-medium px-2.5 py-1 rounded-full bg-white/[0.08] text-zinc-300 border border-white/10 inline-flex items-center gap-1.5 align-middle">
               <span>{tracks.length} {$t('items_count')}</span>
               {#if totalDurationFormatted}
                 <span class="text-zinc-500">•</span>
@@ -107,7 +107,7 @@
       {#if !isLoading && tracks.length > 0}
         <div class="flex items-center gap-2 sm:gap-2.5">
           <button
-            class="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-crimson-500 hover:bg-crimson-600 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-crimson-500/30 transition transform active:scale-95 cursor-pointer"
+            class="px-5 sm:px-6 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-crimson-600 to-crimson-500 hover:from-crimson-500 hover:to-crimson-400 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-crimson-500/25 transition-all transform active:scale-95 cursor-pointer"
             on:click={handlePlayAll}
             title={isCurrentListPlaying ? $t('pause_all') : $t('play_all')}
           >
@@ -126,7 +126,7 @@
           </button>
 
           <button
-            class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-zinc-300 font-semibold text-xs sm:text-sm flex items-center gap-2 transition active:scale-95 cursor-pointer"
+            class="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-zinc-300 hover:text-white font-semibold text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
             on:click={handleShuffleAll}
             title={$t('shuffle')}
           >

@@ -11,15 +11,15 @@
 </script>
 
 <aside
-  class="bg-surface border-r border-white/[0.06] flex flex-col shrink-0 select-none justify-between h-full transition-all duration-300 ease-in-out relative z-40 {$isSidebarCollapsed ? 'w-14 overflow-visible' : 'w-56 xl:w-64'}"
+  class="bg-surface border-r border-white/[0.06] flex flex-col shrink-0 select-none justify-between h-full transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] relative z-50 overflow-visible {$isSidebarCollapsed ? 'w-14' : 'w-56 xl:w-60'}"
 >
   <!-- Brand & Primary Nav Section -->
-  <div class="{$isSidebarCollapsed ? 'space-y-3 p-1.5 overflow-visible' : 'space-y-6 p-3.5 xl:p-4 overflow-y-auto'}">
+  <div class="space-y-4 {$isSidebarCollapsed ? 'p-1.5 overflow-visible' : 'p-3 xl:p-3.5 overflow-y-auto overflow-x-hidden'}">
     <!-- Logo and Header -->
-    <div class="flex items-center {$isSidebarCollapsed ? 'justify-center pt-1.5 pb-0.5' : 'justify-between px-1.5 pt-1'}">
+    <div class="flex items-center {$isSidebarCollapsed ? 'justify-center pt-1' : 'justify-between px-1 pt-0.5'} h-10 transition-all duration-300">
       <div class="flex items-center gap-2.5 min-w-0">
         <!-- Logo Box (Click to toggle collapse) with Collapsed Tooltip -->
-        <div class="relative group flex items-center justify-center">
+        <div class="relative group flex items-center justify-center shrink-0">
           <button
             class="w-9 h-9 rounded-xl bg-gradient-to-tr from-crimson-600 via-crimson-500 to-rose-400 flex items-center justify-center shadow-lg shadow-crimson-500/25 shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-all"
             on:click={toggleSidebar}
@@ -32,26 +32,25 @@
 
           {#if $isSidebarCollapsed}
             <!-- Floating Tooltip for Logo -->
-            <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-50 px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center">
+            <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[60] px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center">
               <span>Perluas Sidebar</span>
               <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#161824]/95"></span>
             </div>
           {/if}
         </div>
 
-        {#if !$isSidebarCollapsed}
-          <div class="min-w-0 animate-in fade-in duration-200">
-            <div class="flex items-center gap-1.5 leading-none">
-              <span class="font-extrabold text-base tracking-tight text-white truncate">Dengar</span>
-              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 uppercase tracking-widest shrink-0">Hi-Fi</span>
-            </div>
-            <span class="text-[10px] text-zinc-400 font-medium leading-tight truncate block mt-0.5">Master Audio Engine</span>
+        <!-- Animated Brand Text -->
+        <div class="min-w-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 pointer-events-none' : 'max-w-[140px] opacity-100'}">
+          <div class="flex items-center gap-1.5 leading-none">
+            <span class="font-extrabold text-base tracking-tight text-white truncate">Dengar</span>
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 uppercase tracking-widest shrink-0">Hi-Fi</span>
           </div>
-        {/if}
+          <span class="text-[10px] text-zinc-400 font-medium leading-tight truncate block mt-0.5">Master Audio Engine</span>
+        </div>
       </div>
 
-      <!-- Modern Sidebar Collapse Toggle Button (ONLY shown when expanded) -->
-      {#if !$isSidebarCollapsed}
+      <!-- Animated Collapse Toggle Button (When expanded) -->
+      <div class="transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden {$isSidebarCollapsed ? 'max-w-0 opacity-0 pointer-events-none' : 'max-w-8 opacity-100'}">
         <button
           class="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.08] transition active:scale-90 cursor-pointer shrink-0"
           on:click={toggleSidebar}
@@ -63,41 +62,44 @@
             <path d="m16 15-3-3 3-3"/>
           </svg>
         </button>
-      {/if}
+      </div>
     </div>
 
     <!-- Section: Menjelajah -->
     <div class="space-y-1">
-      {#if !$isSidebarCollapsed}
-        <p class="px-2.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider animate-in fade-in duration-150">
+      <div class="transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-h-0 opacity-0 pointer-events-none my-0' : 'max-h-6 opacity-100 px-2.5 mb-1'}">
+        <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
           {$t('section_browse')}
         </p>
-      {/if}
+      </div>
       
       <div class="relative group flex justify-center">
         <button
-          class="flex items-center rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer {$isSidebarCollapsed ? 'w-10 h-10 p-0 justify-center mx-auto' : 'w-full gap-3 px-3 py-2.5'} {activeTab === 'search' ? 'bg-white/[0.08] text-white shadow-sm border border-white/[0.04]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'}"
+          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'search' ? 'bg-white/[0.08] text-white shadow-sm border border-white/[0.04]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3 gap-3'}"
           on:click={() => (activeTab = 'search')}
           title={!$isSidebarCollapsed ? $t('nav_explore') : undefined}
         >
-          <svg class="w-4 h-4 shrink-0 {activeTab === 'search' ? 'text-crimson-400' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" x2="16.65" y1="21" y2="16.65"></line>
-          </svg>
-          {#if !$isSidebarCollapsed}
+          <div class="w-5 h-5 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4 {activeTab === 'search' ? 'text-crimson-400' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" x2="16.65" y1="21" y2="16.65"></line>
+            </svg>
+          </div>
+
+          <div class="flex items-center flex-1 min-w-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 pointer-events-none' : 'max-w-[160px] opacity-100'}">
             <span class="truncate">{$t('nav_explore')}</span>
             {#if activeTab === 'search'}
               <span class="ml-auto text-[10px] bg-crimson-500/20 text-crimson-400 font-semibold px-1.5 py-0.5 rounded shrink-0">{$t('nav_active')}</span>
             {/if}
-          {/if}
+          </div>
         </button>
 
         {#if $isSidebarCollapsed}
           <!-- Floating Tooltip for Search / Explore -->
-          <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-50 px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center gap-1.5">
+          <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[60] px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center gap-1.5">
             <span>{$t('nav_explore')}</span>
             {#if activeTab === 'search'}
-              <span class="w-1.5 h-1.5 rounded-full bg-crimson-500"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-crimson-500 shadow-xs"></span>
             {/if}
             <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#161824]/95"></span>
           </div>
@@ -107,39 +109,40 @@
 
     <!-- Section: Koleksi Saya -->
     <div class="space-y-1">
-      {#if !$isSidebarCollapsed}
-        <p class="px-2.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider animate-in fade-in duration-150">
+      <div class="transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-h-0 opacity-0 pointer-events-none my-0' : 'max-h-6 opacity-100 px-2.5 mb-1'}">
+        <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
           {$t('section_collection')}
         </p>
-      {/if}
+      </div>
 
       <!-- Lagu Favorit -->
       <div class="relative group flex justify-center">
         <button
-          class="flex items-center rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer {$isSidebarCollapsed ? 'w-10 h-10 p-0 justify-center mx-auto relative' : 'w-full justify-between px-3 py-2.5'} {activeTab === 'favorites' ? 'bg-white/[0.08] text-white shadow-sm border border-white/[0.04]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'}"
+          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'favorites' ? 'bg-white/[0.08] text-white shadow-sm border border-white/[0.04]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3 gap-3'}"
           on:click={() => (activeTab = 'favorites')}
           title={!$isSidebarCollapsed ? $t('nav_favorites') : undefined}
         >
-          <div class="flex items-center {$isSidebarCollapsed ? 'justify-center' : 'gap-3 min-w-0'}">
-            <svg class="w-4 h-4 shrink-0 {activeTab === 'favorites' ? 'fill-crimson-500 text-crimson-500' : 'text-zinc-400 group-hover:text-crimson-400'} transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <div class="w-5 h-5 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4 {activeTab === 'favorites' ? 'fill-crimson-500 text-crimson-500' : 'text-zinc-400 group-hover:text-crimson-400'} transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
-            {#if !$isSidebarCollapsed}
-              <span class="truncate">{$t('nav_favorites')}</span>
+          </div>
+
+          <div class="flex items-center flex-1 min-w-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 pointer-events-none' : 'max-w-[160px] opacity-100'}">
+            <span class="truncate">{$t('nav_favorites')}</span>
+            {#if favCount > 0}
+              <span class="ml-auto text-xs bg-white/[0.06] text-zinc-300 px-2 py-0.5 rounded-full font-mono shrink-0">{favCount}</span>
             {/if}
           </div>
-          {#if favCount > 0}
-            {#if $isSidebarCollapsed}
-              <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-crimson-500 shadow-xs"></span>
-            {:else}
-              <span class="text-xs bg-white/[0.06] text-zinc-300 px-2 py-0.5 rounded-full font-mono shrink-0 ml-1">{favCount}</span>
-            {/if}
+
+          {#if favCount > 0 && $isSidebarCollapsed}
+            <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-crimson-500 ring-2 ring-surface shadow-xs pointer-events-none"></span>
           {/if}
         </button>
 
         {#if $isSidebarCollapsed}
           <!-- Floating Tooltip for Favorites -->
-          <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-50 px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center gap-2">
+          <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[60] px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center gap-2">
             <span>{$t('nav_favorites')}</span>
             {#if favCount > 0}
               <span class="text-[10px] bg-crimson-500/20 text-crimson-300 px-1.5 py-0.5 rounded-full font-mono">{favCount}</span>
@@ -152,31 +155,32 @@
       <!-- Riwayat Putar -->
       <div class="relative group flex justify-center">
         <button
-          class="flex items-center rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer {$isSidebarCollapsed ? 'w-10 h-10 p-0 justify-center mx-auto relative' : 'w-full justify-between px-3 py-2.5'} {activeTab === 'history' ? 'bg-white/[0.08] text-white shadow-sm border border-white/[0.04]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'}"
+          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'history' ? 'bg-white/[0.08] text-white shadow-sm border border-white/[0.04]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3 gap-3'}"
           on:click={() => (activeTab = 'history')}
           title={!$isSidebarCollapsed ? $t('nav_history') : undefined}
         >
-          <div class="flex items-center {$isSidebarCollapsed ? 'justify-center' : 'gap-3 min-w-0'}">
-            <svg class="w-4 h-4 shrink-0 {activeTab === 'history' ? 'text-crimson-400' : 'text-zinc-400 group-hover:text-zinc-200'} transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <div class="w-5 h-5 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4 {activeTab === 'history' ? 'text-crimson-400' : 'text-zinc-400 group-hover:text-zinc-200'} transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="10"></circle>
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
-            {#if !$isSidebarCollapsed}
-              <span class="truncate">{$t('nav_history')}</span>
+          </div>
+
+          <div class="flex items-center flex-1 min-w-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 pointer-events-none' : 'max-w-[160px] opacity-100'}">
+            <span class="truncate">{$t('nav_history')}</span>
+            {#if histCount > 0}
+              <span class="ml-auto text-xs bg-white/[0.06] text-zinc-300 px-2 py-0.5 rounded-full font-mono shrink-0">{histCount}</span>
             {/if}
           </div>
-          {#if histCount > 0}
-            {#if $isSidebarCollapsed}
-              <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-crimson-500 shadow-xs"></span>
-            {:else}
-              <span class="text-xs bg-white/[0.06] text-zinc-300 px-2 py-0.5 rounded-full font-mono shrink-0 ml-1">{histCount}</span>
-            {/if}
+
+          {#if histCount > 0 && $isSidebarCollapsed}
+            <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-crimson-500 ring-2 ring-surface shadow-xs pointer-events-none"></span>
           {/if}
         </button>
 
         {#if $isSidebarCollapsed}
           <!-- Floating Tooltip for History -->
-          <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-50 px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center gap-2">
+          <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[60] px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center gap-2">
             <span>{$t('nav_history')}</span>
             {#if histCount > 0}
               <span class="text-[10px] bg-white/10 text-zinc-300 px-1.5 py-0.5 rounded-full font-mono">{histCount}</span>
@@ -189,25 +193,28 @@
   </div>
 
   <!-- Bottom Sidebar: Clean Settings & About trigger button with Tooltip -->
-  <div class="border-t border-white/[0.06] bg-[#0E1017] relative z-40 {$isSidebarCollapsed ? 'p-1.5 flex justify-center overflow-visible' : 'p-3'}">
+  <div class="border-t border-white/[0.06] bg-[#0E1017] relative overflow-visible {$isSidebarCollapsed ? 'p-1.5 flex justify-center' : 'p-3'}">
     <div class="relative group {$isSidebarCollapsed ? 'flex justify-center' : 'w-full'}">
       <button
-        class="flex items-center rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.05] transition border border-transparent hover:border-white/[0.06] cursor-pointer {$isSidebarCollapsed ? 'w-10 h-10 p-0 justify-center mx-auto' : 'w-full gap-3 px-3 py-2.5'}"
+        class="w-full h-10 flex items-center rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.05] transition-all border border-transparent hover:border-white/[0.06] cursor-pointer {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3 gap-3'}"
         on:click={() => isSettingsOpen.set(true)}
         title={!$isSidebarCollapsed ? $t('settings_title') : undefined}
       >
-        <svg class="w-4.5 h-4.5 text-zinc-400 group-hover:text-crimson-400 group-hover:rotate-45 transition duration-200 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-        </svg>
-        {#if !$isSidebarCollapsed}
+        <div class="w-5 h-5 flex items-center justify-center shrink-0">
+          <svg class="w-4.5 h-4.5 text-zinc-400 group-hover:text-crimson-400 group-hover:rotate-45 transition duration-200 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </div>
+
+        <div class="flex items-center flex-1 min-w-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 pointer-events-none' : 'max-w-[160px] opacity-100'}">
           <span class="truncate">{$t('settings_title')}</span>
-        {/if}
+        </div>
       </button>
 
       {#if $isSidebarCollapsed}
         <!-- Floating Tooltip for Settings -->
-        <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-50 px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center">
+        <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[60] px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center">
           <span>{$t('settings_title')}</span>
           <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#161824]/95"></span>
         </div>
