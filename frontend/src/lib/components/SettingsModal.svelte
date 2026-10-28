@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { fade, scale } from 'svelte/transition'
+  import { cubicOut } from 'svelte/easing'
   import { isSettingsOpen, audioQualityStore, showToast } from '../stores/settingsStore'
   import { currentLocale, t } from '../stores/i18nStore'
 
@@ -14,23 +16,25 @@
 </script>
 
 {#if $isSettingsOpen}
-  <!-- Backdrop -->
+  <!-- Backdrop with fade transition -->
   <div
-    class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 select-none animate-in fade-in duration-200"
+    class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 select-none"
+    transition:fade={{ duration: 200 }}
     on:click={() => isSettingsOpen.set(false)}
     role="presentation"
   >
-    <!-- Modal Card (Modern Luxury Hi-Fi Glassmorphism) -->
+    <!-- Modal Card with Fixed Size (h-[520px] never jumps or resizes across tabs) -->
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <div
-      class="w-full max-w-2xl bg-[#11131E]/95 border border-white/[0.12] rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden animate-scale-in duration-200 max-h-[85vh]"
+      class="w-full max-w-2xl h-[520px] max-h-[90vh] bg-[#11131E]/95 border border-white/[0.12] rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden"
+      transition:scale={{ start: 0.95, duration: 200, easing: cubicOut }}
       on:click|stopPropagation
       role="dialog"
       aria-modal="true"
       tabindex="-1"
     >
       <!-- Left Tab Rail -->
-      <div class="w-full md:w-56 bg-[#0B0D15]/90 border-b md:border-b-0 md:border-r border-white/[0.08] p-4 flex flex-col justify-between shrink-0">
+      <div class="w-full md:w-56 bg-[#0B0D15]/90 border-b md:border-b-0 md:border-r border-white/[0.08] p-4 flex flex-col justify-between shrink-0 h-auto md:h-full">
         <div>
           <!-- Logo & Brand Header in Settings -->
           <div class="flex items-center gap-2.5 px-2 py-2 mb-4 border-b border-white/[0.06]">
@@ -90,9 +94,9 @@
         </div>
       </div>
 
-      <!-- Right Content Area -->
-      <div class="flex-1 flex flex-col justify-between overflow-y-auto p-6 space-y-6">
-        <div>
+      <!-- Right Content Area (Fixed layout with scrollable inner section) -->
+      <div class="flex-1 flex flex-col justify-between overflow-hidden p-6 h-full">
+        <div class="flex-1 overflow-y-auto pr-1">
           {#if activeTab === 'general'}
             <div class="space-y-4">
               <div>
@@ -269,8 +273,8 @@
           {/if}
         </div>
 
-        <!-- Dialog Footer -->
-        <div class="pt-4 border-t border-white/[0.08] flex items-center justify-end">
+        <!-- Dialog Footer (Always pinned at bottom of modal) -->
+        <div class="pt-4 border-t border-white/[0.08] flex items-center justify-end shrink-0">
           <button
             class="px-5 py-2 rounded-xl bg-crimson-500 hover:bg-crimson-600 text-white font-semibold text-xs transition cursor-pointer shadow-md shadow-crimson-500/25"
             on:click={() => isSettingsOpen.set(false)}

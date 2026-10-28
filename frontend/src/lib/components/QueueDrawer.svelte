@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { fly, fade } from 'svelte/transition'
+  import { cubicOut } from 'svelte/easing'
   import { queueStore } from '../stores/queueStore'
   import { playerStore } from '../stores/playerStore'
   import { t } from '../stores/i18nStore'
@@ -23,15 +25,19 @@
 </script>
 
 {#if isOpen}
-  <!-- Subtle click-outside backdrop (not pitch black, lets user see the music app) -->
+  <!-- Subtle click-outside backdrop with smooth fade animation -->
   <div
-    class="fixed inset-0 bg-black/30 z-50 backdrop-blur-xs transition-opacity duration-300"
+    class="fixed inset-0 bg-black/40 z-50 backdrop-blur-xs"
+    transition:fade={{ duration: 250 }}
     on:click={() => queueStore.toggleDrawer(false)}
     role="presentation"
   ></div>
 
-  <!-- Ultra-Premium Slide-over Queue Drawer (Full height top-9 to bottom-0, on top of player) -->
-  <aside class="fixed top-9 right-0 bottom-0 w-88 sm:w-96 bg-[#10121A]/95 backdrop-blur-2xl border-l border-white/[0.08] shadow-2xl flex flex-col z-50 animate-spring-slide select-none overflow-hidden">
+  <!-- Ultra-Premium Slide-over Queue Drawer with smooth entrance and exit fly transition -->
+  <aside
+    class="fixed top-9 right-0 bottom-0 w-full max-w-[380px] sm:w-96 bg-[#10121A]/95 backdrop-blur-2xl border-l border-white/[0.08] shadow-2xl flex flex-col z-50 select-none overflow-hidden"
+    transition:fly={{ x: 420, duration: 320, easing: cubicOut }}
+  >
     <!-- Header -->
     <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.08] bg-[#0A0C12]/90 shrink-0">
       <div class="flex items-center gap-2.5">

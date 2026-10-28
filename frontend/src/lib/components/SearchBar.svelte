@@ -46,9 +46,9 @@
   }
 </script>
 
-<section class="sticky top-0 z-30 px-8 pt-5 pb-4 glass-panel border-b border-white/[0.06] flex flex-col gap-3.5 select-none">
+<section class="sticky top-0 z-30 px-4 sm:px-8 pt-3.5 sm:pt-5 pb-3 sm:pb-4 glass-panel border-b border-white/[0.06] flex flex-col gap-3 sm:gap-3.5 select-none">
   <!-- Search Input Bar & Top Right Actions -->
-  <div class="flex items-center justify-between gap-4">
+  <div class="flex items-center justify-between gap-2.5 sm:gap-4">
     <!-- Search Bar Input -->
     <div class="relative flex-1 max-w-2xl">
       <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400">

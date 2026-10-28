@@ -157,8 +157,8 @@
         <span class="text-zinc-200 font-semibold tracking-wide">Dengar</span>
       </div>
 
-      <!-- Center playing song / status -->
-      <div class="text-[11px] font-medium text-zinc-400 flex items-center gap-2 truncate max-w-md pointer-events-none">
+      <!-- Center playing song / status (Responsive: hidden on narrow screens) -->
+      <div class="hidden sm:flex text-[11px] font-medium text-zinc-400 items-center gap-2 truncate max-w-xs md:max-w-md pointer-events-none">
         {#if $playerStore.currentTrack}
           <span class="text-zinc-300 truncate">{$playerStore.currentTrack.title} — {$playerStore.currentTrack.uploaderName}</span>
         {:else}

@@ -17,6 +17,19 @@ export const isSettingsOpen = writable<boolean>(false)
 export const isMiniPlayer = writable<boolean>(false)
 export const toastMessage = writable<string | null>(null)
 
+const savedSidebarCollapsed = typeof localStorage !== 'undefined' ? localStorage.getItem('dengar_sidebar_collapsed') === 'true' : false
+export const isSidebarCollapsed = writable<boolean>(savedSidebarCollapsed)
+
+isSidebarCollapsed.subscribe((collapsed) => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('dengar_sidebar_collapsed', String(collapsed))
+  }
+})
+
+export function toggleSidebar() {
+  isSidebarCollapsed.update(v => !v)
+}
+
 let toastTimer: any
 
 export function showToast(message: string) {
