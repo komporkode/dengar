@@ -35,8 +35,29 @@
 
     // 3. Register global in-app keyboard shortcuts
     window.addEventListener('keydown', handleGlobalKeydown)
+
+    // 4. Global autohide scrollbar indicator
+    let scrollTimer: any
+    const handleScrollActivity = (e: Event) => {
+      const target = e.target as HTMLElement
+      if (target?.classList) {
+        target.classList.add('is-scrolling')
+      }
+      document.body.classList.add('is-scrolling')
+      clearTimeout(scrollTimer)
+      scrollTimer = setTimeout(() => {
+        if (target?.classList) {
+          target.classList.remove('is-scrolling')
+        }
+        document.body.classList.remove('is-scrolling')
+      }, 900)
+    }
+    window.addEventListener('scroll', handleScrollActivity, { capture: true, passive: true })
+
     return () => {
       window.removeEventListener('keydown', handleGlobalKeydown)
+      window.removeEventListener('scroll', handleScrollActivity, { capture: true })
+      clearTimeout(scrollTimer)
     }
   })
 

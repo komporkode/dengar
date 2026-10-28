@@ -17,20 +17,58 @@
   --shadow-island-glow: 0 20px 48px -8px rgba(0, 0, 0, 0.75), 0 0 20px -2px rgba(230, 30, 56, 0.15);
 }
 
-/* Custom refined dark scrollbars */
+/* ==========================================================================
+   Ultra-Refined Custom Autohide Scrollbars
+   ========================================================================== */
+
+/* Modern Firefox / Standards */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.25s ease;
+}
+
+*:hover,
+*.is-scrolling {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+/* WebKit / Chromium (Blink & WebView2) */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: transparent;
   border-radius: 9999px;
+  transition: background-color 0.25s ease;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+
+/* Reveal thumb smoothly on container hover or when actively scrolling */
+*:hover::-webkit-scrollbar-thumb,
+*.is-scrolling::-webkit-scrollbar-thumb,
+body.is-scrolling ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* Brighten thumb on direct hover */
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Glowing Crimson accent when actively dragging thumb */
+*::-webkit-scrollbar-thumb:active {
+  background: #E61E38;
+  box-shadow: 0 0 10px rgba(230, 30, 56, 0.6);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Glassmorphism utility classes */
