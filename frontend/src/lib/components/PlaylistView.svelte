@@ -214,32 +214,21 @@
       <!-- Header Bar -->
       <div class="grid grid-cols-12 gap-2 sm:gap-4 px-2.5 sm:px-4 py-2 text-[11px] font-bold tracking-wider text-zinc-400 uppercase border-b border-white/[0.06] mb-1">
         <div class="col-span-1 text-center">#</div>
-        <div class="col-span-7 sm:col-span-6 md:col-span-5">{$t('title_and_artist')}</div>
-        <div class="hidden md:block col-span-3">{$t('channel_or_artist')}</div>
-        <div class="col-span-2 md:col-span-2 text-right">{$t('quality_and_duration')}</div>
-        <div class="col-span-2 md:col-span-1 text-right">{$t('actions')}</div>
+        <div class="col-span-6 sm:col-span-6 md:col-span-5">{$t('title_and_artist')}</div>
+        <div class="hidden md:block col-span-2 pr-2">{$t('channel_or_artist')}</div>
+        <div class="col-span-2 md:col-span-2 text-right whitespace-nowrap">{$t('quality_and_duration')}</div>
+        <div class="col-span-3 sm:col-span-3 md:col-span-2 text-right pr-1 sm:pr-2">{$t('actions')}</div>
       </div>
 
       <!-- Tracks List -->
       <div class="space-y-1">
         {#each tracks as track, idx (track.id)}
-          <div class="relative group/pl-row">
-            <TrackItem
-              {track}
-              index={idx}
-              tracksContext={tracks}
-            />
-            <button
-              class="absolute right-12 sm:right-14 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover/pl-row:opacity-100 transition rounded-lg hover:bg-white/[0.08] cursor-pointer"
-              on:click|stopPropagation={() => handleRemoveTrack(track.id)}
-              title="Hapus dari playlist ini"
-            >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
+          <TrackItem
+            {track}
+            index={idx}
+            tracksContext={tracks}
+            onRemove={() => handleRemoveTrack(track.id)}
+          />
         {/each}
       </div>
     {/if}

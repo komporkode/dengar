@@ -10,6 +10,7 @@
   export let track: SearchResultItem
   export let index: number
   export let tracksContext: SearchResultItem[] = []
+  export let onRemove: (() => void) | null = null
 
   $: isCurrent = $playerStore.currentTrack?.id === track.id
   $: isPlaying = isCurrent && $playerStore.isPlaying
@@ -87,7 +88,7 @@
   </div>
 
   <!-- Col 2: Title, Artist, Thumbnail -->
-  <div class="col-span-7 sm:col-span-6 md:col-span-5 flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+  <div class="col-span-6 sm:col-span-6 md:col-span-5 flex items-center gap-2.5 sm:gap-3.5 min-w-0">
     <div class="relative shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden shadow-md border border-white/10 group-hover:scale-105 transition-transform duration-200 bg-surface-highlight flex items-center justify-center">
       {#if track.thumbnailUrl}
         <img alt={track.title} class="w-full h-full object-cover" src={track.thumbnailUrl} loading="lazy" />
@@ -111,12 +112,12 @@
   </div>
 
   <!-- Col 3: Channel / Uploader -->
-  <div class="hidden md:block col-span-3 text-xs text-zinc-400 truncate">
+  <div class="hidden md:block col-span-2 text-xs text-zinc-400 truncate pr-2">
     {track.uploaderName}
   </div>
 
   <!-- Col 4: Quality & Duration -->
-  <div class="col-span-2 md:col-span-2 flex items-center justify-end gap-1.5 sm:gap-2 text-right">
+  <div class="col-span-2 md:col-span-2 flex items-center justify-end gap-1.5 sm:gap-2 text-right shrink-0 whitespace-nowrap">
     <span class="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded {isCurrent ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' : 'bg-white/[0.06] text-zinc-300'}">
       {track.duration > 300 ? 'HQ Opus' : 'HQ Audio'}
     </span>
@@ -126,7 +127,7 @@
   </div>
 
   <!-- Col 5: Actions (Favorite, Add to Queue, Add to Playlist ⋮) -->
-  <div class="col-span-2 md:col-span-1 flex items-center justify-end gap-1 sm:gap-1.5 text-zinc-400">
+  <div class="col-span-3 sm:col-span-3 md:col-span-2 flex items-center justify-end gap-1 sm:gap-1.5 text-zinc-400 shrink-0">
     <!-- Favorite button -->
     <button
       class="p-1 sm:p-1.5 hover:text-crimson-400 transition cursor-pointer"
@@ -162,6 +163,20 @@
         <circle cx="12" cy="19" r="1.5"></circle>
       </svg>
     </button>
+
+    {#if onRemove}
+      <!-- Remove from Playlist button -->
+      <button
+        class="p-1 sm:p-1.5 text-zinc-500 hover:text-red-400 transition cursor-pointer rounded-lg hover:bg-white/[0.08]"
+        on:click|stopPropagation={onRemove}
+        title="Hapus dari playlist"
+      >
+        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    {/if}
   </div>
 </div>
 

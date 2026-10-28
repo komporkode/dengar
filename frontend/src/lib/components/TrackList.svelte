@@ -149,10 +149,10 @@
     <!-- Table Column Headers -->
     <div class="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-2.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider border-b border-white/[0.08]">
       <div class="col-span-1 text-center">#</div>
-      <div class="col-span-7 sm:col-span-6 md:col-span-5">{$t('title_and_artist')}</div>
-      <div class="hidden md:block col-span-3">{$t('channel_or_artist')}</div>
-      <div class="col-span-2 md:col-span-2 text-right">{$t('quality_and_duration')}</div>
-      <div class="col-span-2 md:col-span-1 text-right pr-1 sm:pr-2">{$t('actions')}</div>
+      <div class="col-span-6 sm:col-span-6 md:col-span-5">{$t('title_and_artist')}</div>
+      <div class="hidden md:block col-span-2 pr-2">{$t('channel_or_artist')}</div>
+      <div class="col-span-2 md:col-span-2 text-right whitespace-nowrap">{$t('quality_and_duration')}</div>
+      <div class="col-span-3 sm:col-span-3 md:col-span-2 text-right pr-1 sm:pr-2">{$t('actions')}</div>
     </div>
 
     <!-- Track List Items Container -->
