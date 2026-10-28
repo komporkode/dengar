@@ -3,6 +3,7 @@
   import { playerStore } from '../stores/playerStore'
   import { queueStore } from '../stores/queueStore'
   import { userDataStore } from '../stores/userDataStore'
+  import { openAddToPlaylistModal } from '../stores/playlistStore'
   import { showToast } from '../stores/settingsStore'
   import { t } from '../stores/i18nStore'
 
@@ -38,6 +39,11 @@
     const wasFav = isFav
     userDataStore.toggleFavorite(track)
     showToast(wasFav ? $t('removed_from_favorites') : $t('added_to_favorites'))
+  }
+
+  function handleAddToPlaylist(e: MouseEvent) {
+    e.stopPropagation()
+    openAddToPlaylistModal(track)
   }
 </script>
 
@@ -119,7 +125,7 @@
     </span>
   </div>
 
-  <!-- Col 5: Actions (Only Favorite & Add to Queue with functioning feedback) -->
+  <!-- Col 5: Actions (Favorite, Add to Queue, Add to Playlist ⋮) -->
   <div class="col-span-2 md:col-span-1 flex items-center justify-end gap-1 sm:gap-1.5 text-zinc-400">
     <!-- Favorite button -->
     <button
@@ -143,5 +149,19 @@
         <line x1="5" y1="12" x2="19" y2="12"></line>
       </svg>
     </button>
+
+    <!-- Add to Playlist button -->
+    <button
+      class="p-1 sm:p-1.5 hover:text-white transition cursor-pointer"
+      on:click={handleAddToPlaylist}
+      title={$t('add_to_playlist')}
+    >
+      <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="1.5"></circle>
+        <circle cx="12" cy="5" r="1.5"></circle>
+        <circle cx="12" cy="19" r="1.5"></circle>
+      </svg>
+    </button>
   </div>
 </div>
+
