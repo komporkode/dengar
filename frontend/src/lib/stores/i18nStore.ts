@@ -65,7 +65,7 @@ const translations: Record<Locale, Record<string, string>> = {
     toast_cleared_cache: 'Cache audio berhasil dibersihkan',
 
     // Settings & About
-    settings_title: 'Pengaturan & Tentang',
+    settings_title: 'Pengaturan',
     tab_general: 'Umum & Bahasa',
     tab_audio: 'Kualitas Audio',
     tab_about: 'Tentang Aplikasi',
@@ -138,7 +138,7 @@ const translations: Record<Locale, Record<string, string>> = {
     toast_cleared_cache: 'Audio stream cache successfully cleared',
 
     // Settings & About
-    settings_title: 'Settings & About',
+    settings_title: 'Settings',
     tab_general: 'General & Language',
     tab_audio: 'Audio Quality',
     tab_about: 'About App',

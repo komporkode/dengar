@@ -13,19 +13,11 @@
     search: { query: string; filter: SearchFilter }
   }>()
 
-  let debounceTimer: any
+  let queueCount = 0
   $: queueCount = $queueStore.items.length
-
-  function handleInput() {
-    clearTimeout(debounceTimer)
-    debounceTimer = setTimeout(() => {
-      triggerSearch()
-    }, 450)
-  }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter') {
-      clearTimeout(debounceTimer)
       triggerSearch()
     }
   }
@@ -33,15 +25,17 @@
   function setFilter(newFilter: SearchFilter) {
     if (filter === newFilter) return
     filter = newFilter
-    triggerSearch()
+    if (query.trim()) {
+      triggerSearch()
+    }
   }
 
   function clearQuery() {
     query = ''
-    triggerSearch()
   }
 
   function triggerSearch() {
+    if (!query.trim()) return
     dispatch('search', { query: query.trim(), filter })
   }
 </script>
@@ -49,20 +43,25 @@
 <section class="sticky top-0 z-30 px-4 sm:px-8 pt-3.5 sm:pt-5 pb-3 sm:pb-4 glass-panel border-b border-white/[0.06] flex flex-col gap-3 sm:gap-3.5 select-none">
   <!-- Search Input Bar & Top Right Actions -->
   <div class="flex items-center justify-between gap-2.5 sm:gap-4">
-    <!-- Search Bar Input -->
+    <!-- Search Bar Input with Clickable Magnifying Glass -->
     <div class="relative flex-1 max-w-2xl">
-      <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400">
-        <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+      <button
+        type="button"
+        class="absolute inset-y-0 left-0 pl-3.5 pr-2 flex items-center text-zinc-400 hover:text-crimson-400 active:scale-90 transition cursor-pointer"
+        on:click={triggerSearch}
+        title="Cari (Enter)"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" x2="16.65" y1="21" y2="16.65"></line>
         </svg>
-      </div>
+      </button>
+
       <input
         class="w-full pl-10 pr-24 py-2.5 bg-white/[0.06] hover:bg-white/[0.08] focus:bg-white/[0.1] border border-white/10 focus:border-crimson-500 rounded-2xl text-sm font-medium text-white placeholder-zinc-400 outline-none transition duration-150 backdrop-blur-md shadow-inner"
         placeholder={$t('search_placeholder')}
         type="text"
         bind:value={query}
-        on:input={handleInput}
         on:keydown={handleKeydown}
       />
       <div class="absolute inset-y-0 right-0 pr-3 flex items-center gap-1.5">
