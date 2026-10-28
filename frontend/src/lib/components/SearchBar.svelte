@@ -25,9 +25,7 @@
   function setFilter(newFilter: SearchFilter) {
     if (filter === newFilter) return
     filter = newFilter
-    if (query.trim()) {
-      triggerSearch()
-    }
+    dispatch('search', { query: query.trim(), filter: newFilter })
   }
 
   function clearQuery() {
@@ -35,7 +33,6 @@
   }
 
   function triggerSearch() {
-    if (!query.trim()) return
     dispatch('search', { query: query.trim(), filter })
   }
 </script>
@@ -122,17 +119,14 @@
     </div>
   </div>
 
-  <!-- Filter Tags / Chips (Frosted glass pills with active crimson glowing indicator) -->
+  <!-- Filter Tags / Chips (Active tab is clearly prominent in vivid crimson) -->
   <div class="flex items-center gap-2 overflow-x-auto pb-0.5 text-xs font-medium">
     <!-- Lagu / Songs -->
     <button
-      class="px-3.5 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5 {filter === 'music_songs' ? 'bg-white/[0.12] text-white font-semibold border border-white/20 shadow-xs' : 'bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'}"
+      class="px-4 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5 {filter === 'music_songs' ? 'bg-crimson-600 text-white font-bold shadow-md shadow-crimson-600/35 ring-1 ring-crimson-400/50' : 'bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white border border-white/[0.08]'}"
       on:click={() => setFilter('music_songs')}
     >
-      {#if filter === 'music_songs'}
-        <span class="w-1.5 h-1.5 rounded-full bg-crimson-400 shadow-[0_0_8px_rgba(230,30,56,0.8)] shrink-0"></span>
-      {/if}
-      <svg class="w-3.5 h-3.5 {filter === 'music_songs' ? 'text-crimson-400' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <svg class="w-3.5 h-3.5 {filter === 'music_songs' ? 'text-white' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M9 18V5l12-2v13"></path>
         <circle cx="6" cy="18" r="3" fill="currentColor"></circle>
         <circle cx="18" cy="16" r="3" fill="currentColor"></circle>
@@ -142,13 +136,10 @@
 
     <!-- Video / Videos -->
     <button
-      class="px-3.5 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5 {filter === 'videos' ? 'bg-white/[0.12] text-white font-semibold border border-white/20 shadow-xs' : 'bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'}"
+      class="px-4 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5 {filter === 'videos' ? 'bg-crimson-600 text-white font-bold shadow-md shadow-crimson-600/35 ring-1 ring-crimson-400/50' : 'bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white border border-white/[0.08]'}"
       on:click={() => setFilter('videos')}
     >
-      {#if filter === 'videos'}
-        <span class="w-1.5 h-1.5 rounded-full bg-crimson-400 shadow-[0_0_8px_rgba(230,30,56,0.8)] shrink-0"></span>
-      {/if}
-      <svg class="w-3.5 h-3.5 {filter === 'videos' ? 'text-crimson-400' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <svg class="w-3.5 h-3.5 {filter === 'videos' ? 'text-white' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <polygon points="23 7 16 12 23 17 23 7"></polygon>
         <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
       </svg>
@@ -157,13 +148,10 @@
 
     <!-- Semua / All -->
     <button
-      class="px-3.5 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5 {filter === 'all' ? 'bg-white/[0.12] text-white font-semibold border border-white/20 shadow-xs' : 'bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'}"
+      class="px-4 py-1.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5 {filter === 'all' ? 'bg-crimson-600 text-white font-bold shadow-md shadow-crimson-600/35 ring-1 ring-crimson-400/50' : 'bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white border border-white/[0.08]'}"
       on:click={() => setFilter('all')}
     >
-      {#if filter === 'all'}
-        <span class="w-1.5 h-1.5 rounded-full bg-crimson-400 shadow-[0_0_8px_rgba(230,30,56,0.8)] shrink-0"></span>
-      {/if}
-      <svg class="w-3.5 h-3.5 {filter === 'all' ? 'text-crimson-400' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <svg class="w-3.5 h-3.5 {filter === 'all' ? 'text-white' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="2" y1="12" x2="22" y2="12"></line>
         <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>

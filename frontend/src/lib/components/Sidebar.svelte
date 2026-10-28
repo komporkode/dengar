@@ -1,10 +1,18 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte'
   import type { NavigationTab } from '../types'
   import { userDataStore } from '../stores/userDataStore'
   import { isSettingsOpen, isSidebarCollapsed, toggleSidebar } from '../stores/settingsStore'
   import { t } from '../stores/i18nStore'
 
   export let activeTab: NavigationTab = 'search'
+
+  const dispatch = createEventDispatcher<{ tabChange: NavigationTab }>()
+
+  function setTab(tab: NavigationTab) {
+    activeTab = tab
+    dispatch('tabChange', tab)
+  }
 
   $: favCount = $userDataStore.favorites.length
   $: histCount = $userDataStore.history.length
@@ -75,8 +83,8 @@
       
       <div class="relative group flex justify-center">
         <button
-          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'search' ? 'bg-white/[0.08] text-white shadow-sm border border-white/[0.04]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3 gap-3'}"
-          on:click={() => (activeTab = 'search')}
+          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'search' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3 gap-3'}"
+          on:click={() => setTab('search')}
           title={!$isSidebarCollapsed ? $t('nav_explore') : undefined}
         >
           <div class="w-5 h-5 flex items-center justify-center shrink-0">
@@ -118,8 +126,8 @@
       <!-- Lagu Favorit -->
       <div class="relative group flex justify-center">
         <button
-          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'favorites' ? 'bg-white/[0.08] text-white shadow-sm border border-white/[0.04]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3 gap-3'}"
-          on:click={() => (activeTab = 'favorites')}
+          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'favorites' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3 gap-3'}"
+          on:click={() => setTab('favorites')}
           title={!$isSidebarCollapsed ? $t('nav_favorites') : undefined}
         >
           <div class="w-5 h-5 flex items-center justify-center shrink-0">
@@ -132,6 +140,8 @@
             <span class="truncate">{$t('nav_favorites')}</span>
             {#if favCount > 0}
               <span class="ml-auto text-xs bg-white/[0.06] text-zinc-300 px-2 py-0.5 rounded-full font-mono shrink-0">{favCount}</span>
+            {:else if activeTab === 'favorites'}
+              <span class="ml-auto text-[10px] bg-crimson-500/20 text-crimson-400 font-semibold px-1.5 py-0.5 rounded shrink-0">{$t('nav_active')}</span>
             {/if}
           </div>
 
@@ -147,6 +157,9 @@
             {#if favCount > 0}
               <span class="text-[10px] bg-crimson-500/20 text-crimson-300 px-1.5 py-0.5 rounded-full font-mono">{favCount}</span>
             {/if}
+            {#if activeTab === 'favorites'}
+              <span class="w-1.5 h-1.5 rounded-full bg-crimson-500 shadow-xs"></span>
+            {/if}
             <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#161824]/95"></span>
           </div>
         {/if}
@@ -155,8 +168,8 @@
       <!-- Riwayat Putar -->
       <div class="relative group flex justify-center">
         <button
-          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'history' ? 'bg-white/[0.08] text-white shadow-sm border border-white/[0.04]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3 gap-3'}"
-          on:click={() => (activeTab = 'history')}
+          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'history' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3 gap-3'}"
+          on:click={() => setTab('history')}
           title={!$isSidebarCollapsed ? $t('nav_history') : undefined}
         >
           <div class="w-5 h-5 flex items-center justify-center shrink-0">
@@ -170,6 +183,8 @@
             <span class="truncate">{$t('nav_history')}</span>
             {#if histCount > 0}
               <span class="ml-auto text-xs bg-white/[0.06] text-zinc-300 px-2 py-0.5 rounded-full font-mono shrink-0">{histCount}</span>
+            {:else if activeTab === 'history'}
+              <span class="ml-auto text-[10px] bg-crimson-500/20 text-crimson-400 font-semibold px-1.5 py-0.5 rounded shrink-0">{$t('nav_active')}</span>
             {/if}
           </div>
 
@@ -184,6 +199,9 @@
             <span>{$t('nav_history')}</span>
             {#if histCount > 0}
               <span class="text-[10px] bg-white/10 text-zinc-300 px-1.5 py-0.5 rounded-full font-mono">{histCount}</span>
+            {/if}
+            {#if activeTab === 'history'}
+              <span class="w-1.5 h-1.5 rounded-full bg-crimson-500 shadow-xs"></span>
             {/if}
             <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#161824]/95"></span>
           </div>

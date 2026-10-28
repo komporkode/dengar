@@ -110,7 +110,8 @@
   function handleSearchEvent(e: CustomEvent<{ query: string; filter: SearchFilter }>) {
     searchQuery = e.detail.query
     currentFilter = e.detail.filter
-    performSearch(searchQuery || 'Popular Music', currentFilter)
+    const fallbackQuery = currentFilter === 'videos' ? 'Trending Music Video' : 'Trending Music'
+    performSearch(searchQuery.trim() || fallbackQuery, currentFilter)
   }
 
   function handleWindowClose() {
@@ -262,7 +263,7 @@
         {#if activeTab === 'search'}
           <SearchBar
             bind:query={searchQuery}
-            filter={currentFilter}
+            bind:filter={currentFilter}
             isLoading={isSearching}
             on:search={handleSearchEvent}
           />
