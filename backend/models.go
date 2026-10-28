@@ -10,6 +10,12 @@ type SearchResultItem struct {
 	ThumbnailURL      string `json:"thumbnailUrl"`
 }
 
+// SearchResponse holds search results and an optional continuation token for pagination.
+type SearchResponse struct {
+	Items             []SearchResultItem `json:"items"`
+	ContinuationToken string             `json:"continuationToken,omitempty"`
+}
+
 // StreamResult represents resolved media URLs and metadata for playback.
 type StreamResult struct {
 	VideoID   string `json:"videoId"`

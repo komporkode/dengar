@@ -8,6 +8,8 @@ export function GetStream(arg1:string,arg2:boolean):Promise<backend.StreamResult
 
 export function GetUserData():Promise<backend.UserData>;
 
-export function Search(arg1:string,arg2:string):Promise<Array<backend.SearchResultItem>>;
+export function Search(arg1:string,arg2:string):Promise<backend.SearchResponse>;
+
+export function SearchMore(arg1:string):Promise<backend.SearchResponse>;
 
 export function ToggleFavorite(arg1:backend.SearchResultItem):Promise<boolean>;

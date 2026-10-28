@@ -44,6 +44,8 @@ const translations: Record<Locale, Record<string, string>> = {
     channel_or_artist: 'Channel / Penyanyi',
     quality_and_duration: 'Kualitas & Durasi',
     actions: 'Aksi',
+    load_more: 'Muat Lebih Banyak Lagu',
+    loading_more: 'Memuat lagu berikutnya...',
 
     // Player
     no_track_playing: 'Belum ada lagu yang diputar',
@@ -115,6 +117,8 @@ const translations: Record<Locale, Record<string, string>> = {
     channel_or_artist: 'Channel / Artist',
     quality_and_duration: 'Quality & Duration',
     actions: 'Actions',
+    load_more: 'Load More Songs',
+    loading_more: 'Loading more songs...',
 
     // Player
     no_track_playing: 'No track currently playing',

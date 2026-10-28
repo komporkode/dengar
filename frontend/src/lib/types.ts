@@ -1,6 +1,7 @@
 import type { backend } from '../../wailsjs/go/models'
 
 export type SearchResultItem = backend.SearchResultItem
+export type SearchResponse = backend.SearchResponse
 export type StreamResult = backend.StreamResult
 export type UserData = backend.UserData
 

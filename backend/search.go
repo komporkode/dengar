@@ -12,14 +12,16 @@ import (
 	"time"
 )
 
-// SearchService performs searches with instance rotation and fallback.
+// SearchService performs searches with instance rotation, caching, singleflight deduplication, and pagination.
 type SearchService struct {
 	pool         *InstancePool
 	client       *http.Client
 	innertubeURL string
+	cache        *SearchCache
+	flight       *SingleFlightGroup
 }
 
-// NewSearchService creates a new SearchService instance.
+// NewSearchService creates a new SearchService instance with bounded search caching.
 func NewSearchService(customPiped, customInvidious []string) *SearchService {
 	itURL := "https://www.youtube.com/youtubei/v1/search?prettyPrint=false"
 	if len(customPiped) > 0 || len(customInvidious) > 0 {
@@ -28,9 +30,11 @@ func NewSearchService(customPiped, customInvidious []string) *SearchService {
 	return &SearchService{
 		pool: NewInstancePool(customPiped, customInvidious),
 		client: &http.Client{
-			Timeout: 4000 * time.Millisecond,
+			Timeout: 5000 * time.Millisecond,
 		},
 		innertubeURL: itURL,
+		cache:        NewSearchCache(1*time.Hour, 60), // Caps RAM to max 60 queries (~1MB)
+		flight:       NewSingleFlightGroup(),
 	}
 }
 
@@ -64,39 +68,50 @@ type invidiousItem struct {
 	} `json:"videoThumbnails"`
 }
 
+type innertubeVideoRenderer struct {
+	VideoID string `json:"videoId"`
+	Title   struct {
+		Runs []struct {
+			Text string `json:"text"`
+		} `json:"runs"`
+		SimpleText string `json:"simpleText"`
+	} `json:"title"`
+	OwnerText struct {
+		Runs []struct {
+			Text string `json:"text"`
+		} `json:"runs"`
+		SimpleText string `json:"simpleText"`
+	} `json:"ownerText"`
+	LengthText struct {
+		SimpleText string `json:"simpleText"`
+	} `json:"lengthText"`
+	Thumbnail struct {
+		Thumbnails []struct {
+			URL string `json:"url"`
+		} `json:"thumbnails"`
+	} `json:"thumbnail"`
+}
+
+type innertubeContinuationItem struct {
+	ContinuationEndpoint struct {
+		ContinuationCommand struct {
+			Token string `json:"token"`
+		} `json:"continuationCommand"`
+	} `json:"continuationEndpoint"`
+}
+
 type innertubeSearchResponse struct {
 	Contents struct {
 		TwoColumnSearchResultsRenderer struct {
 			PrimaryContents struct {
 				SectionListRenderer struct {
 					Contents []struct {
-						ItemSectionRenderer struct {
+						ItemSectionRenderer *struct {
 							Contents []struct {
-								VideoRenderer *struct {
-									VideoID string `json:"videoId"`
-									Title   struct {
-										Runs []struct {
-											Text string `json:"text"`
-										} `json:"runs"`
-										SimpleText string `json:"simpleText"`
-									} `json:"title"`
-									OwnerText struct {
-										Runs []struct {
-											Text string `json:"text"`
-										} `json:"runs"`
-										SimpleText string `json:"simpleText"`
-									} `json:"ownerText"`
-									LengthText struct {
-										SimpleText string `json:"simpleText"`
-									} `json:"lengthText"`
-									Thumbnail struct {
-										Thumbnails []struct {
-											URL string `json:"url"`
-										} `json:"thumbnails"`
-									} `json:"thumbnail"`
-								} `json:"videoRenderer,omitempty"`
+								VideoRenderer *innertubeVideoRenderer `json:"videoRenderer,omitempty"`
 							} `json:"contents"`
-						} `json:"itemSectionRenderer"`
+						} `json:"itemSectionRenderer,omitempty"`
+						ContinuationItemRenderer *innertubeContinuationItem `json:"continuationItemRenderer,omitempty"`
 					} `json:"contents"`
 				} `json:"sectionListRenderer"`
 			} `json:"primaryContents"`
@@ -104,48 +119,98 @@ type innertubeSearchResponse struct {
 	} `json:"contents"`
 }
 
-// Search searches across direct YouTube Innertube first, with Piped and Invidious fallback.
-func (s *SearchService) Search(query string, filterType string) ([]SearchResultItem, error) {
-	q := strings.TrimSpace(query)
-	if q == "" {
-		return []SearchResultItem{}, nil
-	}
-
-	// 1. Primary: Direct YouTube Innertube search (High reliability, fast, Rp0)
-	if results, err := s.searchYouTubeInnertube(q); err == nil && len(results) > 0 {
-		return results, nil
-	}
-
-	filterParam := "music_songs"
-	switch filterType {
-	case "videos", "video":
-		filterParam = "videos"
-	case "all":
-		filterParam = "all"
-	}
-
-	// 2. Fallback to Piped instances
-	for _, inst := range s.pool.GetPipedInstances() {
-		results, err := s.searchPiped(inst, q, filterParam)
-		if err == nil && len(results) > 0 {
-			return results, nil
-		}
-		s.pool.RotatePiped()
-	}
-
-	// 3. Fallback to Invidious instances
-	for _, inst := range s.pool.GetInvidiousInstances() {
-		results, err := s.searchInvidious(inst, q)
-		if err == nil && len(results) > 0 {
-			return results, nil
-		}
-		s.pool.RotateInvidious()
-	}
-
-	return nil, fmt.Errorf("semua instance pencarian gagal merespons")
+type innertubeContinuationResponse struct {
+	OnResponseReceivedCommands []struct {
+		AppendContinuationItemsAction *struct {
+			ContinuationItems []struct {
+				ItemSectionRenderer *struct {
+					Contents []struct {
+						VideoRenderer *innertubeVideoRenderer `json:"videoRenderer,omitempty"`
+					} `json:"contents"`
+				} `json:"itemSectionRenderer,omitempty"`
+				ContinuationItemRenderer *innertubeContinuationItem `json:"continuationItemRenderer,omitempty"`
+			} `json:"continuationItems"`
+		} `json:"appendContinuationItemsAction,omitempty"`
+	} `json:"onResponseReceivedCommands"`
 }
 
-func (s *SearchService) searchYouTubeInnertube(query string) ([]SearchResultItem, error) {
+// Search searches across direct YouTube Innertube first with deduplication and caching, with Piped/Invidious fallback.
+func (s *SearchService) Search(query string, filterType string) (*SearchResponse, error) {
+	q := strings.TrimSpace(query)
+	if q == "" {
+		return &SearchResponse{Items: []SearchResultItem{}}, nil
+	}
+
+	cacheKey := strings.ToLower(q) + ":" + filterType
+	if cached, ok := s.cache.Get(cacheKey); ok {
+		return cached, nil
+	}
+
+	// Use SingleFlight to deduplicate simultaneous duplicate requests
+	val, err := s.flight.Do(cacheKey, func() (interface{}, error) {
+		// 1. Primary: Direct YouTube Innertube search
+		if resp, err := s.searchYouTubeInnertube(q); err == nil && len(resp.Items) > 0 {
+			s.cache.Set(cacheKey, resp)
+			return resp, nil
+		}
+
+		filterParam := "music_songs"
+		switch filterType {
+		case "videos", "video":
+			filterParam = "videos"
+		case "all":
+			filterParam = "all"
+		}
+
+		// 2. Fallback to Piped instances
+		for _, inst := range s.pool.GetPipedInstances() {
+			results, err := s.searchPiped(inst, q, filterParam)
+			if err == nil && len(results) > 0 {
+				resp := &SearchResponse{Items: results}
+				s.cache.Set(cacheKey, resp)
+				return resp, nil
+			}
+			s.pool.RotatePiped()
+		}
+
+		// 3. Fallback to Invidious instances
+		for _, inst := range s.pool.GetInvidiousInstances() {
+			results, err := s.searchInvidious(inst, q)
+			if err == nil && len(results) > 0 {
+				resp := &SearchResponse{Items: results}
+				s.cache.Set(cacheKey, resp)
+				return resp, nil
+			}
+			s.pool.RotateInvidious()
+		}
+
+		return nil, fmt.Errorf("semua instance pencarian gagal merespons")
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return val.(*SearchResponse), nil
+}
+
+// SearchMore loads the next page of search results using a continuation token.
+func (s *SearchService) SearchMore(continuationToken string) (*SearchResponse, error) {
+	tok := strings.TrimSpace(continuationToken)
+	if tok == "" {
+		return &SearchResponse{Items: []SearchResultItem{}}, nil
+	}
+
+	val, err := s.flight.Do("cont:"+tok, func() (interface{}, error) {
+		return s.searchYouTubeInnertubeContinuation(tok)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return val.(*SearchResponse), nil
+}
+
+func (s *SearchService) searchYouTubeInnertube(query string) (*SearchResponse, error) {
 	if s.innertubeURL == "" {
 		return nil, fmt.Errorf("innertube disabled")
 	}
@@ -195,50 +260,142 @@ func (s *SearchService) searchYouTubeInnertube(query string) ([]SearchResultItem
 	}
 
 	var items []SearchResultItem
+	var continuationToken string
+
 	sections := data.Contents.TwoColumnSearchResultsRenderer.PrimaryContents.SectionListRenderer.Contents
 	for _, sec := range sections {
-		for _, it := range sec.ItemSectionRenderer.Contents {
-			vr := it.VideoRenderer
-			if vr == nil || vr.VideoID == "" {
-				continue
+		if sec.ContinuationItemRenderer != nil {
+			if tok := sec.ContinuationItemRenderer.ContinuationEndpoint.ContinuationCommand.Token; tok != "" {
+				continuationToken = tok
 			}
-
-			title := vr.Title.SimpleText
-			if title == "" && len(vr.Title.Runs) > 0 {
-				var sb strings.Builder
-				for _, r := range vr.Title.Runs {
-					sb.WriteString(r.Text)
+		}
+		if sec.ItemSectionRenderer != nil {
+			for _, it := range sec.ItemSectionRenderer.Contents {
+				if it.VideoRenderer == nil || it.VideoRenderer.VideoID == "" {
+					continue
 				}
-				title = sb.String()
+				items = append(items, extractVideoItem(it.VideoRenderer))
 			}
-
-			uploader := vr.OwnerText.SimpleText
-			if uploader == "" && len(vr.OwnerText.Runs) > 0 {
-				var sb strings.Builder
-				for _, r := range vr.OwnerText.Runs {
-					sb.WriteString(r.Text)
-				}
-				uploader = sb.String()
-			}
-
-			durationSec := parseDurationString(vr.LengthText.SimpleText)
-			thumb := ""
-			if len(vr.Thumbnail.Thumbnails) > 0 {
-				thumb = vr.Thumbnail.Thumbnails[len(vr.Thumbnail.Thumbnails)-1].URL
-			}
-
-			items = append(items, SearchResultItem{
-				ID:                vr.VideoID,
-				Title:             title,
-				UploaderName:      uploader,
-				Duration:          durationSec,
-				DurationFormatted: FormatDuration(durationSec),
-				ThumbnailURL:      thumb,
-			})
 		}
 	}
 
-	return items, nil
+	return &SearchResponse{
+		Items:             items,
+		ContinuationToken: continuationToken,
+	}, nil
+}
+
+func (s *SearchService) searchYouTubeInnertubeContinuation(continuationToken string) (*SearchResponse, error) {
+	if s.innertubeURL == "" {
+		return nil, fmt.Errorf("innertube disabled")
+	}
+
+	payload := map[string]interface{}{
+		"context": map[string]interface{}{
+			"client": map[string]interface{}{
+				"clientName":    "WEB",
+				"clientVersion": "2.20240101.01.00",
+				"hl":            "id",
+				"gl":            "ID",
+			},
+		},
+		"continuation": continuationToken,
+	}
+
+	jsonBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, s.innertubeURL, bytes.NewReader(jsonBytes))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("innertube continuation status: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var data innertubeContinuationResponse
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, err
+	}
+
+	var items []SearchResultItem
+	var nextToken string
+
+	for _, cmd := range data.OnResponseReceivedCommands {
+		if cmd.AppendContinuationItemsAction != nil {
+			for _, ci := range cmd.AppendContinuationItemsAction.ContinuationItems {
+				if ci.ContinuationItemRenderer != nil {
+					if tok := ci.ContinuationItemRenderer.ContinuationEndpoint.ContinuationCommand.Token; tok != "" {
+						nextToken = tok
+					}
+				}
+				if ci.ItemSectionRenderer != nil {
+					for _, it := range ci.ItemSectionRenderer.Contents {
+						if it.VideoRenderer == nil || it.VideoRenderer.VideoID == "" {
+							continue
+						}
+						items = append(items, extractVideoItem(it.VideoRenderer))
+					}
+				}
+			}
+		}
+	}
+
+	return &SearchResponse{
+		Items:             items,
+		ContinuationToken: nextToken,
+	}, nil
+}
+
+func extractVideoItem(vr *innertubeVideoRenderer) SearchResultItem {
+	title := vr.Title.SimpleText
+	if title == "" && len(vr.Title.Runs) > 0 {
+		var sb strings.Builder
+		for _, r := range vr.Title.Runs {
+			sb.WriteString(r.Text)
+		}
+		title = sb.String()
+	}
+
+	uploader := vr.OwnerText.SimpleText
+	if uploader == "" && len(vr.OwnerText.Runs) > 0 {
+		var sb strings.Builder
+		for _, r := range vr.OwnerText.Runs {
+			sb.WriteString(r.Text)
+		}
+		uploader = sb.String()
+	}
+
+	durationSec := parseDurationString(vr.LengthText.SimpleText)
+	thumb := ""
+	if len(vr.Thumbnail.Thumbnails) > 0 {
+		thumb = vr.Thumbnail.Thumbnails[len(vr.Thumbnail.Thumbnails)-1].URL
+	}
+
+	return SearchResultItem{
+		ID:                vr.VideoID,
+		Title:             title,
+		UploaderName:      uploader,
+		Duration:          durationSec,
+		DurationFormatted: FormatDuration(durationSec),
+		ThumbnailURL:      thumb,
+	}
 }
 
 func parseDurationString(s string) int64 {

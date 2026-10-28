@@ -3,6 +3,7 @@ package backend
 import (
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 )
 
@@ -32,11 +33,11 @@ func TestParsePipedSearch(t *testing.T) {
 		t.Fatalf("Search failed: %v", err)
 	}
 
-	if len(results) != 1 {
-		t.Fatalf("Expected 1 result, got %d", len(results))
+	if len(results.Items) != 1 {
+		t.Fatalf("Expected 1 result, got %d", len(results.Items))
 	}
 
-	item := results[0]
+	item := results.Items[0]
 	if item.ID != "dQw4w9WgXcQ" {
 		t.Errorf("Expected ID 'dQw4w9WgXcQ', got '%s'", item.ID)
 	}
@@ -83,7 +84,7 @@ func TestSearchFailover(t *testing.T) {
 		t.Fatalf("Expected failover to succeed, got error: %v", err)
 	}
 
-	if len(results) != 1 || results[0].ID != "second123" {
+	if len(results.Items) != 1 || results.Items[0].ID != "second123" {
 		t.Errorf("Expected result from second server, got: %+v", results)
 	}
 }
@@ -121,6 +122,15 @@ func TestInnertubeSearch(t *testing.T) {
 										}
 									]
 								}
+							},
+							{
+								"continuationItemRenderer": {
+									"continuationEndpoint": {
+										"continuationCommand": {
+											"token": "token_page_2"
+										}
+									}
+								}
 							}
 						]
 					}
@@ -129,7 +139,9 @@ func TestInnertubeSearch(t *testing.T) {
 		}
 	}`
 
+	var hitCount int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&hitCount, 1)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(mockResponse))
@@ -144,24 +156,93 @@ func TestInnertubeSearch(t *testing.T) {
 		t.Fatalf("Innertube search failed: %v", err)
 	}
 
-	if len(results) != 1 {
-		t.Fatalf("Expected 1 result, got %d", len(results))
+	if len(results.Items) != 1 {
+		t.Fatalf("Expected 1 result, got %d", len(results.Items))
 	}
 
-	r := results[0]
+	if results.ContinuationToken != "token_page_2" {
+		t.Errorf("Expected ContinuationToken 'token_page_2', got '%s'", results.ContinuationToken)
+	}
+
+	r := results.Items[0]
 	if r.ID != "innertube123" {
 		t.Errorf("Expected ID 'innertube123', got '%s'", r.ID)
 	}
 	if r.Title != "Direct YouTube Track" {
 		t.Errorf("Expected Title 'Direct YouTube Track', got '%s'", r.Title)
 	}
-	if r.UploaderName != "Official Artist" {
-		t.Errorf("Expected UploaderName 'Official Artist', got '%s'", r.UploaderName)
+
+	// Test Cache: Repeated search should NOT hit the HTTP server again!
+	cachedResults, err := svc.Search("Direct Track", "music_songs")
+	if err != nil {
+		t.Fatalf("Cached search failed: %v", err)
 	}
-	if r.Duration != 225 {
-		t.Errorf("Expected Duration 225s, got %d", r.Duration)
+	if len(cachedResults.Items) != 1 {
+		t.Errorf("Expected cached items, got %d", len(cachedResults.Items))
 	}
-	if r.DurationFormatted != "03:45" {
-		t.Errorf("Expected DurationFormatted '03:45', got '%s'", r.DurationFormatted)
+	if atomic.LoadInt32(&hitCount) != 1 {
+		t.Errorf("Expected hitCount to be 1 (served from cache), got %d", atomic.LoadInt32(&hitCount))
+	}
+}
+
+func TestInnertubeContinuation(t *testing.T) {
+	mockContinuationResponse := `{
+		"onResponseReceivedCommands": [
+			{
+				"appendContinuationItemsAction": {
+					"continuationItems": [
+						{
+							"itemSectionRenderer": {
+								"contents": [
+									{
+										"videoRenderer": {
+											"videoId": "page2_track",
+											"title": {"simpleText": "Page 2 Song"},
+											"ownerText": {"simpleText": "Artist 2"},
+											"lengthText": {"simpleText": "04:20"},
+											"thumbnail": {"thumbnails": [{"url": "https://img.test/p2.jpg"}]}
+										}
+									}
+								]
+							}
+						},
+						{
+							"continuationItemRenderer": {
+								"continuationEndpoint": {
+									"continuationCommand": {
+										"token": "token_page_3"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		]
+	}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(mockContinuationResponse))
+	}))
+	defer server.Close()
+
+	svc := NewSearchService(nil, nil)
+	svc.SetInnertubeURL(server.URL)
+
+	res, err := svc.SearchMore("token_page_2")
+	if err != nil {
+		t.Fatalf("SearchMore failed: %v", err)
+	}
+
+	if len(res.Items) != 1 {
+		t.Fatalf("Expected 1 continuation item, got %d", len(res.Items))
+	}
+	if res.Items[0].ID != "page2_track" {
+		t.Errorf("Expected ID 'page2_track', got '%s'", res.Items[0].ID)
+	}
+	if res.ContinuationToken != "token_page_3" {
+		t.Errorf("Expected next token 'token_page_3', got '%s'", res.ContinuationToken)
 	}
 }

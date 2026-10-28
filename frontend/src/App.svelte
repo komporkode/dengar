@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import type { NavigationTab, SearchResultItem, SearchFilter } from './lib/types'
-  import { Search } from '../wailsjs/go/main/App'
+  import { Search, SearchMore } from '../wailsjs/go/main/App'
   import { Quit, WindowMinimise, WindowToggleMaximise } from '../wailsjs/runtime/runtime.js'
   import { playerStore } from './lib/stores/playerStore'
   import { userDataStore } from './lib/stores/userDataStore'
@@ -21,7 +21,9 @@
   let searchQuery = ''
   let currentFilter: SearchFilter = 'music_songs'
   let searchResults: SearchResultItem[] = []
+  let continuationToken: string = ''
   let isSearching = false
+  let isLoadingMore = false
   let searchError: string | null = null
 
   onMount(async () => {
@@ -41,19 +43,42 @@
   async function performSearch(query: string, filter: SearchFilter) {
     if (!query) {
       searchResults = []
+      continuationToken = ''
       return
     }
     isSearching = true
     searchError = null
     try {
-      const results = await Search(query, filter)
-      searchResults = results || []
+      const res = await Search(query, filter)
+      searchResults = res?.items || []
+      continuationToken = res?.continuationToken || ''
     } catch (err: any) {
       console.error('Search failed:', err)
       searchError = err?.message || 'Gagal mencari lagu. Periksa koneksi internet.'
       searchResults = []
+      continuationToken = ''
     } finally {
       isSearching = false
+    }
+  }
+
+  async function handleLoadMore() {
+    if (!continuationToken || isLoadingMore || isSearching) return
+    isLoadingMore = true
+    try {
+      const res = await SearchMore(continuationToken)
+      if (res && res.items && res.items.length > 0) {
+        const existingIds = new Set(searchResults.map(i => i.id))
+        const fresh = res.items.filter(i => !existingIds.has(i.id))
+        searchResults = [...searchResults, ...fresh]
+        continuationToken = res.continuationToken || ''
+      } else {
+        continuationToken = ''
+      }
+    } catch (err: any) {
+      console.warn('SearchMore failed:', err)
+    } finally {
+      isLoadingMore = false
     }
   }
 
@@ -222,7 +247,10 @@
             title={searchQuery ? `${$t('search_results_prefix')}“${searchQuery}”` : $t('popular_songs')}
             tracks={searchResults}
             isLoading={isSearching}
+            hasMore={!!continuationToken}
+            isLoadingMore={isLoadingMore}
             emptyMessage={$t('no_results')}
+            on:loadMore={handleLoadMore}
           />
 
         {:else if activeTab === 'favorites'}

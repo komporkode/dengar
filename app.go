@@ -37,9 +37,14 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
-// Search queries Piped/Invidious instances for songs or videos.
-func (a *App) Search(query string, filterType string) ([]backend.SearchResultItem, error) {
+// Search queries YouTube/Piped/Invidious instances for songs or videos with query caching.
+func (a *App) Search(query string, filterType string) (*backend.SearchResponse, error) {
 	return a.search.Search(query, filterType)
+}
+
+// SearchMore fetches subsequent pages of tracks using the continuation token.
+func (a *App) SearchMore(continuationToken string) (*backend.SearchResponse, error) {
+	return a.search.SearchMore(continuationToken)
 }
 
 // GetStream resolves streaming media URLs with 30-min TTL caching.

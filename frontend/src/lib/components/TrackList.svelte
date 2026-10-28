@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { createEventDispatcher, onDestroy } from 'svelte'
   import type { SearchResultItem } from '../types'
   import TrackItem from './TrackItem.svelte'
   import { playerStore } from '../stores/playerStore'
@@ -8,7 +9,36 @@
   export let title = 'Daftar Lagu'
   export let tracks: SearchResultItem[] = []
   export let isLoading = false
+  export let hasMore = false
+  export let isLoadingMore = false
   export let emptyMessage = 'Tidak ada lagu yang ditemukan.'
+
+  const dispatch = createEventDispatcher<{
+    loadMore: void
+  }>()
+
+  let observer: IntersectionObserver | null = null
+
+  function setupObserver(node: HTMLElement) {
+    if (observer) observer.disconnect()
+    observer = new IntersectionObserver((entries) => {
+      const first = entries[0]
+      if (first.isIntersecting && hasMore && !isLoadingMore && !isLoading) {
+        dispatch('loadMore')
+      }
+    }, { rootMargin: '300px' })
+    observer.observe(node)
+  }
+
+  onDestroy(() => {
+    if (observer) observer.disconnect()
+  })
+
+  function handleTriggerLoadMore() {
+    if (hasMore && !isLoadingMore && !isLoading) {
+      dispatch('loadMore')
+    }
+  }
 
   $: isCurrentListPlaying = tracks.length > 0 &&
     $playerStore.isPlaying &&
@@ -166,6 +196,31 @@
           <TrackItem {track} index={i} />
         {/each}
       </div>
+
+      <!-- Infinite Scroll & Load More Section -->
+      {#if hasMore}
+        <div
+          use:setupObserver
+          class="pt-6 pb-6 flex flex-col items-center justify-center gap-2"
+        >
+          {#if isLoadingMore}
+            <div class="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-white/[0.05] border border-white/10 text-xs text-zinc-300 shadow-sm animate-pulse">
+              <div class="w-3.5 h-3.5 border-2 border-white/20 border-t-crimson-500 rounded-full animate-spin"></div>
+              <span>{$t('loading_more')}</span>
+            </div>
+          {:else}
+            <button
+              class="px-5 py-2.5 rounded-full bg-white/[0.05] hover:bg-white/[0.09] active:bg-white/[0.12] border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white transition-all cursor-pointer flex items-center gap-2 shadow-sm hover:scale-[1.02] active:scale-95"
+              on:click={handleTriggerLoadMore}
+            >
+              <svg class="w-3.5 h-3.5 text-crimson-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+              <span>{$t('load_more')}</span>
+            </button>
+          {/if}
+        </div>
+      {/if}
     {/if}
   </section>
 </div>
