@@ -2,14 +2,17 @@ package backend
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
+	"time"
 )
 
 const maxHistoryItems = 100
 
-// StorageService manages persistence for user favorites and playback history.
+// StorageService manages persistence for user favorites, history, playlists, and play counts.
 type StorageService struct {
 	mu       sync.RWMutex
 	filePath string
@@ -38,8 +41,11 @@ func NewStorageService(customPath string) (*StorageService, error) {
 	s := &StorageService{
 		filePath: path,
 		data: UserData{
-			Favorites: []SearchResultItem{},
-			History:   []SearchResultItem{},
+			Favorites:  []SearchResultItem{},
+			History:    []SearchResultItem{},
+			Playlists:  []Playlist{},
+			PlayCounts: make(map[string]int),
+			TrackMeta:  make(map[string]SearchResultItem),
 		},
 	}
 
@@ -61,6 +67,15 @@ func (s *StorageService) loadFromDisk() error {
 	}
 	if loaded.History == nil {
 		loaded.History = []SearchResultItem{}
+	}
+	if loaded.Playlists == nil {
+		loaded.Playlists = []Playlist{}
+	}
+	if loaded.PlayCounts == nil {
+		loaded.PlayCounts = make(map[string]int)
+	}
+	if loaded.TrackMeta == nil {
+		loaded.TrackMeta = make(map[string]SearchResultItem)
 	}
 	s.data = loaded
 	return nil
@@ -86,8 +101,17 @@ func (s *StorageService) Load() (*UserData, error) {
 	defer s.mu.RUnlock()
 
 	res := UserData{
-		Favorites: append([]SearchResultItem{}, s.data.Favorites...),
-		History:   append([]SearchResultItem{}, s.data.History...),
+		Favorites:  append([]SearchResultItem{}, s.data.Favorites...),
+		History:    append([]SearchResultItem{}, s.data.History...),
+		Playlists:  append([]Playlist{}, s.data.Playlists...),
+		PlayCounts: make(map[string]int, len(s.data.PlayCounts)),
+		TrackMeta:  make(map[string]SearchResultItem, len(s.data.TrackMeta)),
+	}
+	for k, v := range s.data.PlayCounts {
+		res.PlayCounts[k] = v
+	}
+	for k, v := range s.data.TrackMeta {
+		res.TrackMeta[k] = v
 	}
 	return &res, nil
 }
@@ -165,4 +189,142 @@ func (s *StorageService) AddHistory(item SearchResultItem) error {
 	}
 	s.data.History = filtered
 	return s.saveToDisk()
+}
+
+// CreatePlaylist creates a new custom playlist and persists it.
+func (s *StorageService) CreatePlaylist(name, description string) (*Playlist, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	now := time.Now().Unix()
+	pl := Playlist{
+		ID:          fmt.Sprintf("pl-%d", time.Now().UnixNano()),
+		Name:        name,
+		Description: description,
+		Tracks:      []SearchResultItem{},
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+	s.data.Playlists = append(s.data.Playlists, pl)
+	if err := s.saveToDisk(); err != nil {
+		return nil, err
+	}
+	return &pl, nil
+}
+
+// UpdatePlaylist updates a playlist's name and description.
+func (s *StorageService) UpdatePlaylist(id, name, description string) (*Playlist, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for i := range s.data.Playlists {
+		if s.data.Playlists[i].ID == id {
+			s.data.Playlists[i].Name = name
+			s.data.Playlists[i].Description = description
+			s.data.Playlists[i].UpdatedAt = time.Now().Unix()
+			if err := s.saveToDisk(); err != nil {
+				return nil, err
+			}
+			res := s.data.Playlists[i]
+			return &res, nil
+		}
+	}
+	return nil, fmt.Errorf("playlist not found: %s", id)
+}
+
+// DeletePlaylist removes a playlist by ID.
+func (s *StorageService) DeletePlaylist(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	filtered := make([]Playlist, 0, len(s.data.Playlists))
+	for _, pl := range s.data.Playlists {
+		if pl.ID != id {
+			filtered = append(filtered, pl)
+		}
+	}
+	s.data.Playlists = filtered
+	return s.saveToDisk()
+}
+
+// AddTrackToPlaylist adds a track to a playlist if not already present.
+func (s *StorageService) AddTrackToPlaylist(playlistID string, track SearchResultItem) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for i := range s.data.Playlists {
+		if s.data.Playlists[i].ID == playlistID {
+			for _, t := range s.data.Playlists[i].Tracks {
+				if t.ID == track.ID {
+					return nil // already in playlist
+				}
+			}
+			s.data.Playlists[i].Tracks = append(s.data.Playlists[i].Tracks, track)
+			s.data.Playlists[i].UpdatedAt = time.Now().Unix()
+			return s.saveToDisk()
+		}
+	}
+	return fmt.Errorf("playlist not found: %s", playlistID)
+}
+
+// RemoveTrackFromPlaylist removes a track from a playlist by ID.
+func (s *StorageService) RemoveTrackFromPlaylist(playlistID string, trackID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for i := range s.data.Playlists {
+		if s.data.Playlists[i].ID == playlistID {
+			filtered := make([]SearchResultItem, 0, len(s.data.Playlists[i].Tracks))
+			for _, t := range s.data.Playlists[i].Tracks {
+				if t.ID != trackID {
+					filtered = append(filtered, t)
+				}
+			}
+			s.data.Playlists[i].Tracks = filtered
+			s.data.Playlists[i].UpdatedAt = time.Now().Unix()
+			return s.saveToDisk()
+		}
+	}
+	return fmt.Errorf("playlist not found: %s", playlistID)
+}
+
+// RecordPlay increments play count for a track and caches its metadata.
+func (s *StorageService) RecordPlay(track SearchResultItem) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.data.PlayCounts[track.ID]++
+	s.data.TrackMeta[track.ID] = track
+	return s.saveToDisk()
+}
+
+// GetTopPlayed returns the most frequently played tracks, sorted descending.
+func (s *StorageService) GetTopPlayed(limit int) []SearchResultItem {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	type playEntry struct {
+		item  SearchResultItem
+		count int
+	}
+
+	entries := make([]playEntry, 0, len(s.data.PlayCounts))
+	for id, count := range s.data.PlayCounts {
+		if item, ok := s.data.TrackMeta[id]; ok {
+			entries = append(entries, playEntry{item: item, count: count})
+		}
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].count > entries[j].count
+	})
+
+	if limit > len(entries) {
+		limit = len(entries)
+	}
+	res := make([]SearchResultItem, limit)
+	for i := 0; i < limit; i++ {
+		res[i] = entries[i].item
+	}
+	return res
 }

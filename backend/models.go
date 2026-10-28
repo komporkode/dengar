@@ -27,8 +27,21 @@ type StreamResult struct {
 	Duration  int64  `json:"duration"`
 }
 
-// UserData stores bookmarks and playback history.
+// Playlist stores a user-created collection of tracks.
+type Playlist struct {
+	ID          string             `json:"id"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Tracks      []SearchResultItem `json:"tracks"`
+	CreatedAt   int64              `json:"createdAt"`
+	UpdatedAt   int64              `json:"updatedAt"`
+}
+
+// UserData stores bookmarks, playback history, custom playlists, and play counts.
 type UserData struct {
-	Favorites []SearchResultItem `json:"favorites"`
-	History   []SearchResultItem `json:"history"`
+	Favorites  []SearchResultItem `json:"favorites"`
+	History    []SearchResultItem `json:"history"`
+	Playlists  []Playlist                    `json:"playlists"`
+	PlayCounts map[string]int                `json:"playCounts"`
+	TrackMeta  map[string]SearchResultItem   `json:"trackMeta,omitempty"`
 }
