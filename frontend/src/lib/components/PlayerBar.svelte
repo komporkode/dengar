@@ -82,7 +82,7 @@
 ></audio>
 
 <!-- Floating Modern Glassmorphic Island Player -->
-<footer class="fixed bottom-4 left-6 right-6 md:left-72 md:right-8 z-40 pointer-events-none select-none">
+<footer class="fixed bottom-4 left-6 right-6 md:left-64 xl:left-72 md:right-8 z-40 pointer-events-none select-none transition-all duration-300">
   <div class="pointer-events-auto floating-island rounded-2xl border border-white/[0.12] shadow-island-glow px-4 py-3 flex items-center justify-between gap-4 transition-all duration-300">
     
     <!-- Sisi Kiri: Album art melengkung, interaktif favorit, detail lagu & HQ stream info -->
