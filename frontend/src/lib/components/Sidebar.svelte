@@ -11,7 +11,7 @@
 </script>
 
 <aside
-  class="bg-surface border-r border-white/[0.06] flex flex-col shrink-0 select-none justify-between h-full transition-all duration-300 ease-in-out relative z-30 {$isSidebarCollapsed ? 'w-20 overflow-visible' : 'w-56 xl:w-64'}"
+  class="bg-surface border-r border-white/[0.06] flex flex-col shrink-0 select-none justify-between h-full transition-all duration-300 ease-in-out relative z-40 {$isSidebarCollapsed ? 'w-20 overflow-visible' : 'w-56 xl:w-64'}"
 >
   <!-- Brand & Primary Nav Section -->
   <div class="space-y-6 {$isSidebarCollapsed ? 'p-2 overflow-visible' : 'p-3.5 xl:p-4 overflow-y-auto'}">
