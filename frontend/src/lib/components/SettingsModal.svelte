@@ -375,7 +375,7 @@
                 </div>
                 <div class="text-right">
                   <p class="text-[11px] text-zinc-500">Lisensi</p>
-                  <p class="text-xs font-semibold text-crimson-400 mt-0.5 font-mono">MIT Open Source</p>
+                  <p class="text-xs font-semibold text-crimson-400 mt-0.5 font-mono">GNU GPLv3 Open Source</p>
                 </div>
               </div>
             </div>
