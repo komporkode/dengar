@@ -129,11 +129,11 @@
     <!-- Actions Row -->
     <div class="flex items-center gap-3 mt-6">
       <button
-        class="h-11 px-6 rounded-full bg-crimson-500 hover:bg-crimson-600 text-white font-semibold text-xs tracking-wide flex items-center gap-2 shadow-lg shadow-crimson-500/25 transition cursor-pointer hover:scale-105 active:scale-95 disabled:opacity-40"
+        class="h-10 px-5 rounded-full bg-crimson-600 hover:bg-crimson-500 border border-transparent text-white font-semibold text-xs sm:text-sm inline-flex items-center gap-2 shadow-lg shadow-crimson-500/25 hover:shadow-crimson-500/40 transition cursor-pointer hover:scale-105 active:scale-95 disabled:opacity-40 whitespace-nowrap shrink-0"
         disabled={tracks.length === 0}
         on:click={handlePlayAll}
       >
-        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
           {#if isCurrentListPlaying}
             <rect height="16" width="4" x="6" y="4"></rect>
             <rect height="16" width="4" x="14" y="4"></rect>
@@ -141,11 +141,11 @@
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
           {/if}
         </svg>
-        <span>{isCurrentListPlaying ? $t('pause_all') : $t('play_all')}</span>
+        <span class="whitespace-nowrap">{isCurrentListPlaying ? $t('pause_all') : $t('play_all')}</span>
       </button>
 
       <button
-        class="h-11 w-11 rounded-full bg-white/[0.08] hover:bg-white/[0.12] text-zinc-200 flex items-center justify-center transition cursor-pointer hover:scale-105 active:scale-95 disabled:opacity-40"
+        class="h-10 w-10 rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 text-zinc-200 inline-flex items-center justify-center transition cursor-pointer hover:scale-105 active:scale-95 disabled:opacity-40 shrink-0"
         disabled={tracks.length === 0}
         on:click={handleShuffleAll}
         title={$t('shuffle')}
@@ -160,7 +160,7 @@
       </button>
 
       <button
-        class="h-11 w-11 rounded-full bg-white/[0.08] hover:bg-white/[0.12] text-zinc-200 flex items-center justify-center transition cursor-pointer hover:scale-105 active:scale-95"
+        class="h-10 w-10 rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 text-zinc-200 inline-flex items-center justify-center transition cursor-pointer hover:scale-105 active:scale-95 shrink-0"
         on:click={() => openSharePlaylistModal(playlist)}
         title={$t('share_playlist')}
       >

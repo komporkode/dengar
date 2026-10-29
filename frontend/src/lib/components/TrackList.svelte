@@ -105,39 +105,39 @@
 
       <!-- Play All & Shuffle Controls (Dynamic state) -->
       {#if !isLoading && tracks.length > 0}
-        <div class="flex items-center gap-2 sm:gap-2.5">
+        <div class="flex items-center gap-2.5 shrink-0">
           <button
-            class="px-5 sm:px-6 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-crimson-600 to-crimson-500 hover:from-crimson-500 hover:to-crimson-400 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-crimson-500/25 transition-all transform active:scale-95 cursor-pointer"
+            class="h-10 px-5 rounded-full bg-gradient-to-r from-crimson-600 to-crimson-500 hover:from-crimson-500 hover:to-crimson-400 border border-transparent text-white font-semibold text-xs sm:text-sm inline-flex items-center gap-2 shadow-lg shadow-crimson-500/25 hover:shadow-crimson-500/40 transition-all transform active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
             on:click={handlePlayAll}
             title={isCurrentListPlaying ? $t('pause_all') : $t('play_all')}
           >
             {#if isCurrentListPlaying}
-              <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
                 <rect height="14" width="3.5" x="6" y="5"></rect>
                 <rect height="14" width="3.5" x="14.5" y="5"></rect>
               </svg>
-              <span>{$t('pause_all')}</span>
+              <span class="whitespace-nowrap">{$t('pause_all')}</span>
             {:else}
-              <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
-              <span>{$t('play_all')}</span>
+              <span class="whitespace-nowrap">{$t('play_all')}</span>
             {/if}
           </button>
 
           <button
-            class="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-zinc-300 hover:text-white font-semibold text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+            class="h-10 px-5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-all active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
             on:click={handleShuffleAll}
             title={$t('shuffle')}
           >
-            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-zinc-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <polyline points="16 3 21 3 21 8"></polyline>
               <line x1="4" y1="20" x2="21" y2="3"></line>
               <polyline points="21 16 21 21 16 21"></polyline>
               <line x1="15" y1="15" x2="21" y2="21"></line>
               <line x1="4" y1="4" x2="9" y2="9"></line>
             </svg>
-            <span>{$t('shuffle')}</span>
+            <span class="whitespace-nowrap">{$t('shuffle')}</span>
           </button>
         </div>
       {/if}
