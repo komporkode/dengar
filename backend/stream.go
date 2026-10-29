@@ -29,23 +29,35 @@ func NewStreamResolver(pool *InstancePool, ttl time.Duration) *StreamResolver {
 }
 
 // Resolve returns StreamResult for videoID. If forceRefresh is false, cached value is preferred.
-func (r *StreamResolver) Resolve(videoID string, forceRefresh bool) (*StreamResult, error) {
+// quality can be "high" (default highest bitrate Opus 160k / AAC) or "saver" (conserve bandwidth ~70-128k).
+func (r *StreamResolver) Resolve(videoID string, forceRefresh bool, quality ...string) (*StreamResult, error) {
 	vid := strings.TrimSpace(videoID)
 	if vid == "" {
 		return nil, fmt.Errorf("video ID kosong")
 	}
 
+	q := "high"
+	if len(quality) > 0 && strings.TrimSpace(quality[0]) != "" {
+		normalized := strings.ToLower(strings.TrimSpace(quality[0]))
+		if normalized == "saver" {
+			q = "saver"
+		}
+	}
+
+	cacheKey := fmt.Sprintf("%s:%s", vid, q)
+
 	if !forceRefresh {
-		if cached, ok := r.cache.Get(vid); ok {
+		if cached, ok := r.cache.Get(cacheKey); ok {
 			return cached, nil
 		}
 	}
 
 	// 1. Try Invidious instances first (highest availability for audio streams)
 	for _, inst := range r.pool.GetInvidiousInstances() {
-		res, err := r.resolveInvidious(inst, vid)
+		res, err := r.resolveInvidious(inst, vid, q)
 		if err == nil && res.AudioURL != "" {
-			r.cache.Set(vid, res)
+			res.Quality = q
+			r.cache.Set(cacheKey, res)
 			return res, nil
 		}
 		r.pool.RotateInvidious()
@@ -53,9 +65,10 @@ func (r *StreamResolver) Resolve(videoID string, forceRefresh bool) (*StreamResu
 
 	// 2. Fallback to Piped instances
 	for _, inst := range r.pool.GetPipedInstances() {
-		res, err := r.resolvePiped(inst, vid)
+		res, err := r.resolvePiped(inst, vid, q)
 		if err == nil && res.AudioURL != "" {
-			r.cache.Set(vid, res)
+			res.Quality = q
+			r.cache.Set(cacheKey, res)
 			return res, nil
 		}
 		r.pool.RotatePiped()
@@ -88,7 +101,22 @@ type pipedStreamResponse struct {
 	VideoStreams []pipedStreamVideo `json:"videoStreams"`
 }
 
-func (r *StreamResolver) resolvePiped(instanceURL, videoID string) (*StreamResult, error) {
+func formatAudioCodec(mime string, bitrate int64) string {
+	codec := "Audio"
+	if strings.Contains(mime, "opus") {
+		codec = "Opus"
+	} else if strings.Contains(mime, "mp4") || strings.Contains(mime, "m4a") || strings.Contains(mime, "aac") {
+		codec = "AAC"
+	}
+
+	kbps := bitrate / 1000
+	if kbps > 0 {
+		return fmt.Sprintf("%s %dkbps", codec, kbps)
+	}
+	return codec
+}
+
+func (r *StreamResolver) resolvePiped(instanceURL, videoID, quality string) (*StreamResult, error) {
 	apiURL := fmt.Sprintf("%s/streams/%s", strings.TrimRight(instanceURL, "/"), videoID)
 
 	resp, err := r.client.Get(apiURL)
@@ -111,22 +139,73 @@ func (r *StreamResolver) resolvePiped(instanceURL, videoID string) (*StreamResul
 		return nil, err
 	}
 
-	// Pick best audio: prefer m4a/mp4 highest bitrate, fallback to webm
 	bestAudioURL := ""
-	var maxBitrate int64 = -1
-	for _, a := range data.AudioStreams {
-		if strings.Contains(a.MimeType, "mp4") || strings.Contains(a.MimeType, "m4a") {
-			if a.Bitrate > maxBitrate {
-				maxBitrate = a.Bitrate
-				bestAudioURL = a.URL
+	var selectedBitrate int64 = 0
+	var selectedFormat string = ""
+
+	if len(data.AudioStreams) > 0 {
+		if quality == "saver" {
+			// Saver: choose stream with lower bitrate (<= 135kbps, e.g. ~64-128kbps) to conserve bandwidth.
+			var candidate pipedStreamAudio
+			foundSaver := false
+			for _, a := range data.AudioStreams {
+				if a.URL == "" {
+					continue
+				}
+				if a.Bitrate > 0 && a.Bitrate <= 135000 {
+					if !foundSaver || a.Bitrate > candidate.Bitrate {
+						candidate = a
+						foundSaver = true
+					}
+				}
+			}
+			if !foundSaver {
+				// Fallback to lowest non-zero bitrate
+				var minBitrate int64 = 1 << 60
+				for _, a := range data.AudioStreams {
+					if a.URL == "" {
+						continue
+					}
+					if a.Bitrate > 0 && a.Bitrate < minBitrate {
+						minBitrate = a.Bitrate
+						candidate = a
+						foundSaver = true
+					}
+				}
+			}
+			if foundSaver {
+				bestAudioURL = candidate.URL
+				selectedBitrate = candidate.Bitrate
+				selectedFormat = formatAudioCodec(candidate.MimeType, candidate.Bitrate)
 			}
 		}
-	}
-	if bestAudioURL == "" {
-		for _, a := range data.AudioStreams {
-			if a.Bitrate > maxBitrate {
-				maxBitrate = a.Bitrate
-				bestAudioURL = a.URL
+
+		if bestAudioURL == "" {
+			// High quality: pick maximum bitrate available
+			var maxBitrate int64 = -1
+			var candidate pipedStreamAudio
+			for _, a := range data.AudioStreams {
+				if a.URL == "" {
+					continue
+				}
+				if a.Bitrate > maxBitrate {
+					maxBitrate = a.Bitrate
+					candidate = a
+				}
+			}
+			if candidate.URL != "" {
+				bestAudioURL = candidate.URL
+				selectedBitrate = candidate.Bitrate
+				selectedFormat = formatAudioCodec(candidate.MimeType, candidate.Bitrate)
+			} else {
+				for _, a := range data.AudioStreams {
+					if a.URL != "" {
+						bestAudioURL = a.URL
+						selectedBitrate = a.Bitrate
+						selectedFormat = formatAudioCodec(a.MimeType, a.Bitrate)
+						break
+					}
+				}
 			}
 		}
 	}
@@ -166,6 +245,9 @@ func (r *StreamResolver) resolvePiped(instanceURL, videoID string) (*StreamResul
 		Duration:  data.Duration,
 		AudioURL:  bestAudioURL,
 		VideoURL:  bestVideoURL,
+		Bitrate:   selectedBitrate,
+		Format:    selectedFormat,
+		Quality:   quality,
 	}, nil
 }
 
@@ -197,7 +279,7 @@ func parseRawBitrate(raw json.RawMessage) int64 {
 	return val
 }
 
-func (r *StreamResolver) resolveInvidious(instanceURL, videoID string) (*StreamResult, error) {
+func (r *StreamResolver) resolveInvidious(instanceURL, videoID, quality string) (*StreamResult, error) {
 	apiURL := fmt.Sprintf("%s/api/v1/videos/%s", strings.TrimRight(instanceURL, "/"), videoID)
 
 	resp, err := r.client.Get(apiURL)
@@ -221,13 +303,73 @@ func (r *StreamResolver) resolveInvidious(instanceURL, videoID string) (*StreamR
 	}
 
 	bestAudioURL := ""
-	var maxBitrate int64 = -1
+	var selectedBitrate int64 = 0
+	var selectedFormat string = ""
+
+	type audioCandidate struct {
+		url     string
+		bitrate int64
+		mime    string
+	}
+
+	var audioList []audioCandidate
 	for _, f := range data.AdaptiveFormats {
-		if strings.Contains(f.Type, "audio") {
-			bitrate := parseRawBitrate(f.Bitrate)
-			if bitrate > maxBitrate || bestAudioURL == "" {
-				maxBitrate = bitrate
-				bestAudioURL = f.URL
+		if strings.Contains(f.Type, "audio") && f.URL != "" {
+			b := parseRawBitrate(f.Bitrate)
+			audioList = append(audioList, audioCandidate{
+				url:     f.URL,
+				bitrate: b,
+				mime:    f.Type,
+			})
+		}
+	}
+
+	if len(audioList) > 0 {
+		if quality == "saver" {
+			var candidate audioCandidate
+			foundSaver := false
+			for _, a := range audioList {
+				if a.bitrate > 0 && a.bitrate <= 135000 {
+					if !foundSaver || a.bitrate > candidate.bitrate {
+						candidate = a
+						foundSaver = true
+					}
+				}
+			}
+			if !foundSaver {
+				var minBitrate int64 = 1 << 60
+				for _, a := range audioList {
+					if a.bitrate > 0 && a.bitrate < minBitrate {
+						minBitrate = a.bitrate
+						candidate = a
+						foundSaver = true
+					}
+				}
+			}
+			if foundSaver {
+				bestAudioURL = candidate.url
+				selectedBitrate = candidate.bitrate
+				selectedFormat = formatAudioCodec(candidate.mime, candidate.bitrate)
+			}
+		}
+
+		if bestAudioURL == "" {
+			var maxBitrate int64 = -1
+			var candidate audioCandidate
+			for _, a := range audioList {
+				if a.bitrate > maxBitrate {
+					maxBitrate = a.bitrate
+					candidate = a
+				}
+			}
+			if candidate.url != "" {
+				bestAudioURL = candidate.url
+				selectedBitrate = candidate.bitrate
+				selectedFormat = formatAudioCodec(candidate.mime, candidate.bitrate)
+			} else {
+				bestAudioURL = audioList[0].url
+				selectedBitrate = audioList[0].bitrate
+				selectedFormat = formatAudioCodec(audioList[0].mime, audioList[0].bitrate)
 			}
 		}
 	}
@@ -257,5 +399,8 @@ func (r *StreamResolver) resolveInvidious(instanceURL, videoID string) (*StreamR
 		Duration:  data.LengthSeconds,
 		AudioURL:  bestAudioURL,
 		VideoURL:  bestVideoURL,
+		Bitrate:   selectedBitrate,
+		Format:    selectedFormat,
+		Quality:   quality,
 	}, nil
 }

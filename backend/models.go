@@ -25,6 +25,9 @@ type StreamResult struct {
 	AudioURL  string `json:"audioUrl"`
 	VideoURL  string `json:"videoUrl"`
 	Duration  int64  `json:"duration"`
+	Bitrate   int64  `json:"bitrate,omitempty"`
+	Format    string `json:"format,omitempty"`
+	Quality   string `json:"quality,omitempty"`
 }
 
 // Playlist stores a user-created collection of tracks.

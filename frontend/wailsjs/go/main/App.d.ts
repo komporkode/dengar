@@ -19,7 +19,7 @@ export function ExportPlaylist(arg1:string):Promise<string>;
 
 export function GetHomeData():Promise<main.HomeData>;
 
-export function GetStream(arg1:string,arg2:boolean):Promise<backend.StreamResult>;
+export function GetStream(arg1:string,arg2:boolean,arg3:string):Promise<backend.StreamResult>;
 
 export function GetUserData():Promise<backend.UserData>;
 

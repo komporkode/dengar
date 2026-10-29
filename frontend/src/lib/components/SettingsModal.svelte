@@ -401,7 +401,10 @@
                     'high'
                       ? 'bg-crimson-500/15 border-crimson-500 shadow-sm shadow-crimson-500/15 text-white'
                       : 'bg-white/[0.03] border-white/10 text-zinc-300 hover:bg-white/[0.06]'}"
-                    on:click={() => audioQualityStore.set("high")}
+                    on:click={() => {
+                      audioQualityStore.set("high")
+                      showToast("Kualitas audio diatur ke Kualitas Tertinggi (Opus 160kbps / AAC)")
+                    }}
                   >
                     <div class="flex items-center gap-2.5">
                       <span
@@ -439,7 +442,10 @@
                     'saver'
                       ? 'bg-crimson-500/15 border-crimson-500 shadow-sm shadow-crimson-500/15 text-white'
                       : 'bg-white/[0.03] border-white/10 text-zinc-300 hover:bg-white/[0.06]'}"
-                    on:click={() => audioQualityStore.set("saver")}
+                    on:click={() => {
+                      audioQualityStore.set("saver")
+                      showToast("Kualitas audio diatur ke Hemat Kuota (ECO ~70-128kbps)")
+                    }}
                   >
                     <div class="flex items-center gap-2.5">
                       <span

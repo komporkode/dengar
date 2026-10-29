@@ -89,9 +89,9 @@ func (a *App) SearchMore(continuationToken string) (*backend.SearchResponse, err
 	return a.search.SearchMore(continuationToken)
 }
 
-// GetStream resolves streaming media URLs with 30-min TTL caching.
-func (a *App) GetStream(videoID string, forceRefresh bool) (*backend.StreamResult, error) {
-	return a.resolver.Resolve(videoID, forceRefresh)
+// GetStream resolves streaming media URLs with 30-min TTL caching and quality preference ("high" or "saver").
+func (a *App) GetStream(videoID string, forceRefresh bool, quality string) (*backend.StreamResult, error) {
+	return a.resolver.Resolve(videoID, forceRefresh, quality)
 }
 
 // GetUserData loads bookmarks and playback history.

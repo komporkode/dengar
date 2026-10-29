@@ -4,7 +4,7 @@
   import { queueStore } from '../stores/queueStore'
   import { userDataStore } from '../stores/userDataStore'
   import { openAddToPlaylistModal } from '../stores/playlistStore'
-  import { showToast } from '../stores/settingsStore'
+  import { showToast, audioQualityStore } from '../stores/settingsStore'
   import { t } from '../stores/i18nStore'
 
   export let track: SearchResultItem
@@ -118,8 +118,8 @@
 
   <!-- Col 4: Quality & Duration -->
   <div class="col-span-2 md:col-span-2 flex items-center justify-end gap-1.5 sm:gap-2 text-right shrink-0 whitespace-nowrap">
-    <span class="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded {isCurrent ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' : 'bg-white/[0.06] text-zinc-300'}">
-      {track.duration > 300 ? 'HQ Opus' : 'HQ Audio'}
+    <span class="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded {isCurrent ? ($audioQualityStore === 'saver' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-300 border border-amber-500/20') : 'bg-white/[0.06] text-zinc-300'}">
+      {$audioQualityStore === 'saver' ? 'ECO Audio' : (track.duration > 300 ? 'HQ Opus' : 'HQ Audio')}
     </span>
     <span class="text-[11px] sm:text-xs font-mono {isCurrent ? 'text-crimson-400 font-bold' : 'text-zinc-400'}">
       {track.durationFormatted || '00:00'}

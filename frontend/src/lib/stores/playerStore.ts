@@ -3,6 +3,7 @@ import type { SearchResultItem, StreamResult, PlayMode } from '../types'
 import { GetStream, RecordPlay, Search } from '../../../wailsjs/go/main/App'
 import { userDataStore } from './userDataStore'
 import { queueStore, isAutoplayEnabled } from './queueStore'
+import { audioQualityStore } from './settingsStore'
 
 const STORAGE_VOLUME_KEY = 'dengar_player_volume'
 const STORAGE_MUTED_KEY = 'dengar_player_muted'
@@ -204,11 +205,12 @@ function createPlayerStore() {
 
     try {
       let stream: StreamResult
+      const currentQuality = get(audioQualityStore) || 'high'
       try {
-        stream = await GetStream(track.id, false)
+        stream = await GetStream(track.id, false, currentQuality)
       } catch (firstErr) {
         console.warn('Initial stream resolution failed, attempting with rotated instance...', firstErr)
-        stream = await GetStream(track.id, true)
+        stream = await GetStream(track.id, true, currentQuality)
       }
 
       if (requestId !== currentRequestId) {
@@ -269,7 +271,8 @@ function createPlayerStore() {
     }))
 
     try {
-      const freshStream = await GetStream(s.currentTrack.id, true)
+      const currentQuality = get(audioQualityStore) || 'high'
+      const freshStream = await GetStream(s.currentTrack.id, true, currentQuality)
       update(st => ({
         ...st,
         streamResult: freshStream,
@@ -465,6 +468,37 @@ function createPlayerStore() {
       seek(0)
     }
   }
+
+  // Hot-swap stream when user switches audio quality in settings
+  let activeQuality = get(audioQualityStore)
+  audioQualityStore.subscribe(async (newQuality) => {
+    if (newQuality === activeQuality) return
+    activeQuality = newQuality
+
+    const s = get({ subscribe })
+    if (s.currentTrack && audio && s.streamResult) {
+      console.log(`[AudioQuality] Hot-swapping stream quality to "${newQuality}" for track ${s.currentTrack.id}...`)
+      const savedTime = audio.currentTime
+      const wasPlaying = !audio.paused
+      try {
+        const freshStream = await GetStream(s.currentTrack.id, true, newQuality)
+        const streamUrl = freshStream.audioUrl || freshStream.videoUrl
+        if (streamUrl && audio) {
+          audio.src = streamUrl
+          audio.currentTime = savedTime
+          if (wasPlaying) {
+            audio.play().catch(e => console.warn('Hot-swap playback resume error:', e))
+          }
+          update(st => ({
+            ...st,
+            streamResult: freshStream,
+          }))
+        }
+      } catch (e) {
+        console.warn('[AudioQuality] Failed to hot-swap quality on active track:', e)
+      }
+    }
+  })
 
   return {
     subscribe,

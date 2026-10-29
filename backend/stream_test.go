@@ -149,3 +149,58 @@ func TestStreamResolverInvidious(t *testing.T) {
 		t.Errorf("Expected 720p format stream, got '%s'", res.VideoURL)
 	}
 }
+
+func TestStreamResolverQualitySaver(t *testing.T) {
+	mockPipedStream := `{
+		"title": "Starboy",
+		"uploader": "The Weeknd",
+		"duration": 230,
+		"audioStreams": [
+			{
+				"url": "https://stream.example/audio-low.webm",
+				"mimeType": "audio/webm",
+				"bitrate": 64000
+			},
+			{
+				"url": "https://stream.example/audio-high.m4a",
+				"mimeType": "audio/mp4",
+				"bitrate": 160000
+			}
+		],
+		"videoStreams": []
+	}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(mockPipedStream))
+	}))
+	defer server.Close()
+
+	pool := NewInstancePool([]string{server.URL}, nil)
+	resolver := NewStreamResolver(pool, 30*time.Minute)
+
+	// Test saver quality
+	resSaver, err := resolver.Resolve("starboy", false, "saver")
+	if err != nil {
+		t.Fatalf("Resolve with saver failed: %v", err)
+	}
+	if resSaver.AudioURL != "https://stream.example/audio-low.webm" {
+		t.Errorf("Expected low bitrate stream for saver, got %s", resSaver.AudioURL)
+	}
+	if resSaver.Quality != "saver" {
+		t.Errorf("Expected Quality 'saver', got %s", resSaver.Quality)
+	}
+
+	// Test high quality
+	resHigh, err := resolver.Resolve("starboy", false, "high")
+	if err != nil {
+		t.Fatalf("Resolve with high failed: %v", err)
+	}
+	if resHigh.AudioURL != "https://stream.example/audio-high.m4a" {
+		t.Errorf("Expected high bitrate stream for high, got %s", resHigh.AudioURL)
+	}
+	if resHigh.Quality != "high" {
+		t.Errorf("Expected Quality 'high', got %s", resHigh.Quality)
+	}
+}

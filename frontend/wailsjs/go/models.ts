@@ -103,6 +103,9 @@ export namespace backend {
 	    audioUrl: string;
 	    videoUrl: string;
 	    duration: number;
+	    bitrate?: number;
+	    format?: string;
+	    quality?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new StreamResult(source);
@@ -117,6 +120,9 @@ export namespace backend {
 	        this.audioUrl = source["audioUrl"];
 	        this.videoUrl = source["videoUrl"];
 	        this.duration = source["duration"];
+	        this.bitrate = source["bitrate"];
+	        this.format = source["format"];
+	        this.quality = source["quality"];
 	    }
 	}
 	export class UserData {

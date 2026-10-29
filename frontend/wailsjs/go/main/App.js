@@ -34,8 +34,8 @@ export function GetHomeData() {
   return window['go']['main']['App']['GetHomeData']();
 }
 
-export function GetStream(arg1, arg2) {
-  return window['go']['main']['App']['GetStream'](arg1, arg2);
+export function GetStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetStream'](arg1, arg2, arg3);
 }
 
 export function GetUserData() {

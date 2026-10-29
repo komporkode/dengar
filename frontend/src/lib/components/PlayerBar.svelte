@@ -2,7 +2,7 @@
   import { playerStore } from '../stores/playerStore'
   import { queueStore } from '../stores/queueStore'
   import { userDataStore } from '../stores/userDataStore'
-  import { showToast, isSidebarCollapsed, enterMiniPlayer } from '../stores/settingsStore'
+  import { showToast, isSidebarCollapsed, enterMiniPlayer, audioQualityStore } from '../stores/settingsStore'
   import { t } from '../stores/i18nStore'
 
   $: currentTrack = $playerStore.currentTrack
@@ -74,14 +74,18 @@
             <h4 class="text-xs sm:text-sm font-bold text-white truncate hover:text-crimson-400 transition" title={currentTrack.title}>
               {currentTrack.title}
             </h4>
-            <span class="hidden sm:inline-block text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 shrink-0">HQ</span>
+            {#if $audioQualityStore === 'saver'}
+              <span class="hidden sm:inline-block text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30 shrink-0" title="Kualitas Hemat Kuota (ECO)">ECO</span>
+            {:else}
+              <span class="hidden sm:inline-block text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 shrink-0" title="Kualitas Tertinggi (HQ Opus/AAC)">HQ</span>
+            {/if}
           </div>
           <p class="text-[11px] sm:text-xs text-zinc-400 truncate hover:text-zinc-200" title={currentTrack.uploaderName}>
             {currentTrack.uploaderName}
           </p>
-          <div class="hidden md:flex items-center gap-1 text-[10px] text-zinc-400 font-mono">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span>{$t('bit_perfect')}</span>
+          <div class="hidden md:flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono">
+            <span class="w-1.5 h-1.5 rounded-full {$audioQualityStore === 'saver' ? 'bg-emerald-400' : 'bg-crimson-400'}"></span>
+            <span>{stream?.format || ($audioQualityStore === 'saver' ? 'ECO ~70-128kbps' : 'HQ Opus 160kbps')}</span>
           </div>
         {:else}
           <span class="text-xs text-zinc-400">{$t('no_track_playing')}</span>
