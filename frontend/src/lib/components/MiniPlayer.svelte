@@ -7,7 +7,8 @@
     isMiniPlayerPinned,
     togglePinMiniPlayer,
     toastMessage,
-    showToast
+    showToast,
+    isTransitioning
   } from '../stores/settingsStore'
   import { t } from '../stores/i18nStore'
 
@@ -59,7 +60,7 @@
 </script>
 
 <div
-  class="w-full h-full bg-[#0B0D14] text-zinc-100 flex flex-col justify-between p-3 select-none overflow-hidden relative border border-white/[0.1] rounded-2xl shadow-2xl"
+  class="w-full h-full bg-[#0B0D14] text-zinc-100 flex flex-col justify-between p-3 select-none overflow-hidden relative border border-white/[0.1] rounded-2xl shadow-2xl transition-all duration-150 ease-out {$isTransitioning ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}"
   style="--wails-draggable:drag"
 >
   <!-- Ambient backdrop glow behind album art -->

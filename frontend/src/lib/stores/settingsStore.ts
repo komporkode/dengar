@@ -1,5 +1,15 @@
 import { writable, get } from 'svelte/store'
-import { WindowSetSize, WindowSetAlwaysOnTop, WindowSetMinSize } from '../../../wailsjs/runtime/runtime.js'
+import {
+  WindowSetSize,
+  WindowGetSize,
+  WindowSetPosition,
+  WindowGetPosition,
+  WindowIsMaximised,
+  WindowMaximise,
+  WindowUnmaximise,
+  WindowSetAlwaysOnTop,
+  WindowSetMinSize
+} from '../../../wailsjs/runtime/runtime.js'
 
 export type AudioQuality = 'high' | 'saver'
 
@@ -15,6 +25,7 @@ audioQualityStore.subscribe((val) => {
 
 export const isSettingsOpen = writable<boolean>(false)
 export const isMiniPlayer = writable<boolean>(false)
+export const isTransitioning = writable<boolean>(false)
 export const toastMessage = writable<string | null>(null)
 
 // Mini Player Pin (Always on top) store
@@ -62,27 +73,174 @@ export function showToast(message: string) {
   }, 2500)
 }
 
-export function enterMiniPlayer() {
+interface SavedWindowState {
+  wasMaximised: boolean
+  width: number
+  height: number
+  x?: number
+  y?: number
+}
+
+const defaultWindowState: SavedWindowState = {
+  wasMaximised: false,
+  width: 1200,
+  height: 800
+}
+
+function loadSavedWindowState(): SavedWindowState {
   try {
-    WindowSetMinSize(380, 160)
-    WindowSetSize(420, 175)
-    const pinned = get(isMiniPlayerPinned)
-    WindowSetAlwaysOnTop(pinned)
-    isMiniPlayer.set(true)
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem('dengar_window_state')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed && typeof parsed.width === 'number' && parsed.width >= 600) {
+          return parsed
+        }
+      }
+    }
   } catch (e) {
-    console.warn('Wails WindowSetSize error:', e)
-    isMiniPlayer.set(true)
+    // fallback
+  }
+  return defaultWindowState
+}
+
+let savedWindowState: SavedWindowState = loadSavedWindowState()
+
+function persistWindowState(state: SavedWindowState) {
+  savedWindowState = state
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('dengar_window_state', JSON.stringify(state))
+    }
+  } catch (e) {
+    // ignore
   }
 }
 
-export function exitMiniPlayer() {
+export async function enterMiniPlayer() {
+  if (get(isMiniPlayer) || get(isTransitioning)) return
+  isTransitioning.set(true)
+
   try {
-    WindowSetMinSize(900, 600)
-    WindowSetSize(1200, 800)
-    WindowSetAlwaysOnTop(false)
+    // 1. Capture current window state
+    let isMax = false
+    let curW = 1200
+    let curH = 800
+    let posX: number | undefined
+    let posY: number | undefined
+
+    try {
+      isMax = await WindowIsMaximised()
+    } catch (_) {}
+
+    try {
+      const s = await WindowGetSize()
+      if (s && s.w >= 600 && s.h >= 400) {
+        curW = s.w
+        curH = s.h
+      }
+    } catch (_) {}
+
+    try {
+      const p = await WindowGetPosition()
+      if (p) {
+        posX = p.x
+        posY = p.y
+      }
+    } catch (_) {}
+
+    persistWindowState({
+      wasMaximised: isMax,
+      width: curW,
+      height: curH,
+      x: posX,
+      y: posY
+    })
+
+    // 2. Unmaximise if maximized
+    if (isMax) {
+      try {
+        WindowUnmaximise()
+      } catch (_) {}
+    }
+
+    // 3. Wait for full desktop view to fade out smoothly
+    await new Promise(r => setTimeout(r, 120))
+
+    // 4. Set mini player constraints & window size
+    try {
+      WindowSetMinSize(360, 140)
+      WindowSetSize(420, 175)
+    } catch (e) {
+      console.warn('Wails WindowSetSize error:', e)
+    }
+
+    // 5. Pin / Always on top
+    const pinned = get(isMiniPlayerPinned)
+    try {
+      WindowSetAlwaysOnTop(pinned)
+    } catch (_) {}
+
+    // 6. Give OS window time to settle at mini size before mounting MiniPlayer
+    await new Promise(r => setTimeout(r, 90))
+
+    isMiniPlayer.set(true)
+  } catch (err) {
+    console.error('Failed to enter mini player:', err)
+    isMiniPlayer.set(true)
+  } finally {
+    setTimeout(() => {
+      isTransitioning.set(false)
+    }, 80)
+  }
+}
+
+export async function exitMiniPlayer() {
+  if (!get(isMiniPlayer) || get(isTransitioning)) return
+  isTransitioning.set(true)
+
+  try {
+    // 1. Disable Always On Top immediately
+    try {
+      WindowSetAlwaysOnTop(false)
+    } catch (_) {}
+
+    // 2. Mini player fades out smoothly
+    await new Promise(r => setTimeout(r, 120))
+
+    // 3. Reset min size for desktop
+    try {
+      WindowSetMinSize(900, 600)
+    } catch (_) {}
+
+    // 4. Restore window size & position or maximised state
+    try {
+      if (savedWindowState.wasMaximised) {
+        WindowMaximise()
+      } else {
+        WindowSetSize(savedWindowState.width, savedWindowState.height)
+        if (typeof savedWindowState.x === 'number' && typeof savedWindowState.y === 'number') {
+          WindowSetPosition(savedWindowState.x, savedWindowState.y)
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to restore window size:', e)
+      try {
+        WindowSetSize(1200, 800)
+      } catch (_) {}
+    }
+
+    // 5. Allow OS window time to expand to full size before showing desktop UI
+    await new Promise(r => setTimeout(r, 140))
+
+    // 6. Unmount mini player and show Desktop UI
     isMiniPlayer.set(false)
-  } catch (e) {
-    console.warn('Wails WindowSetSize error:', e)
+  } catch (err) {
+    console.error('Failed to exit mini player:', err)
     isMiniPlayer.set(false)
+  } finally {
+    setTimeout(() => {
+      isTransitioning.set(false)
+    }, 120)
   }
 }
