@@ -340,7 +340,7 @@ func (a *App) getHomeDataInternal(forceRefresh bool) (*HomeData, error) {
 
 // CheckForUpdates checks GitHub releases API for newer version of Dengar.
 func (a *App) CheckForUpdates() (*UpdateInfo, error) {
-	const currentVersion = "v1.0.0"
+	const currentVersion = "v1.1.0"
 	client := &http.Client{Timeout: 6 * time.Second}
 	req, err := http.NewRequest("GET", "https://api.github.com/repos/komporkode/dengar/releases/latest", nil)
 	if err != nil {

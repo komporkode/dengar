@@ -21,7 +21,11 @@
   $: isFav = currentTrack ? $userDataStore.favorites.some(f => f.id === currentTrack?.id) : false
   $: isPinned = $isMiniPlayerPinned
 
+  $: repeatMode = $queueStore.repeatMode
+  $: isShuffle = $queueStore.isShuffle
+
   $: progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0
+  $: volumePercent = isMuted ? 0 : Math.round(volume * 100)
 
   function formatTime(sec: number): string {
     if (!sec || isNaN(sec) || sec <= 0) return '00:00'
@@ -33,6 +37,17 @@
   function handleSeek(e: Event) {
     const val = parseFloat((e.target as HTMLInputElement).value)
     playerStore.seek(val)
+  }
+
+  function handleVolumeChange(e: Event) {
+    const val = parseFloat((e.target as HTMLInputElement).value)
+    playerStore.setVolume(val)
+  }
+
+  function handleVolumeWheel(e: WheelEvent) {
+    e.preventDefault()
+    const delta = e.deltaY < 0 ? 0.05 : -0.05
+    playerStore.adjustVolume(delta)
   }
 
   function handleToggleFav() {
@@ -71,6 +86,8 @@
       {:else}
         <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-zinc-400 border border-white/5">Mini</span>
       {/if}
+
+      <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 shrink-0">HQ</span>
     </div>
 
     <!-- Right: Unified Capsule / Pill Toolbar for Pin & Restore -->
@@ -82,12 +99,12 @@
       <button
         class="flex items-center gap-1 px-1.5 py-0.5 rounded-md transition cursor-pointer text-xs {isPinned ? 'bg-crimson-500/25 text-crimson-300 font-semibold shadow-xs' : 'text-zinc-400 hover:text-white hover:bg-white/10'}"
         on:click={togglePinMiniPlayer}
-        title={isPinned ? 'Lepas Sematan (Always on Top Aktif)' : 'Sematkan di Atas (Always on Top)'}
+        title={isPinned ? 'Lepas Sematan (Always on Top Aktif - P)' : 'Sematkan di Atas (Always on Top - P)'}
       >
         <svg class="w-3 h-3 {isPinned ? 'fill-current' : 'fill-none stroke-current'}" viewBox="0 0 24 24" stroke-width="2">
           <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l1 1 1-1v-6H18v-2l-2-2z"/>
         </svg>
-        <span class="text-[10px] leading-none">{isPinned ? 'Pin' : 'Pin'}</span>
+        <span class="text-[10px] leading-none">{isPinned ? 'Pinned' : 'Pin'}</span>
       </button>
 
       <span class="w-px h-3 bg-white/10 mx-0.5"></span>
@@ -109,10 +126,10 @@
   </header>
 
   <!-- MIDDLE ROW: Track Artwork + Info (Left/Center) & Grouped Controls (Right) -->
-  <div class="flex items-center justify-between gap-3 my-auto py-1" style="--wails-draggable:drag">
+  <div class="flex items-center justify-between gap-2.5 my-auto py-0.5" style="--wails-draggable:drag">
     <!-- Album Art & Track Meta -->
-    <div class="flex items-center gap-3 min-w-0 flex-1" style="--wails-draggable:no-drag">
-      <div class="relative w-12 h-12 rounded-xl overflow-hidden shadow-lg shadow-black/80 border border-white/10 shrink-0 bg-[#161822] flex items-center justify-center">
+    <div class="flex items-center gap-2.5 min-w-0 flex-1" style="--wails-draggable:no-drag">
+      <div class="relative w-11 h-11 rounded-xl overflow-hidden shadow-lg shadow-black/80 border border-white/10 shrink-0 bg-[#161822] flex items-center justify-center">
         {#if currentTrack?.thumbnailUrl}
           <img src={currentTrack.thumbnailUrl} alt={currentTrack.title} class="w-full h-full object-cover" />
         {:else}
@@ -132,16 +149,16 @@
         </div>
         
         <div class="flex items-center gap-1.5 mt-0.5">
-          <p class="text-[11px] text-zinc-400 truncate max-w-[150px]" title={currentTrack?.uploaderName}>
+          <p class="text-[11px] text-zinc-400 truncate max-w-[130px]" title={currentTrack?.uploaderName}>
             {currentTrack?.uploaderName || 'Dengar Player'}
           </p>
           {#if currentTrack}
             <button
               class="p-0.5 text-crimson-500 hover:text-crimson-400 hover:scale-110 active:scale-95 transition cursor-pointer shrink-0"
               on:click={handleToggleFav}
-              title={isFav ? 'Hapus dari favorit' : 'Tambah ke favorit'}
+              title={isFav ? 'Hapus dari favorit (F)' : 'Tambah ke favorit (F)'}
             >
-              <svg class="w-3 h-3 {isFav ? 'fill-current drop-shadow-[0_0_6px_rgba(230,30,56,0.6)]' : 'text-zinc-500'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <svg class="w-3.5 h-3.5 {isFav ? 'fill-current drop-shadow-[0_0_6px_rgba(230,30,56,0.6)]' : 'text-zinc-500'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>
             </button>
@@ -150,18 +167,36 @@
       </div>
     </div>
 
-    <!-- Playback Control Pod (Tight, Balanced, and Grouped) -->
+    <!-- Playback Control Pod (Complete: Shuffle, Prev, Play/Pause, Next, Repeat) -->
     <div
-      class="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-full p-1 shrink-0 shadow-inner"
+      class="flex items-center gap-0.5 sm:gap-1 bg-white/[0.04] border border-white/[0.08] rounded-full p-1 shrink-0 shadow-inner"
       style="--wails-draggable:no-drag"
     >
+      <!-- Shuffle -->
+      <button
+        class="w-6 h-6 rounded-full transition relative flex items-center justify-center cursor-pointer {isShuffle ? 'text-crimson-400' : 'text-zinc-400 hover:text-zinc-200'}"
+        on:click={queueStore.toggleShuffle}
+        title={isShuffle ? 'Putar Acak: Aktif' : 'Putar Acak: Nonaktif'}
+      >
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="16 3 21 3 21 8"></polyline>
+          <line x1="4" y1="20" x2="21" y2="3"></line>
+          <polyline points="21 16 21 21 16 21"></polyline>
+          <line x1="15" y1="15" x2="21" y2="21"></line>
+          <line x1="4" y1="4" x2="9" y2="9"></line>
+        </svg>
+        {#if isShuffle}
+          <span class="absolute -bottom-0.5 right-0.5 w-1 h-1 rounded-full bg-crimson-400 shadow-[0_0_4px_#FF4D62]"></span>
+        {/if}
+      </button>
+
       <!-- Prev -->
       <button
-        class="w-7 h-7 rounded-full text-zinc-400 hover:text-white hover:bg-white/[0.08] active:scale-90 transition flex items-center justify-center cursor-pointer"
+        class="w-6 h-6 rounded-full text-zinc-400 hover:text-white hover:bg-white/[0.08] active:scale-90 transition flex items-center justify-center cursor-pointer"
         on:click={playerStore.playPrev}
         title="Lagu Sebelumnya (J)"
       >
-        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+        <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24">
           <polygon points="19 20 9 12 19 4 19 20"></polygon>
           <line stroke="currentColor" stroke-width="2.5" x1="5" x2="5" y1="19" y2="5"></line>
         </svg>
@@ -169,19 +204,19 @@
 
       <!-- Play / Pause Accent Button -->
       <button
-        class="w-8 h-8 rounded-full bg-crimson-500 hover:bg-crimson-600 text-white flex items-center justify-center shadow-lg shadow-crimson-500/40 hover:scale-105 active:scale-95 transition cursor-pointer shrink-0"
+        class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-crimson-500 hover:bg-crimson-600 text-white flex items-center justify-center shadow-lg shadow-crimson-500/40 hover:scale-105 active:scale-95 transition cursor-pointer shrink-0"
         on:click={playerStore.togglePlay}
         title="Play/Pause (Spasi)"
       >
         {#if isLoading}
           <div class="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
         {:else if isPlaying}
-          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+          <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" viewBox="0 0 24 24">
             <rect height="12" width="3" x="7" y="6"></rect>
             <rect height="12" width="3" x="14" y="6"></rect>
           </svg>
         {:else}
-          <svg class="w-3.5 h-3.5 fill-current ml-0.5" viewBox="0 0 24 24">
+          <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current ml-0.5" viewBox="0 0 24 24">
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
           </svg>
         {/if}
@@ -189,23 +224,44 @@
 
       <!-- Next -->
       <button
-        class="w-7 h-7 rounded-full text-zinc-400 hover:text-white hover:bg-white/[0.08] active:scale-90 transition flex items-center justify-center cursor-pointer"
+        class="w-6 h-6 rounded-full text-zinc-400 hover:text-white hover:bg-white/[0.08] active:scale-90 transition flex items-center justify-center cursor-pointer"
         on:click={playerStore.playNext}
         title="Lagu Selanjutnya (L)"
       >
-        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+        <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24">
           <polygon points="5 4 15 12 5 20 5 4"></polygon>
           <line stroke="currentColor" stroke-width="2.5" x1="19" x2="19" y1="5" y2="19"></line>
         </svg>
       </button>
+
+      <!-- Repeat Mode -->
+      <button
+        class="w-6 h-6 rounded-full transition relative flex items-center justify-center cursor-pointer {repeatMode !== 'off' ? 'text-crimson-400' : 'text-zinc-400 hover:text-zinc-200'}"
+        on:click={queueStore.cycleRepeat}
+        title={repeatMode === 'one' ? 'Ulangi: Satu Lagu' : repeatMode === 'all' ? 'Ulangi: Semua Lagu' : 'Ulangi: Mati'}
+      >
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="17 1 21 5 17 9"></polyline>
+          <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+          <polyline points="7 23 3 19 7 15"></polyline>
+          <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+        </svg>
+        {#if repeatMode === 'one'}
+          <span class="absolute -top-0.5 -right-0.5 text-[8px] font-bold font-mono text-crimson-400">1</span>
+        {:else if repeatMode === 'all'}
+          <span class="absolute -bottom-0.5 right-0.5 w-1 h-1 rounded-full bg-crimson-400 shadow-[0_0_4px_#FF4D62]"></span>
+        {/if}
+      </button>
     </div>
   </div>
 
-  <!-- BOTTOM ROW: Sleek Integrated Scrubber & Volume -->
-  <div class="flex items-center gap-2 text-[10px] font-mono text-zinc-400 shrink-0 pt-1" style="--wails-draggable:no-drag">
+  <!-- BOTTOM ROW: Sleek Integrated Scrubber & Rich Volume Controls -->
+  <div class="flex items-center gap-2 text-[10px] font-mono text-zinc-400 shrink-0 pt-0.5" style="--wails-draggable:no-drag">
+    <!-- Current Time -->
     <span class="w-7 text-right text-zinc-300 shrink-0 font-medium">{formatTime(currentTime)}</span>
 
-    <div class="relative flex-1 group py-1 flex items-center cursor-pointer">
+    <!-- Interactive Track Scrubber -->
+    <div class="relative flex-1 group py-1 flex items-center cursor-pointer min-w-[70px]">
       <div class="h-1 w-full bg-white/[0.12] rounded-full overflow-hidden group-hover:h-1.5 transition-all relative">
         <div
           class="h-full bg-gradient-to-r from-crimson-500 to-rose-400 rounded-full shadow-[0_0_8px_rgba(230,30,56,0.6)]"
@@ -221,36 +277,79 @@
         value={currentTime}
         on:input={handleSeek}
         disabled={!currentTrack}
+        title="Durasi: {formatTime(currentTime)} / {formatTime(duration)} (Panah Kiri/Kanan)"
       />
     </div>
 
+    <!-- Duration -->
     <span class="w-7 text-zinc-400 shrink-0">{formatTime(duration)}</span>
 
-    <!-- Quick Mute / Unmute & Volume Scroll -->
-    <button
-      class="p-1 rounded-md hover:bg-white/[0.08] text-zinc-400 hover:text-white transition cursor-pointer shrink-0"
-      on:click={playerStore.toggleMute}
-      on:wheel={(e) => { e.preventDefault(); playerStore.adjustVolume(e.deltaY < 0 ? 0.05 : -0.05); }}
-      title={isMuted || volume === 0 ? 'Bunyikan (M)' : `Volume: ${Math.round(volume * 100)}% (Scroll / M)`}
+    <!-- Divider -->
+    <div class="w-px h-3.5 bg-white/10 shrink-0 mx-0.5"></div>
+
+    <!-- Dedicated Rich Volume Control Section -->
+    <div
+      class="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/15 transition-all group shrink-0"
+      on:wheel={handleVolumeWheel}
+      title="Volume: {volumePercent}% (Scroll / Panah Atas-Bawah / M)"
     >
-      {#if isMuted || volume === 0}
-        <svg class="w-3.5 h-3.5 text-crimson-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-          <line x1="23" y1="9" x2="17" y2="15"></line>
-          <line x1="17" y1="9" x2="23" y2="15"></line>
-        </svg>
-      {:else if volume < 0.5}
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-        </svg>
-      {:else}
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-        </svg>
-      {/if}
-    </button>
+      <!-- Mute / Unmute Button -->
+      <button
+        type="button"
+        class="p-0.5 text-zinc-400 hover:text-white transition cursor-pointer"
+        on:click={playerStore.toggleMute}
+        title={isMuted || volume === 0 ? 'Bunyikan (M)' : 'Bisukan (M)'}
+      >
+        {#if isMuted || volume === 0}
+          <svg class="w-3.5 h-3.5 text-crimson-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+        {:else if volume < 0.35}
+          <svg class="w-3.5 h-3.5 text-zinc-300 group-hover:text-white transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        {:else if volume < 0.7}
+          <svg class="w-3.5 h-3.5 text-zinc-300 group-hover:text-white transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M17.5 6.5a8 8 0 0 1 0 11"></path>
+          </svg>
+        {:else}
+          <svg class="w-3.5 h-3.5 text-zinc-300 group-hover:text-white transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        {/if}
+      </button>
+
+      <!-- Smooth Interactive Volume Slider Bar -->
+      <div class="relative w-12 sm:w-16 py-1 flex items-center">
+        <div class="h-1 w-full bg-white/[0.15] rounded-full group-hover:h-1.5 transition-all relative overflow-hidden">
+          <div
+            class="h-full bg-gradient-to-r from-zinc-200 to-white group-hover:from-crimson-400 group-hover:to-rose-400 rounded-full transition-all"
+            style="width: {volumePercent}%"
+          ></div>
+        </div>
+        <input
+          type="range"
+          class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          min="0"
+          max="1"
+          step="0.01"
+          value={isMuted ? 0 : volume}
+          on:input={handleVolumeChange}
+          title="Atur Volume: {volumePercent}%"
+        />
+      </div>
+
+      <!-- Volume Percentage Indicator -->
+      <span class="text-[9px] font-mono text-zinc-400 group-hover:text-zinc-200 w-6 text-right select-none">
+        {volumePercent}%
+      </span>
+    </div>
   </div>
 
   <!-- Floating Toast Pill inside Mini Player -->

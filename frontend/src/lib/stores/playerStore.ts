@@ -75,48 +75,93 @@ function createPlayerStore() {
     retryCount: 0,
   })
 
-  let audioElement: HTMLAudioElement | null = null
+  let audio: HTMLAudioElement | null = null
   let currentRequestId = 0
   let hasRecordedPlay = false
   let recordedTrackId = ''
 
-  function applyVolumeToAudio() {
-    if (!audioElement) return
-    const s = get({ subscribe })
-    audioElement.volume = s.volume
-    audioElement.muted = s.isMuted
+  function initAudio() {
+    if (typeof window === 'undefined' || typeof Audio === 'undefined') return
+    if (audio) return
+
+    audio = new Audio()
+    audio.preload = 'auto'
+    audio.volume = initialVolume
+    audio.muted = initialMuted
+
+    audio.addEventListener('timeupdate', () => {
+      if (audio) {
+        onTimeUpdate(audio.currentTime, audio.duration)
+      }
+    })
+
+    audio.addEventListener('durationchange', () => {
+      if (audio && audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
+        update(st => ({ ...st, duration: audio!.duration }))
+      }
+    })
+
+    audio.addEventListener('ended', () => {
+      onTrackEnded()
+    })
+
+    audio.addEventListener('error', () => {
+      handleMediaError()
+    })
+
+    audio.addEventListener('waiting', () => {
+      update(st => ({ ...st, isLoading: true }))
+    })
+
+    audio.addEventListener('playing', () => {
+      update(st => ({ ...st, isPlaying: true, isLoading: false }))
+    })
+
+    audio.addEventListener('pause', () => {
+      update(st => ({ ...st, isPlaying: false }))
+    })
+
+    audio.addEventListener('canplay', () => {
+      update(st => ({ ...st, isLoading: false }))
+    })
   }
 
-  function bindAudio(audio: HTMLAudioElement | null) {
-    audioElement = audio
-    applyVolumeToAudio()
+  // Initialize singleton audio instance in browser environment
+  initAudio()
+
+  function applyVolumeToAudio() {
+    if (!audio) return
+    const s = get({ subscribe })
+    audio.volume = s.volume
+    audio.muted = s.isMuted
+  }
+
+  function bindAudio(_audio: HTMLAudioElement | null) {
+    // Deprecated: Audio lifecycle is managed directly by playerStore singleton
   }
 
   function bindVideo(_video: HTMLVideoElement | null) {
     // Pure audio mode - video no-op for backward compatibility
   }
 
-  function bindMedia(audio: HTMLAudioElement | null, _video: HTMLVideoElement | null) {
-    if (audio !== null) {
-      audioElement = audio
-      applyVolumeToAudio()
-    }
+  function bindMedia(_audio: HTMLAudioElement | null, _video: HTMLVideoElement | null) {
+    // Deprecated: Audio lifecycle is managed directly by playerStore singleton
   }
 
   function getActiveMedia(): HTMLMediaElement | null {
-    return audioElement
+    return audio
   }
 
   async function playTrack(track: SearchResultItem, modeOverride?: PlayMode, forceRestart = false) {
+    initAudio()
     const s = get({ subscribe })
     const activeMode = modeOverride || s.mode
 
     // Replay check for the exact same track (repeat-one or re-clicking current song)
-    if (s.currentTrack?.id === track.id && s.streamResult) {
-      const media = getActiveMedia()
-      if (media) {
-        media.currentTime = 0
-        media.play().catch(console.error)
+    if (!forceRestart && s.currentTrack?.id === track.id && s.streamResult) {
+      if (audio) {
+        audio.currentTime = 0
+        audio.play().catch(console.error)
       }
       update(st => ({
         ...st,
@@ -150,7 +195,8 @@ function createPlayerStore() {
         // Obsolete request, ignore
         return
       }
-      if (!stream.audioUrl && !stream.videoUrl) {
+      const streamUrl = stream.audioUrl || stream.videoUrl
+      if (!streamUrl) {
         throw new Error('Tidak ada stream audio/video yang valid')
       }
 
@@ -163,14 +209,17 @@ function createPlayerStore() {
         isPlaying: true,
       }))
 
-      // Ensure active media starts playing
-      setTimeout(() => {
-        const media = getActiveMedia()
-        if (media) {
-          media.currentTime = 0
-          media.play().catch(console.error)
+      if (audio) {
+        if (audio.src !== streamUrl) {
+          audio.src = streamUrl
         }
-      }, 20)
+        audio.currentTime = 0
+        audio.volume = s.volume
+        audio.muted = s.isMuted
+        audio.play().catch(e => {
+          console.warn('Audio play error:', e)
+        })
+      }
     } catch (e: any) {
       if (requestId !== currentRequestId) return
       console.error('Failed to resolve stream:', e)
@@ -183,6 +232,7 @@ function createPlayerStore() {
   }
 
   async function handleMediaError() {
+    initAudio()
     const s = get({ subscribe })
     if (!s.currentTrack || s.retryCount >= 3) {
       update(st => ({ ...st, error: 'Stream error setelah beberapa percobaan', isLoading: false }))
@@ -207,10 +257,13 @@ function createPlayerStore() {
         isPlaying: true,
       }))
 
-      const media = getActiveMedia()
-      if (media) {
-        media.currentTime = savedTime
-        media.play().catch(console.error)
+      if (audio) {
+        const streamUrl = freshStream.audioUrl || freshStream.videoUrl
+        if (streamUrl) {
+          audio.src = streamUrl
+          audio.currentTime = savedTime
+          audio.play().catch(console.error)
+        }
       }
     } catch (err: any) {
       console.error('Auto re-resolve failed:', err)
@@ -223,28 +276,33 @@ function createPlayerStore() {
   }
 
   function togglePlay() {
-    const media = getActiveMedia()
-    if (!media) return
+    initAudio()
+    if (!audio) return
 
-    if (media.paused) {
-      media.play().then(() => {
+    if (audio.paused) {
+      audio.play().then(() => {
         update(st => ({ ...st, isPlaying: true }))
       }).catch(console.error)
     } else {
-      media.pause()
+      audio.pause()
       update(st => ({ ...st, isPlaying: false }))
     }
   }
 
   function seek(time: number) {
-    const media = getActiveMedia()
-    if (media) {
-      media.currentTime = time
+    initAudio()
+    if (audio) {
+      try {
+        audio.currentTime = time
+      } catch (e) {
+        console.warn('Seek error:', e)
+      }
     }
     update(st => ({ ...st, currentTime: time }))
   }
 
   function setVolume(v: number) {
+    initAudio()
     const vol = Math.max(0, Math.min(1, Math.round(v * 100) / 100))
     const isMuted = vol === 0
     if (vol > 0) {
@@ -254,7 +312,10 @@ function createPlayerStore() {
       saveVolumeState(vol, isMuted)
       return { ...st, volume: vol, isMuted }
     })
-    applyVolumeToAudio()
+    if (audio) {
+      audio.volume = vol
+      audio.muted = isMuted
+    }
   }
 
   function adjustVolume(delta: number) {
@@ -268,6 +329,7 @@ function createPlayerStore() {
   }
 
   function toggleMute() {
+    initAudio()
     update(st => {
       const nextMuted = !st.isMuted
       let nextVol = st.volume
@@ -275,9 +337,12 @@ function createPlayerStore() {
         nextVol = lastNonZeroVolume > 0 ? lastNonZeroVolume : 0.5
       }
       saveVolumeState(nextVol, nextMuted)
+      if (audio) {
+        audio.muted = nextMuted
+        audio.volume = nextVol
+      }
       return { ...st, isMuted: nextMuted, volume: nextVol }
     })
-    applyVolumeToAudio()
   }
 
   function toggleMode() {

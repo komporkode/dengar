@@ -1,12 +1,9 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
   import { playerStore } from '../stores/playerStore'
   import { queueStore } from '../stores/queueStore'
   import { userDataStore } from '../stores/userDataStore'
-  import { showToast, isSidebarCollapsed } from '../stores/settingsStore'
+  import { showToast, isSidebarCollapsed, enterMiniPlayer } from '../stores/settingsStore'
   import { t } from '../stores/i18nStore'
-
-  let audioElement: HTMLAudioElement
 
   $: currentTrack = $playerStore.currentTrack
   $: stream = $playerStore.streamResult
@@ -23,32 +20,6 @@
 
   $: progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0
   $: volumePercent = isMuted ? 0 : Math.round(volume * 100)
-
-  onMount(() => {
-    if (audioElement) {
-      playerStore.bindAudio(audioElement)
-    }
-  })
-
-  // Synchronize audio element playback when stream or isPlaying changes
-  $: if (audioElement && stream?.audioUrl) {
-    if (audioElement.src !== stream.audioUrl) {
-      audioElement.src = stream.audioUrl
-      audioElement.volume = volume
-      audioElement.muted = isMuted
-      if (isPlaying) {
-        audioElement.play().catch(e => console.warn('Audio play error:', e))
-      }
-    } else if (isPlaying && audioElement.paused) {
-      audioElement.play().catch(e => console.warn('Audio play error:', e))
-    }
-  }
-
-  function handleTimeUpdate() {
-    if (audioElement) {
-      playerStore.onTimeUpdate(audioElement.currentTime, audioElement.duration)
-    }
-  }
 
   function handleVolumeWheel(e: WheelEvent) {
     e.preventDefault()
@@ -80,15 +51,6 @@
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
 </script>
-
-<!-- Hidden Audio Element -->
-<audio
-  bind:this={audioElement}
-  on:timeupdate={handleTimeUpdate}
-  on:ended={playerStore.onTrackEnded}
-  on:error={playerStore.handleMediaError}
-  preload="auto"
-></audio>
 
 <!-- Floating Modern Glassmorphic Island Player -->
 <footer class="fixed bottom-3 sm:bottom-4 left-3 right-3 {$isSidebarCollapsed ? 'md:left-[4.5rem] md:right-6' : 'md:left-64 xl:left-72 md:right-8'} z-30 pointer-events-none select-none transition-all duration-300">
@@ -254,8 +216,8 @@
       </div>
     </div>
 
-    <!-- Sisi Kanan: Pure Music Volume Control -->
-    <div class="flex items-center justify-end shrink-0">
+    <!-- Sisi Kanan: Pure Music Volume Control & Mini Player -->
+    <div class="flex items-center justify-end gap-1.5 shrink-0">
       <div
         class="flex items-center gap-2 group px-2.5 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all"
         on:wheel={handleVolumeWheel}
@@ -311,6 +273,19 @@
           {volumePercent}%
         </span>
       </div>
+
+      <!-- Quick Switch to Mini Player -->
+      <button
+        type="button"
+        class="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.08] border border-transparent hover:border-white/[0.08] transition cursor-pointer hidden sm:flex items-center justify-center"
+        on:click={enterMiniPlayer}
+        title={$t('mini_player') || 'Mini Player'}
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <rect x="13" y="13" width="6" height="6" rx="1" fill="currentColor"></rect>
+        </svg>
+      </button>
     </div>
   </div>
 </footer>

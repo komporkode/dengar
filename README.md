@@ -41,7 +41,7 @@
 
 ### Windows (x64)
 1. Unduh rilis portabel terbaru di [GitHub Releases](https://github.com/komporkode/dengar/releases/latest).
-2. Ekstrak file zip `dengar-v1.0.0-windows-amd64.zip`.
+2. Ekstrak file zip `dengar-windows-amd64.zip` (atau sesuai rilis versi terbaru).
 3. Jalankan `dengar.exe` langsung (portabel, tanpa perlu instalasi rumit).
 
 ### Linux & macOS

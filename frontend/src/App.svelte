@@ -202,9 +202,13 @@
 {#if $isMiniPlayer}
   <!-- Mini Music Player View -->
   <MiniPlayer />
-{:else}
-  <!-- Standard Desktop Application View with Single Custom Frameless Title Bar -->
-  <div class="w-full h-full flex flex-col bg-obsidian text-zinc-100 font-sans antialiased select-none overflow-hidden relative">
+{/if}
+
+<!-- Standard Desktop Application View with Single Custom Frameless Title Bar -->
+<div
+  class="w-full h-full flex flex-col bg-obsidian text-zinc-100 font-sans antialiased select-none overflow-hidden relative"
+  style:display={$isMiniPlayer ? 'none' : 'flex'}
+>
     
     <!-- Unified Dark Custom Titlebar (Frameless Windows-style, NO Mac dots) -->
     <header
@@ -347,4 +351,3 @@
       </div>
     {/if}
   </div>
-{/if}
