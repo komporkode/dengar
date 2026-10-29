@@ -5,12 +5,17 @@
   import { isSettingsOpen, audioQualityStore, showToast } from '../stores/settingsStore'
   import { currentLocale, t } from '../stores/i18nStore'
   import { BrowserOpenURL } from '../../../wailsjs/runtime/runtime.js'
-  import { CheckForUpdates } from '../../../wailsjs/go/main/App'
+  import {
+    updateState,
+    isCheckingUpdate,
+    isDownloadingUpdate,
+    downloadedFilePath,
+    checkForUpdatesManual,
+    startDownloadUpdate,
+    revealDownloadedFile
+  } from '../stores/updateStore'
 
   let activeTab: 'general' | 'audio' | 'about' = 'general'
-  let updateStatus: 'idle' | 'checking' | 'latest' | 'update_available' | 'error' = 'idle'
-  let latestVersion = ''
-  let releaseUrl = ''
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape' && $isSettingsOpen) {
@@ -34,23 +39,6 @@
     }
   }
 
-  async function handleCheckUpdate() {
-    updateStatus = 'checking'
-    try {
-      const res = await CheckForUpdates()
-      if (res && res.hasUpdate) {
-        updateStatus = 'update_available'
-        latestVersion = res.latestVersion
-        releaseUrl = res.releaseUrl || 'https://github.com/komporkode/dengar/releases'
-      } else {
-        updateStatus = 'latest'
-      }
-    } catch (e) {
-      console.warn('Update check failed:', e)
-      updateStatus = 'error'
-    }
-  }
-
   function openGithub() {
     try {
       BrowserOpenURL('https://github.com/komporkode/dengar')
@@ -60,7 +48,7 @@
   }
 
   function openReleasePage() {
-    const url = releaseUrl || 'https://github.com/komporkode/dengar/releases'
+    const url = $updateState?.releaseUrl || 'https://github.com/komporkode/dengar/releases'
     try {
       BrowserOpenURL(url)
     } catch (e) {
@@ -399,39 +387,54 @@
                 <!-- Update Status & Action Row -->
                 <div class="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs">
                   <div class="flex items-center gap-2">
-                    {#if updateStatus === 'checking'}
+                    {#if $isCheckingUpdate}
                       <div class="w-3 h-3 border-2 border-white/20 border-t-crimson-500 rounded-full animate-spin"></div>
                       <span class="text-zinc-400 text-[11px]">Memeriksa pembaruan di GitHub...</span>
-                    {:else if updateStatus === 'latest'}
-                      <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34D399]"></span>
-                      <span class="text-emerald-400 text-[11px] font-medium">Aplikasi sudah versi terbaru (v1.1.0)</span>
-                    {:else if updateStatus === 'update_available'}
+                    {:else if $updateState?.hasUpdate}
                       <span class="w-2 h-2 rounded-full bg-crimson-400 shadow-[0_0_6px_#E61E38] animate-pulse"></span>
-                      <span class="text-crimson-300 text-[11px] font-bold">Versi baru tersedia: {latestVersion}</span>
-                    {:else if updateStatus === 'error'}
-                      <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                      <span class="text-zinc-400 text-[11px]">Belum ada rilis baru di GitHub</span>
+                      <span class="text-crimson-300 text-[11px] font-bold">Versi baru tersedia: {$updateState.latestVersion}</span>
+                    {:else if $updateState && !$updateState.hasUpdate}
+                      <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34D399]"></span>
+                      <span class="text-emerald-400 text-[11px] font-medium">Aplikasi sudah versi terbaru ({$updateState.currentVersion})</span>
                     {:else}
                       <span class="text-zinc-400 text-[11px]">Status rilis: <strong class="text-zinc-200 font-mono">v1.1.0 Stable</strong></span>
                     {/if}
                   </div>
 
-                  {#if updateStatus === 'update_available'}
-                    <button
-                      class="px-2.5 py-1 rounded-lg bg-crimson-500 hover:bg-crimson-600 text-white font-bold text-xs transition cursor-pointer shadow-sm shadow-crimson-500/30"
-                      on:click={openReleasePage}
-                    >
-                      Unduh Update
-                    </button>
-                  {:else}
-                    <button
-                      class="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-[11px] font-medium text-zinc-300 hover:text-white transition cursor-pointer disabled:opacity-50"
-                      on:click={handleCheckUpdate}
-                      disabled={updateStatus === 'checking'}
-                    >
-                      {updateStatus === 'checking' ? 'Memeriksa...' : 'Cek Pembaruan'}
-                    </button>
-                  {/if}
+                  <div class="flex items-center gap-1.5">
+                    {#if $downloadedFilePath}
+                      <button
+                        class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer shadow-sm flex items-center gap-1"
+                        on:click={revealDownloadedFile}
+                        title="Buka file .zip di Explorer"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5z"></path></svg>
+                        <span>Buka File</span>
+                      </button>
+                    {:else if $isDownloadingUpdate}
+                      <div class="flex items-center gap-1.5 text-zinc-300 text-[11px] px-2 py-1 bg-white/[0.06] rounded-lg">
+                        <div class="w-3 h-3 border-2 border-white/20 border-t-crimson-500 rounded-full animate-spin"></div>
+                        <span>Mengunduh...</span>
+                      </div>
+                    {:else if $updateState?.hasUpdate}
+                      <button
+                        class="px-2.5 py-1 rounded-lg bg-crimson-500 hover:bg-crimson-600 text-white font-bold text-xs transition cursor-pointer shadow-sm shadow-crimson-500/30 flex items-center gap-1"
+                        on:click={() => startDownloadUpdate()}
+                        title="Unduh file .zip langsung ke folder Downloads"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+                        <span>Unduh Otomatis</span>
+                      </button>
+                    {:else}
+                      <button
+                        class="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-[11px] font-medium text-zinc-300 hover:text-white transition cursor-pointer disabled:opacity-50"
+                        on:click={checkForUpdatesManual}
+                        disabled={$isCheckingUpdate}
+                      >
+                        {$isCheckingUpdate ? 'Memeriksa...' : 'Cek Pembaruan'}
+                      </button>
+                    {/if}
+                  </div>
                 </div>
               </div>
             </div>

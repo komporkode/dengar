@@ -13,6 +13,15 @@
     enterMiniPlayer,
     isTransitioning
   } from './lib/stores/settingsStore'
+  import {
+    updateState,
+    showUpdateBanner,
+    isDownloadingUpdate,
+    downloadedFilePath,
+    checkForUpdatesInBackground,
+    startDownloadUpdate,
+    revealDownloadedFile
+  } from './lib/stores/updateStore'
   import { t } from './lib/stores/i18nStore'
 
   import Sidebar from './lib/components/Sidebar.svelte'
@@ -67,6 +76,9 @@
       }, 900)
     }
     window.addEventListener('scroll', handleScrollActivity, { capture: true, passive: true })
+
+    // 5. Automatic background update check on app launch
+    checkForUpdatesInBackground()
   })
 
   onDestroy(() => {
@@ -222,7 +234,7 @@
 
 <!-- Standard Desktop Application View with Single Custom Frameless Title Bar -->
 <div
-  class="w-full h-full flex flex-col bg-obsidian text-zinc-100 font-sans antialiased select-none overflow-hidden relative transition-all duration-200 ease-out {$isTransitioning && !$isMiniPlayer ? 'opacity-0 scale-[0.99] pointer-events-none' : 'opacity-100 scale-100'}"
+  class="w-full h-full flex flex-col bg-obsidian text-zinc-100 font-sans antialiased select-none overflow-hidden relative"
   style:display={$isMiniPlayer ? 'none' : 'flex'}
 >
     
@@ -375,5 +387,63 @@
           <span>{$toastMessage}</span>
         </div>
       </div>
+    {/if}
+
+    <!-- Automatic Background Update Available Banner -->
+    {#if $showUpdateBanner && $updateState?.hasUpdate}
+      <aside aria-label="Notifikasi Pembaruan" class="fixed top-14 right-5 z-50 animate-spring-up duration-300">
+        <div class="px-4 py-3 rounded-2xl bg-[#141622]/95 border border-crimson-500/35 shadow-2xl text-xs text-white flex items-center gap-3 backdrop-blur-xl max-w-sm">
+          <div class="w-8 h-8 rounded-xl bg-crimson-500/20 text-crimson-400 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/>
+            </svg>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="font-bold text-zinc-100 flex items-center gap-1.5">
+              <span>Versi Baru Tersedia!</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded bg-crimson-500/20 text-crimson-300 font-mono font-semibold">{$updateState.latestVersion}</span>
+            </div>
+            <p class="text-[11px] text-zinc-400 truncate mt-0.5">
+              Dengar {$updateState.latestVersion} siap diunduh otomatis.
+            </p>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            {#if $downloadedFilePath}
+              <button
+                class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition cursor-pointer text-[11px] flex items-center gap-1 shadow-sm"
+                on:click={revealDownloadedFile}
+                title="Buka folder Downloads"
+              >
+                <span>Buka File</span>
+              </button>
+            {:else if $isDownloadingUpdate}
+              <div class="flex items-center gap-1.5 text-zinc-400 text-[11px] px-2 py-1">
+                <svg class="w-3.5 h-3.5 animate-spin text-crimson-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+                  <path d="M12 2a10 10 0 0 1 10 10"/>
+                </svg>
+                <span>Unduh...</span>
+              </div>
+            {:else}
+              <button
+                class="px-2.5 py-1.5 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-semibold transition cursor-pointer text-[11px] shadow-sm"
+                on:click={() => startDownloadUpdate()}
+                title="Unduh file .zip langsung ke folder Downloads"
+              >
+                Unduh
+              </button>
+            {/if}
+            <button
+              class="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              on:click={() => showUpdateBanner.set(false)}
+              title="Tutup notifikasi"
+            >
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </aside>
     {/if}
   </div>

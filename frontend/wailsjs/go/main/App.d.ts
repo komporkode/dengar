@@ -13,6 +13,8 @@ export function CreatePlaylist(arg1:string,arg2:string):Promise<backend.Playlist
 
 export function DeletePlaylist(arg1:string):Promise<void>;
 
+export function DownloadUpdate(arg1:string,arg2:string):Promise<string>;
+
 export function ExportPlaylist(arg1:string):Promise<string>;
 
 export function GetHomeData():Promise<main.HomeData>;
@@ -22,6 +24,8 @@ export function GetStream(arg1:string,arg2:boolean):Promise<backend.StreamResult
 export function GetUserData():Promise<backend.UserData>;
 
 export function ImportPlaylist(arg1:string):Promise<backend.Playlist>;
+
+export function OpenInFolder(arg1:string):Promise<void>;
 
 export function RecordPlay(arg1:backend.SearchResultItem):Promise<void>;
 

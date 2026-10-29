@@ -5,7 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"sync"
 	"time"
@@ -30,14 +35,25 @@ type HomeData struct {
 	Recommended []backend.SearchResultItem `json:"recommended"`
 }
 
+// UpdateAsset holds information about a specific downloadable release asset.
+type UpdateAsset struct {
+	Name        string `json:"name"`
+	DownloadURL string `json:"downloadUrl"`
+	Size        int64  `json:"size"`
+}
+
 // UpdateInfo holds details for GitHub application release updates.
 type UpdateInfo struct {
-	CurrentVersion string `json:"currentVersion"`
-	LatestVersion  string `json:"latestVersion"`
-	HasUpdate      bool   `json:"hasUpdate"`
-	ReleaseURL     string `json:"releaseUrl"`
-	ReleaseNotes   string `json:"releaseNotes"`
-	PublishedAt    string `json:"publishedAt"`
+	CurrentVersion string        `json:"currentVersion"`
+	LatestVersion  string        `json:"latestVersion"`
+	HasUpdate      bool          `json:"hasUpdate"`
+	ReleaseURL     string        `json:"releaseUrl"`
+	ReleaseNotes   string        `json:"releaseNotes"`
+	PublishedAt    string        `json:"publishedAt"`
+	DownloadURL    string        `json:"downloadUrl"`
+	AssetFileName  string        `json:"assetFileName"`
+	AssetSize      int64         `json:"assetSize"`
+	Assets         []UpdateAsset `json:"assets"`
 }
 
 // NewApp creates a new App application struct.
@@ -363,12 +379,49 @@ func (a *App) CheckForUpdates() (*UpdateInfo, error) {
 		HTMLURL string `json:"html_url"`
 		Body    string `json:"body"`
 		PubAt   string `json:"published_at"`
+		Assets  []struct {
+			Name               string `json:"name"`
+			Size               int64  `json:"size"`
+			BrowserDownloadURL string `json:"browser_download_url"`
+		} `json:"assets"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
 		return &UpdateInfo{CurrentVersion: currentVersion, HasUpdate: false}, nil
 	}
 
 	hasUpdate := release.TagName != "" && release.TagName != currentVersion
+
+	var assets []UpdateAsset
+	var matchedURL string
+	var matchedFileName string
+	var matchedSize int64
+
+	osKeyword := "windows"
+	if goruntime.GOOS == "darwin" {
+		osKeyword = "macos"
+	} else if goruntime.GOOS == "linux" {
+		osKeyword = "linux"
+	}
+
+	for _, ast := range release.Assets {
+		assets = append(assets, UpdateAsset{
+			Name:        ast.Name,
+			DownloadURL: ast.BrowserDownloadURL,
+			Size:        ast.Size,
+		})
+		if strings.Contains(strings.ToLower(ast.Name), osKeyword) {
+			matchedURL = ast.BrowserDownloadURL
+			matchedFileName = ast.Name
+			matchedSize = ast.Size
+		}
+	}
+
+	if matchedURL == "" && len(assets) > 0 {
+		matchedURL = assets[0].DownloadURL
+		matchedFileName = assets[0].Name
+		matchedSize = assets[0].Size
+	}
+
 	return &UpdateInfo{
 		CurrentVersion: currentVersion,
 		LatestVersion:  release.TagName,
@@ -376,6 +429,84 @@ func (a *App) CheckForUpdates() (*UpdateInfo, error) {
 		ReleaseURL:     release.HTMLURL,
 		ReleaseNotes:   release.Body,
 		PublishedAt:    release.PubAt,
+		DownloadURL:    matchedURL,
+		AssetFileName:  matchedFileName,
+		AssetSize:      matchedSize,
+		Assets:         assets,
 	}, nil
+}
+
+// DownloadUpdate downloads the update file directly to the user's Downloads folder
+// and returns the full absolute path of the saved file.
+func (a *App) DownloadUpdate(downloadURL, fileName string) (string, error) {
+	if downloadURL == "" {
+		return "", fmt.Errorf("URL unduhan tidak valid atau kosong")
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("tidak dapat menemukan direktori pengguna: %w", err)
+	}
+
+	downloadsDir := filepath.Join(homeDir, "Downloads")
+	if _, err := os.Stat(downloadsDir); os.IsNotExist(err) {
+		downloadsDir = homeDir
+	}
+
+	if fileName == "" {
+		fileName = "dengar-update.zip"
+	}
+	targetPath := filepath.Join(downloadsDir, fileName)
+
+	client := &http.Client{
+		Timeout: 5 * time.Minute,
+	}
+
+	req, err := http.NewRequest("GET", downloadURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("gagal membuat request unduhan: %w", err)
+	}
+	req.Header.Set("User-Agent", "Dengar-Desktop-App")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("koneksi unduhan gagal: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("server merespons dengan status HTTP %d", resp.StatusCode)
+	}
+
+	outFile, err := os.Create(targetPath)
+	if err != nil {
+		return "", fmt.Errorf("gagal membuat file di folder Downloads: %w", err)
+	}
+	defer outFile.Close()
+
+	if _, err := io.Copy(outFile, resp.Body); err != nil {
+		return "", fmt.Errorf("gagal menyimpan file unduhan: %w", err)
+	}
+
+	return targetPath, nil
+}
+
+// OpenInFolder reveals the downloaded update file in the system file manager (Explorer, Finder, xdg-open).
+func (a *App) OpenInFolder(filePath string) error {
+	if filePath == "" {
+		return fmt.Errorf("file path kosong")
+	}
+
+	cleanPath := filepath.Clean(filePath)
+
+	switch goruntime.GOOS {
+	case "windows":
+		return exec.Command("explorer", "/select,", cleanPath).Start()
+	case "darwin":
+		return exec.Command("open", "-R", cleanPath).Start()
+	default:
+		dir := filepath.Dir(cleanPath)
+		return exec.Command("xdg-open", dir).Start()
+	}
 }
 

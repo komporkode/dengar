@@ -22,6 +22,10 @@ export function DeletePlaylist(arg1) {
   return window['go']['main']['App']['DeletePlaylist'](arg1);
 }
 
+export function DownloadUpdate(arg1, arg2) {
+  return window['go']['main']['App']['DownloadUpdate'](arg1, arg2);
+}
+
 export function ExportPlaylist(arg1) {
   return window['go']['main']['App']['ExportPlaylist'](arg1);
 }
@@ -40,6 +44,10 @@ export function GetUserData() {
 
 export function ImportPlaylist(arg1) {
   return window['go']['main']['App']['ImportPlaylist'](arg1);
+}
+
+export function OpenInFolder(arg1) {
+  return window['go']['main']['App']['OpenInFolder'](arg1);
 }
 
 export function RecordPlay(arg1) {

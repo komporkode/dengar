@@ -2,11 +2,11 @@ import { writable, get } from 'svelte/store'
 import {
   WindowSetSize,
   WindowGetSize,
-  WindowSetPosition,
-  WindowGetPosition,
   WindowIsMaximised,
   WindowMaximise,
   WindowUnmaximise,
+  WindowCenter,
+  WindowShow,
   WindowSetAlwaysOnTop,
   WindowSetMinSize
 } from '../../../wailsjs/runtime/runtime.js'
@@ -77,8 +77,6 @@ interface SavedWindowState {
   wasMaximised: boolean
   width: number
   height: number
-  x?: number
-  y?: number
 }
 
 const defaultWindowState: SavedWindowState = {
@@ -93,8 +91,12 @@ function loadSavedWindowState(): SavedWindowState {
       const raw = localStorage.getItem('dengar_window_state')
       if (raw) {
         const parsed = JSON.parse(raw)
-        if (parsed && typeof parsed.width === 'number' && parsed.width >= 600) {
-          return parsed
+        if (parsed && typeof parsed.width === 'number' && parsed.width >= 600 && parsed.width <= 3840) {
+          return {
+            wasMaximised: !!parsed.wasMaximised,
+            width: parsed.width,
+            height: Math.min(Math.max(parsed.height || 800, 600), 2160)
+          }
         }
       }
     }
@@ -118,16 +120,13 @@ function persistWindowState(state: SavedWindowState) {
 }
 
 export async function enterMiniPlayer() {
-  if (get(isMiniPlayer) || get(isTransitioning)) return
-  isTransitioning.set(true)
+  if (get(isMiniPlayer)) return
 
   try {
-    // 1. Capture current window state
+    // 1. Capture current window state safely
     let isMax = false
     let curW = 1200
     let curH = 800
-    let posX: number | undefined
-    let posY: number | undefined
 
     try {
       isMax = await WindowIsMaximised()
@@ -141,33 +140,21 @@ export async function enterMiniPlayer() {
       }
     } catch (_) {}
 
-    try {
-      const p = await WindowGetPosition()
-      if (p) {
-        posX = p.x
-        posY = p.y
-      }
-    } catch (_) {}
-
-    persistWindowState({
+    savedWindowState = {
       wasMaximised: isMax,
       width: curW,
-      height: curH,
-      x: posX,
-      y: posY
-    })
+      height: curH
+    }
+    persistWindowState(savedWindowState)
 
-    // 2. Unmaximise if maximized
+    // 2. If maximised, unmaximise first before shrinking
     if (isMax) {
       try {
         WindowUnmaximise()
       } catch (_) {}
     }
 
-    // 3. Wait for full desktop view to fade out smoothly
-    await new Promise(r => setTimeout(r, 120))
-
-    // 4. Set mini player constraints & window size
+    // 3. Set minimum bounds & target mini size
     try {
       WindowSetMinSize(360, 140)
       WindowSetSize(420, 175)
@@ -175,72 +162,64 @@ export async function enterMiniPlayer() {
       console.warn('Wails WindowSetSize error:', e)
     }
 
-    // 5. Pin / Always on top
+    // 4. Pin / Always on top
     const pinned = get(isMiniPlayerPinned)
     try {
       WindowSetAlwaysOnTop(pinned)
     } catch (_) {}
 
-    // 6. Give OS window time to settle at mini size before mounting MiniPlayer
-    await new Promise(r => setTimeout(r, 90))
+    try {
+      WindowShow()
+    } catch (_) {}
 
     isMiniPlayer.set(true)
   } catch (err) {
     console.error('Failed to enter mini player:', err)
     isMiniPlayer.set(true)
   } finally {
-    setTimeout(() => {
-      isTransitioning.set(false)
-    }, 80)
+    isTransitioning.set(false)
   }
 }
 
 export async function exitMiniPlayer() {
-  if (!get(isMiniPlayer) || get(isTransitioning)) return
-  isTransitioning.set(true)
+  if (!get(isMiniPlayer)) return
 
   try {
-    // 1. Disable Always On Top immediately
+    // 1. Immediately disable Always On Top
     try {
       WindowSetAlwaysOnTop(false)
     } catch (_) {}
 
-    // 2. Mini player fades out smoothly
-    await new Promise(r => setTimeout(r, 120))
-
-    // 3. Reset min size for desktop
+    // 2. Reset min size for desktop
     try {
       WindowSetMinSize(900, 600)
     } catch (_) {}
 
-    // 4. Restore window size & position or maximised state
+    // 3. Restore window size and position SAFELY (Always visible and centered on screen!)
     try {
       if (savedWindowState.wasMaximised) {
         WindowMaximise()
       } else {
-        WindowSetSize(savedWindowState.width, savedWindowState.height)
-        if (typeof savedWindowState.x === 'number' && typeof savedWindowState.y === 'number') {
-          WindowSetPosition(savedWindowState.x, savedWindowState.y)
-        }
+        const targetW = Math.min(Math.max(savedWindowState.width || 1200, 900), 2560)
+        const targetH = Math.min(Math.max(savedWindowState.height || 800, 600), 1440)
+        WindowSetSize(targetW, targetH)
+        WindowCenter() // GUARANTEES window is dead-center on the monitor!
       }
+      WindowShow() // GUARANTEES window is displayed and brought to foreground!
     } catch (e) {
       console.warn('Failed to restore window size:', e)
       try {
         WindowSetSize(1200, 800)
+        WindowCenter()
+        WindowShow()
       } catch (_) {}
     }
 
-    // 5. Allow OS window time to expand to full size before showing desktop UI
-    await new Promise(r => setTimeout(r, 140))
-
-    // 6. Unmount mini player and show Desktop UI
     isMiniPlayer.set(false)
   } catch (err) {
     console.error('Failed to exit mini player:', err)
     isMiniPlayer.set(false)
   } finally {
-    setTimeout(() => {
-      isTransitioning.set(false)
-    }, 120)
+    isTransitioning.set(false)
   }
 }
