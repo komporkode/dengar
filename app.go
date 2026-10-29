@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	goruntime "runtime"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -271,9 +272,9 @@ func (a *App) getHomeDataInternal(forceRefresh bool) (*HomeData, error) {
 	top := a.storage.GetTopPlayed(8)
 	result.TopPlayed = top
 
-	// Check recommendation in-memory cache (2-hour TTL)
+	// Check recommendation in-memory cache (30-minute TTL, can be refreshed manually)
 	a.recCacheMutex.Lock()
-	if !forceRefresh && len(a.cachedRec) > 0 && time.Since(a.lastRecFetch) < 2*time.Hour {
+	if !forceRefresh && len(a.cachedRec) > 0 && time.Since(a.lastRecFetch) < 30*time.Minute {
 		result.Recommended = a.cachedRec
 		a.recCacheMutex.Unlock()
 		return result, nil
@@ -283,25 +284,45 @@ func (a *App) getHomeDataInternal(forceRefresh bool) (*HomeData, error) {
 	userData, _ := a.storage.Load()
 	artistMap := make(map[string]int)
 
+	// 1. Top Played: heaviest weight (+3 per track)
 	for _, item := range top {
 		if item.UploaderName != "" {
-			artistMap[item.UploaderName] += 2
+			artistMap[item.UploaderName] += 3
 		}
 	}
+
+	// 2. Favorites: high affinity (+2 per favorited track)
 	if userData != nil {
 		for _, item := range userData.Favorites {
 			if item.UploaderName != "" {
+				artistMap[item.UploaderName] += 2
+			}
+		}
+
+		// 3. Recent History: (+1 for most recent tracks)
+		for i, item := range userData.History {
+			if item.UploaderName != "" && i < 10 {
 				artistMap[item.UploaderName] += 1
 			}
 		}
 	}
 
+	// Sort artists by affinity score descending (highest affinity first)
+	type scoredArtist struct {
+		name  string
+		score int
+	}
+	var scoredList []scoredArtist
+	for name, score := range artistMap {
+		scoredList = append(scoredList, scoredArtist{name: name, score: score})
+	}
+	sort.Slice(scoredList, func(i, j int) bool {
+		return scoredList[i].score > scoredList[j].score
+	})
+
 	var topArtists []string
-	for artist := range artistMap {
-		topArtists = append(topArtists, artist)
-		if len(topArtists) >= 2 {
-			break
-		}
+	for i := 0; i < len(scoredList) && i < 4; i++ {
+		topArtists = append(topArtists, scoredList[i].name)
 	}
 
 	var recTracks []backend.SearchResultItem
@@ -310,6 +331,7 @@ func (a *App) getHomeDataInternal(forceRefresh bool) (*HomeData, error) {
 		seenIDs[item.ID] = true
 	}
 
+	// Fetch tracks from user's actual favorite artists
 	if len(topArtists) > 0 {
 		for _, artist := range topArtists {
 			resp, err := a.search.Search(artist, "music")
@@ -318,29 +340,37 @@ func (a *App) getHomeDataInternal(forceRefresh bool) (*HomeData, error) {
 					if !seenIDs[item.ID] {
 						seenIDs[item.ID] = true
 						recTracks = append(recTracks, item)
-						if len(recTracks) >= 12 {
+						if len(recTracks) >= 16 {
 							break
 						}
 					}
 				}
 			}
-			if len(recTracks) >= 12 {
+			if len(recTracks) >= 16 {
 				break
 			}
 		}
 	}
 
+	// Cold-start fallback for new users with little/no history:
+	// Use curated regional & popular queries rather than bare generic queries
 	if len(recTracks) < 6 {
-		resp, err := a.search.Search("Trending Music", "music")
-		if err == nil && resp != nil {
-			for _, item := range resp.Items {
-				if !seenIDs[item.ID] {
-					seenIDs[item.ID] = true
-					recTracks = append(recTracks, item)
-					if len(recTracks) >= 12 {
-						break
+		fallbacks := []string{"Top Hits Indonesia", "Lagu Populer Indonesia", "Viral Music Hits"}
+		for _, q := range fallbacks {
+			resp, err := a.search.Search(q, "music")
+			if err == nil && resp != nil {
+				for _, item := range resp.Items {
+					if !seenIDs[item.ID] {
+						seenIDs[item.ID] = true
+						recTracks = append(recTracks, item)
+						if len(recTracks) >= 16 {
+							break
+						}
 					}
 				}
+			}
+			if len(recTracks) >= 16 {
+				break
 			}
 		}
 	}
