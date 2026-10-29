@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fly, fade } from 'svelte/transition'
   import { cubicOut } from 'svelte/easing'
-  import { queueStore } from '../stores/queueStore'
+  import { queueStore, isAutoplayEnabled, toggleAutoplay } from '../stores/queueStore'
   import { playerStore } from '../stores/playerStore'
   import { t } from '../stores/i18nStore'
 
@@ -56,7 +56,17 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5">
+        <!-- YouTube Autoplay Radio Toggle -->
+        <button
+          class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-semibold transition cursor-pointer border {$isAutoplayEnabled ? 'bg-crimson-500/20 text-crimson-300 border-crimson-500/35' : 'bg-white/[0.04] text-zinc-400 border-white/10 hover:text-white'}"
+          on:click={toggleAutoplay}
+          title="Autoplay Radio: Putar lagu serupa secara otomatis saat antrean habis (seperti YouTube Music)"
+        >
+          <span class="w-1.5 h-1.5 rounded-full {$isAutoplayEnabled ? 'bg-crimson-400 shadow-[0_0_6px_#E61E38]' : 'bg-zinc-600'}"></span>
+          <span>Autoplay</span>
+        </button>
+
         {#if items.length > 0}
           <button
             class="text-xs font-semibold text-crimson-400 hover:text-crimson-300 px-2.5 py-1.5 rounded-lg hover:bg-crimson-500/10 transition cursor-pointer"

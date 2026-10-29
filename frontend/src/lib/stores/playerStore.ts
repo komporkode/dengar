@@ -1,8 +1,8 @@
 import { writable, get } from 'svelte/store'
 import type { SearchResultItem, StreamResult, PlayMode } from '../types'
-import { GetStream, RecordPlay } from '../../../wailsjs/go/main/App'
+import { GetStream, RecordPlay, Search } from '../../../wailsjs/go/main/App'
 import { userDataStore } from './userDataStore'
-import { queueStore } from './queueStore'
+import { queueStore, isAutoplayEnabled } from './queueStore'
 
 const STORAGE_VOLUME_KEY = 'dengar_player_volume'
 const STORAGE_MUTED_KEY = 'dengar_player_muted'
@@ -109,11 +109,24 @@ function createPlayerStore() {
       handleMediaError()
     })
 
+    let stallTimer: any = null
+    audio.addEventListener('stalled', () => {
+      clearTimeout(stallTimer)
+      stallTimer = setTimeout(() => {
+        const s = get({ subscribe })
+        if (s.isPlaying && audio && audio.paused === false) {
+          console.warn('[Auto-Recovery] Audio playback stalled for > 6s, refreshing stream...')
+          handleMediaError()
+        }
+      }, 6000)
+    })
+
     audio.addEventListener('waiting', () => {
       update(st => ({ ...st, isLoading: true }))
     })
 
     audio.addEventListener('playing', () => {
+      clearTimeout(stallTimer)
       update(st => ({ ...st, isPlaying: true, isLoading: false }))
     })
 
@@ -190,7 +203,14 @@ function createPlayerStore() {
     userDataStore.recordHistory(track)
 
     try {
-      const stream = await GetStream(track.id, false)
+      let stream: StreamResult
+      try {
+        stream = await GetStream(track.id, false)
+      } catch (firstErr) {
+        console.warn('Initial stream resolution failed, attempting with rotated instance...', firstErr)
+        stream = await GetStream(track.id, true)
+      }
+
       if (requestId !== currentRequestId) {
         // Obsolete request, ignore
         return
@@ -389,8 +409,39 @@ function createPlayerStore() {
     if (nextTrack) {
       playTrack(nextTrack, undefined, true)
     } else {
-      update(st => ({ ...st, isPlaying: false, currentTime: 0 }))
+      if (get(isAutoplayEnabled) && s.currentTrack) {
+        triggerAutoplayNext(s.currentTrack)
+      } else {
+        update(st => ({ ...st, isPlaying: false, currentTime: 0 }))
+      }
     }
+  }
+
+  async function triggerAutoplayNext(current: SearchResultItem) {
+    update(st => ({ ...st, isLoading: true }))
+    try {
+      // YouTube-style dynamic Up Next recommendations based on artist / title
+      const query = current.uploaderName ? `${current.uploaderName} music` : current.title
+      const res = await Search(query, 'music_songs')
+      if (res && res.items && res.items.length > 0) {
+        // Exclude current track from newly queued items
+        const candidates = res.items.filter(it => it.id !== current.id)
+        if (candidates.length > 0) {
+          // Push top 6 related tracks into the queue
+          for (let i = 0; i < Math.min(6, candidates.length); i++) {
+            queueStore.addToQueue(candidates[i])
+          }
+          const nextTrack = queueStore.next(false)
+          if (nextTrack) {
+            playTrack(nextTrack, undefined, true)
+            return
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Autoplay failed to fetch next recommendations:', e)
+    }
+    update(st => ({ ...st, isPlaying: false, currentTime: 0, isLoading: false }))
   }
 
   function playNext() {
@@ -398,6 +449,11 @@ function createPlayerStore() {
     const nextTrack = queueStore.next(true)
     if (nextTrack) {
       playTrack(nextTrack, undefined, true)
+    } else {
+      const s = get({ subscribe })
+      if (get(isAutoplayEnabled) && s.currentTrack) {
+        triggerAutoplayNext(s.currentTrack)
+      }
     }
   }
 

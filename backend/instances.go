@@ -8,16 +8,18 @@ import (
 )
 
 var defaultPipedInstances = []string{
-	"https://pipedapi.ducks.party",
 	"https://api.piped.private.coffee",
 	"https://pipedapi.leptons.xyz",
+	"https://pipedapi.ducks.party",
 	"https://pipedapi.adminforge.de",
 }
 
 var defaultInvidiousInstances = []string{
-	"https://yt.chocolatemoo53.com",
-	"https://invidious.nerdvpn.de",
 	"https://inv.nadeko.net",
+	"https://invidious.asir.dev",
+	"https://iv.melmac.space",
+	"https://invidious.flokinet.to",
+	"https://yt.chocolatemoo53.com",
 	"https://invidious.private.coffee",
 }
 

@@ -23,7 +23,7 @@ func NewStreamResolver(pool *InstancePool, ttl time.Duration) *StreamResolver {
 		pool:  pool,
 		cache: NewStreamCache(ttl),
 		client: &http.Client{
-			Timeout: 4500 * time.Millisecond,
+			Timeout: 12 * time.Second,
 		},
 	}
 }
@@ -151,6 +151,13 @@ func (r *StreamResolver) resolvePiped(instanceURL, videoID string) (*StreamResul
 		}
 	}
 
+	if strings.HasPrefix(bestAudioURL, "/") {
+		bestAudioURL = strings.TrimRight(instanceURL, "/") + bestAudioURL
+	}
+	if strings.HasPrefix(bestVideoURL, "/") {
+		bestVideoURL = strings.TrimRight(instanceURL, "/") + bestVideoURL
+	}
+
 	return &StreamResult{
 		VideoID:   videoID,
 		Title:     data.Title,
@@ -233,6 +240,13 @@ func (r *StreamResolver) resolveInvidious(instanceURL, videoID string) (*StreamR
 	thumb := ""
 	if len(data.VideoThumbnails) > 0 {
 		thumb = data.VideoThumbnails[0].URL
+	}
+
+	if strings.HasPrefix(bestAudioURL, "/") {
+		bestAudioURL = strings.TrimRight(instanceURL, "/") + bestAudioURL
+	}
+	if strings.HasPrefix(bestVideoURL, "/") {
+		bestVideoURL = strings.TrimRight(instanceURL, "/") + bestVideoURL
 	}
 
 	return &StreamResult{

@@ -234,7 +234,7 @@
 
 <!-- Standard Desktop Application View with Single Custom Frameless Title Bar -->
 <div
-  class="w-full h-full flex flex-col bg-obsidian text-zinc-100 font-sans antialiased select-none overflow-hidden relative"
+  class="w-full h-full flex flex-col bg-obsidian text-zinc-100 font-sans antialiased select-none overflow-hidden relative transition-opacity duration-200 ease-out {$isTransitioning && !$isMiniPlayer ? 'opacity-0' : 'opacity-100'}"
   style:display={$isMiniPlayer ? 'none' : 'flex'}
 >
     
@@ -263,16 +263,6 @@
 
       <!-- Windows-style window controls (NO Mac dots) -->
       <div class="flex items-center text-zinc-400 h-full -mr-4" style="--wails-draggable:no-drag">
-        <button
-          class="h-full px-3 hover:text-zinc-100 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center justify-center"
-          on:click={enterMiniPlayer}
-          title="Mode Mini Player (Ctrl+M)"
-        >
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <rect x="13" y="13" width="6" height="6" rx="1" fill="currentColor"></rect>
-          </svg>
-        </button>
         <button
           class="h-full px-3.5 hover:text-zinc-100 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center justify-center"
           on:click={handleWindowMinimise}

@@ -2,7 +2,6 @@
   import { createEventDispatcher } from 'svelte'
   import type { SearchFilter } from '../types'
   import { queueStore } from '../stores/queueStore'
-  import { enterMiniPlayer } from '../stores/settingsStore'
   import { t } from '../stores/i18nStore'
 
   export let query = ''
@@ -94,20 +93,6 @@
             {queueCount}
           </span>
         {/if}
-      </button>
-
-      <div class="w-px h-3.5 bg-white/10 my-auto mx-0.5"></div>
-
-      <!-- Mini Player Button -->
-      <button
-        class="p-1.5 rounded-xl text-zinc-300 hover:text-white hover:bg-white/[0.06] transition-all cursor-pointer"
-        on:click={enterMiniPlayer}
-        title={$t('mini_player')}
-      >
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          <rect x="13" y="13" width="6" height="6" rx="1" fill="currentColor"></rect>
-        </svg>
       </button>
     </div>
   </div>

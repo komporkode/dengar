@@ -2,10 +2,11 @@ import { writable, get } from 'svelte/store'
 import {
   WindowSetSize,
   WindowGetSize,
+  WindowSetPosition,
+  WindowGetPosition,
   WindowIsMaximised,
   WindowMaximise,
   WindowUnmaximise,
-  WindowCenter,
   WindowShow,
   WindowSetAlwaysOnTop,
   WindowSetMinSize
@@ -77,6 +78,8 @@ interface SavedWindowState {
   wasMaximised: boolean
   width: number
   height: number
+  x?: number
+  y?: number
 }
 
 const defaultWindowState: SavedWindowState = {
@@ -95,7 +98,9 @@ function loadSavedWindowState(): SavedWindowState {
           return {
             wasMaximised: !!parsed.wasMaximised,
             width: parsed.width,
-            height: Math.min(Math.max(parsed.height || 800, 600), 2160)
+            height: Math.min(Math.max(parsed.height || 800, 600), 2160),
+            x: parsed.x,
+            y: parsed.y
           }
         }
       }
@@ -121,12 +126,15 @@ function persistWindowState(state: SavedWindowState) {
 
 export async function enterMiniPlayer() {
   if (get(isMiniPlayer)) return
+  isTransitioning.set(true)
 
   try {
     // 1. Capture current window state safely
     let isMax = false
     let curW = 1200
     let curH = 800
+    let posX: number | undefined
+    let posY: number | undefined
 
     try {
       isMax = await WindowIsMaximised()
@@ -140,10 +148,20 @@ export async function enterMiniPlayer() {
       }
     } catch (_) {}
 
+    try {
+      const p = await WindowGetPosition()
+      if (p && p.x >= 0 && p.y >= 0) {
+        posX = p.x
+        posY = p.y
+      }
+    } catch (_) {}
+
     savedWindowState = {
       wasMaximised: isMax,
       width: curW,
-      height: curH
+      height: curH,
+      x: posX,
+      y: posY
     }
     persistWindowState(savedWindowState)
 
@@ -154,7 +172,10 @@ export async function enterMiniPlayer() {
       } catch (_) {}
     }
 
-    // 3. Set minimum bounds & target mini size
+    // 3. Smooth fade out of full player (80ms)
+    await new Promise(r => setTimeout(r, 80))
+
+    // 4. Set minimum bounds & target mini size
     try {
       WindowSetMinSize(360, 140)
       WindowSetSize(420, 175)
@@ -162,7 +183,7 @@ export async function enterMiniPlayer() {
       console.warn('Wails WindowSetSize error:', e)
     }
 
-    // 4. Pin / Always on top
+    // 5. Pin / Always on top
     const pinned = get(isMiniPlayerPinned)
     try {
       WindowSetAlwaysOnTop(pinned)
@@ -177,12 +198,15 @@ export async function enterMiniPlayer() {
     console.error('Failed to enter mini player:', err)
     isMiniPlayer.set(true)
   } finally {
-    isTransitioning.set(false)
+    setTimeout(() => {
+      isTransitioning.set(false)
+    }, 80)
   }
 }
 
 export async function exitMiniPlayer() {
   if (!get(isMiniPlayer)) return
+  isTransitioning.set(true)
 
   try {
     // 1. Immediately disable Always On Top
@@ -190,36 +214,55 @@ export async function exitMiniPlayer() {
       WindowSetAlwaysOnTop(false)
     } catch (_) {}
 
-    // 2. Reset min size for desktop
+    // 2. Allow MiniPlayer to fade out smoothly (100ms)
+    await new Promise(r => setTimeout(r, 100))
+
+    // 3. Reset min size for desktop
     try {
       WindowSetMinSize(900, 600)
     } catch (_) {}
 
-    // 3. Restore window size and position SAFELY (Always visible and centered on screen!)
+    // 4. Restore window size and position smoothly near current mini position
     try {
       if (savedWindowState.wasMaximised) {
         WindowMaximise()
       } else {
         const targetW = Math.min(Math.max(savedWindowState.width || 1200, 900), 2560)
         const targetH = Math.min(Math.max(savedWindowState.height || 800, 600), 1440)
+
+        // Find position near current mini player so window doesn't teleport
+        const currentMiniPos = await WindowGetPosition().catch(() => null)
+        let targetX = savedWindowState.x ?? 100
+        let targetY = savedWindowState.y ?? 100
+
+        if (currentMiniPos && currentMiniPos.x >= 0 && currentMiniPos.y >= 0) {
+          targetX = Math.max(30, currentMiniPos.x - Math.floor((targetW - 420) * 0.75))
+          targetY = Math.max(30, currentMiniPos.y - Math.floor((targetH - 175) * 0.75))
+        }
+
         WindowSetSize(targetW, targetH)
-        WindowCenter() // GUARANTEES window is dead-center on the monitor!
+        if (targetX >= 0 && targetY >= 0) {
+          WindowSetPosition(targetX, targetY)
+        }
       }
-      WindowShow() // GUARANTEES window is displayed and brought to foreground!
+      WindowShow()
     } catch (e) {
       console.warn('Failed to restore window size:', e)
       try {
         WindowSetSize(1200, 800)
-        WindowCenter()
         WindowShow()
       } catch (_) {}
     }
 
+    // Small delay for OS window resize to settle before unmounting mini player
+    await new Promise(r => setTimeout(r, 80))
     isMiniPlayer.set(false)
   } catch (err) {
     console.error('Failed to exit mini player:', err)
     isMiniPlayer.set(false)
   } finally {
-    isTransitioning.set(false)
+    setTimeout(() => {
+      isTransitioning.set(false)
+    }, 100)
   }
 }

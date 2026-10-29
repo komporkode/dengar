@@ -352,3 +352,18 @@ function createQueueStore() {
 }
 
 export const queueStore = createQueueStore()
+
+const savedAutoplay = typeof localStorage !== 'undefined' ? localStorage.getItem('dengar_autoplay') !== 'false' : true
+export const isAutoplayEnabled = writable<boolean>(savedAutoplay)
+
+isAutoplayEnabled.subscribe(val => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('dengar_autoplay', String(val))
+  }
+})
+
+export function toggleAutoplay(): boolean {
+  const next = !get(isAutoplayEnabled)
+  isAutoplayEnabled.set(next)
+  return next
+}
