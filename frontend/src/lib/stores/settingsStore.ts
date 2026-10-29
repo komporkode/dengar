@@ -138,7 +138,7 @@ export async function enterMiniPlayer() {
 
     try {
       isMax = await WindowIsMaximised()
-    } catch (_) {}
+    } catch (_) { }
 
     try {
       const s = await WindowGetSize()
@@ -146,7 +146,7 @@ export async function enterMiniPlayer() {
         curW = s.w
         curH = s.h
       }
-    } catch (_) {}
+    } catch (_) { }
 
     try {
       const p = await WindowGetPosition()
@@ -154,7 +154,7 @@ export async function enterMiniPlayer() {
         posX = p.x
         posY = p.y
       }
-    } catch (_) {}
+    } catch (_) { }
 
     savedWindowState = {
       wasMaximised: isMax,
@@ -169,7 +169,7 @@ export async function enterMiniPlayer() {
     if (isMax) {
       try {
         WindowUnmaximise()
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // 3. Smooth fade out of full player (80ms)
@@ -187,11 +187,11 @@ export async function enterMiniPlayer() {
     const pinned = get(isMiniPlayerPinned)
     try {
       WindowSetAlwaysOnTop(pinned)
-    } catch (_) {}
+    } catch (_) { }
 
     try {
       WindowShow()
-    } catch (_) {}
+    } catch (_) { }
 
     isMiniPlayer.set(true)
   } catch (err) {
@@ -212,7 +212,7 @@ export async function exitMiniPlayer() {
     // 1. Immediately disable Always On Top
     try {
       WindowSetAlwaysOnTop(false)
-    } catch (_) {}
+    } catch (_) { }
 
     // 2. Allow MiniPlayer to fade out smoothly (100ms)
     await new Promise(r => setTimeout(r, 100))
@@ -220,7 +220,7 @@ export async function exitMiniPlayer() {
     // 3. Reset min size for desktop
     try {
       WindowSetMinSize(900, 600)
-    } catch (_) {}
+    } catch (_) { }
 
     // 4. Restore window size and position smoothly near current mini position
     try {
@@ -251,7 +251,7 @@ export async function exitMiniPlayer() {
       try {
         WindowSetSize(1200, 800)
         WindowShow()
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // Small delay for OS window resize to settle before unmounting mini player

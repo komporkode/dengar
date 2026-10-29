@@ -15,6 +15,7 @@ const translations: Record<Locale, Record<string, string>> = {
   id: {
     // Nav
     nav_explore: 'Eksplorasi & Cari',
+    nav_foryou: 'Untuk Anda',
     nav_favorites: 'Lagu Favorit',
     nav_history: 'Riwayat Putar',
     nav_queue: 'Antrean Lagu',
@@ -111,6 +112,7 @@ const translations: Record<Locale, Record<string, string>> = {
   en: {
     // Nav
     nav_explore: 'Explore & Search',
+    nav_foryou: 'For You',
     nav_favorites: 'Favorites',
     nav_history: 'History',
     nav_queue: 'Playback Queue',

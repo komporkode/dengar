@@ -84,6 +84,14 @@ type innertubeVideoRenderer struct {
 	} `json:"ownerText"`
 	LengthText struct {
 		SimpleText string `json:"simpleText"`
+		Runs       []struct {
+			Text string `json:"text"`
+		} `json:"runs"`
+		Accessibility struct {
+			AccessibilityData struct {
+				Label string `json:"label"`
+			} `json:"accessibilityData"`
+		} `json:"accessibility"`
 	} `json:"lengthText"`
 	Thumbnail struct {
 		Thumbnails []struct {
@@ -382,7 +390,15 @@ func extractVideoItem(vr *innertubeVideoRenderer) SearchResultItem {
 		uploader = sb.String()
 	}
 
-	durationSec := parseDurationString(vr.LengthText.SimpleText)
+	rawDuration := vr.LengthText.SimpleText
+	if rawDuration == "" && len(vr.LengthText.Runs) > 0 {
+		var sb strings.Builder
+		for _, r := range vr.LengthText.Runs {
+			sb.WriteString(r.Text)
+		}
+		rawDuration = sb.String()
+	}
+	durationSec := parseDurationString(rawDuration)
 	thumb := ""
 	if len(vr.Thumbnail.Thumbnails) > 0 {
 		thumb = vr.Thumbnail.Thumbnails[len(vr.Thumbnail.Thumbnails)-1].URL

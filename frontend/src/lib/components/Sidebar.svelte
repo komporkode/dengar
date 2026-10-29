@@ -120,6 +120,39 @@
           </div>
         {/if}
       </div>
+
+      <!-- Tab: Untuk Anda (For You) -->
+      <div class="relative group flex justify-center">
+        <button
+          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'foryou' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3'}"
+          on:click={() => setTab('foryou')}
+          aria-label={$t('nav_foryou')}
+        >
+          <div class="w-5 h-5 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4 {activeTab === 'foryou' ? 'text-crimson-400' : 'text-zinc-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+            </svg>
+          </div>
+
+          <div class="flex items-center flex-1 min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
+            <span class="truncate">{$t('nav_foryou')}</span>
+            {#if activeTab === 'foryou'}
+              <span class="ml-auto text-[10px] bg-crimson-500/20 text-crimson-400 font-semibold px-1.5 py-0.5 rounded shrink-0">{$t('nav_active')}</span>
+            {/if}
+          </div>
+        </button>
+
+        {#if $isSidebarCollapsed}
+          <!-- Floating Tooltip for For You -->
+          <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[60] px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center gap-1.5">
+            <span>{$t('nav_foryou')}</span>
+            {#if activeTab === 'foryou'}
+              <span class="w-1.5 h-1.5 rounded-full bg-crimson-500 shadow-xs"></span>
+            {/if}
+            <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#161824]/95"></span>
+          </div>
+        {/if}
+      </div>
     </div>
 
     <!-- Section: Koleksi Saya -->

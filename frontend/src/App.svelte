@@ -27,6 +27,7 @@
   import Sidebar from './lib/components/Sidebar.svelte'
   import SearchBar from './lib/components/SearchBar.svelte'
   import TrackList from './lib/components/TrackList.svelte'
+  import ForYouView from './lib/components/ForYouView.svelte'
   import PlayerBar from './lib/components/PlayerBar.svelte'
   import QueueDrawer from './lib/components/QueueDrawer.svelte'
   import SettingsModal from './lib/components/SettingsModal.svelte'
@@ -325,6 +326,9 @@
             emptyMessage={$t('no_results')}
             on:loadMore={handleLoadMore}
           />
+
+        {:else if activeTab === 'foryou'}
+          <ForYouView />
 
         {:else if activeTab === 'favorites'}
           <TrackList
