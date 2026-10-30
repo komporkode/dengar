@@ -19,13 +19,15 @@ jobs:
         include:
           - os: windows-latest
             platform: windows/amd64
-            artifact_name: dengar-windows-amd64.zip
+            target_os: windows
           - os: ubuntu-22.04
             platform: linux/amd64
-            artifact_name: dengar-linux-amd64.tar.gz
+            target_os: linux
+            artifact_name: dengerin-linux-amd64.tar.gz
           - os: macos-latest
             platform: darwin/universal
-            artifact_name: dengar-macos-universal.zip
+            target_os: darwin
+            artifact_name: dengerin-macos-universal.zip
 
     steps:
       - name: Checkout Code
@@ -34,7 +36,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -50,28 +52,46 @@ jobs:
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-      - name: Build Application
-        run: wails build -platform ${{ matrix.platform }} -clean
+      - name: Build Application (Windows)
+        if: runner.os == 'Windows'
+        run: wails build -platform windows/amd64 -clean -nsis -o dengerin.exe
 
-      - name: Package Windows Artifact
+      - name: Build Application (Non-Windows)
+        if: runner.os != 'Windows'
+        run: wails build -platform ${{ matrix.platform }} -clean -o dengerin
+
+      - name: Package Windows Artifacts (Installer & Portable)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path build/bin/dengar.exe -DestinationPath ${{ matrix.artifact_name }}
+        run: |
+          Compress-Archive -Path build/bin/dengerin.exe -DestinationPath dengerin-windows-amd64-portable.zip
+          $installer = Get-ChildItem -Path build/bin -Filter "*installer.exe" | Select-Object -First 1
+          if ($installer) {
+            Copy-Item $installer.FullName "dengerin-windows-amd64-installer.exe"
+          }
 
       - name: Package Linux Artifact
         if: runner.os == 'Linux'
         run: |
           cd build/bin
-          tar -czvf ../../${{ matrix.artifact_name }} dengar
+          tar -czvf ../../${{ matrix.artifact_name }} dengerin
 
       - name: Package macOS Artifact
         if: runner.os == 'macOS'
         run: |
           cd build/bin
-          zip -r ../../${{ matrix.artifact_name }} dengar.app
+          zip -r ../../${{ matrix.artifact_name }} dengerin.app
 
-      - name: Upload Binary to Release
+      - name: Upload Windows Artifacts to Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') && runner.os == 'Windows'
+        with:
+          files: |
+            dengerin-windows-amd64-installer.exe
+            dengerin-windows-amd64-portable.zip
+
+      - name: Upload Linux/macOS Binary to Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') && runner.os != 'Windows'
         with:
           files: ${{ matrix.artifact_name }}
