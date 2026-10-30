@@ -165,19 +165,6 @@ func formatAudioCodec(mime string, bitrate int64) string {
 	return codec
 }
 
-// extractDirectStreamURL unescapes direct GoogleVideo CDN streaming URLs embedded in Invidious/Piped SABR segment parameters.
-func extractDirectStreamURL(rawURL string) string {
-	clean := strings.TrimSpace(rawURL)
-	if clean == "" {
-		return ""
-	}
-	if parsed, err := url.Parse(clean); err == nil {
-		if sabr := parsed.Query().Get("sabr_url"); sabr != "" {
-			return sabr
-		}
-	}
-	return clean
-}
 
 func (r *StreamResolver) resolvePiped(instanceURL, videoID, quality string) (*StreamResult, error) {
 	apiURL := fmt.Sprintf("%s/streams/%s", strings.TrimRight(instanceURL, "/"), videoID)

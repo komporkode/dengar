@@ -555,9 +555,10 @@ func (a *App) CheckForUpdates() (*UpdateInfo, error) {
 	var portableSize int64
 
 	osKeyword := "windows"
-	if goruntime.GOOS == "darwin" {
+	switch goruntime.GOOS {
+	case "darwin":
 		osKeyword = "macos"
-	} else if goruntime.GOOS == "linux" {
+	case "linux":
 		osKeyword = "linux"
 	}
 
