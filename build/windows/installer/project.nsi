@@ -108,10 +108,26 @@ SectionEnd
 Section "uninstall"
     !insertmacro wails.setShellContext
 
-    RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
+    # 1. Terminate running process if active
+    ExecWait 'taskkill /F /IM "${PRODUCT_EXECUTABLE}" /T'
+    ExecWait 'taskkill /F /IM "dengar.exe" /T'
+    Sleep 500
 
+    # 2. Remove WebView2 runtime & browser session cache
+    RMDir /r "$AppData\${PRODUCT_EXECUTABLE}"
+    RMDir /r "$AppData\dengar.exe"
+    RMDir /r "$AppData\dengar-dev.exe"
+
+    # 3. Clean all application user data (playlists, favorites, history, cache)
+    RMDir /r "$AppData\dengerin"
+    RMDir /r "$AppData\dengar"
+    RMDir /r "$LocalAppData\dengerin"
+    RMDir /r "$LocalAppData\dengar"
+
+    # 4. Remove installation files
     RMDir /r $INSTDIR
 
+    # 5. Clean shortcuts
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"
 
