@@ -37,18 +37,20 @@ type InstancePool struct {
 // NewInstancePool initializes a pool with optional custom or default instances.
 func NewInstancePool(customPiped, customInvidious []string) *InstancePool {
 	p := customPiped
-	if len(p) == 0 {
+	if customPiped == nil {
 		p = append([]string{}, defaultPipedInstances...)
 	}
 	inv := customInvidious
-	if len(inv) == 0 {
+	if customInvidious == nil {
 		inv = append([]string{}, defaultInvidiousInstances...)
 	}
 	pool := &InstancePool{
 		piped:     p,
 		invidious: inv,
 	}
-	pool.RefreshInvidiousInstances()
+	if customInvidious == nil {
+		pool.RefreshInvidiousInstances()
+	}
 	return pool
 }
 

@@ -4,6 +4,10 @@
   import { userDataStore } from '../stores/userDataStore'
   import { showToast, isSidebarCollapsed, enterMiniPlayer, audioQualityStore } from '../stores/settingsStore'
   import { t } from '../stores/i18nStore'
+  import { equalizerStore } from '../stores/equalizerStore'
+  import EqualizerDrawer from './EqualizerDrawer.svelte'
+
+  let isEqualizerOpen = false
 
   $: currentTrack = $playerStore.currentTrack
   $: stream = $playerStore.streamResult
@@ -320,6 +324,26 @@
         </span>
       </div>
 
+      <!-- Equalizer Quick Button -->
+      <button
+        type="button"
+        class="p-2 rounded-xl transition cursor-pointer flex items-center justify-center {$equalizerStore.isEnabled ? 'text-crimson-400 bg-crimson-500/15 border border-crimson-500/30 shadow-[0_0_8px_rgba(230,30,56,0.3)]' : 'text-zinc-400 hover:text-white hover:bg-white/[0.08] border border-transparent'}"
+        on:click={() => isEqualizerOpen = !isEqualizerOpen}
+        title="Equalizer Audio (EQ)"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="4" y1="21" x2="4" y2="14"></line>
+          <line x1="4" y1="10" x2="4" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12" y2="3"></line>
+          <line x1="20" y1="21" x2="20" y2="16"></line>
+          <line x1="20" y1="12" x2="20" y2="3"></line>
+          <line x1="1" y1="14" x2="7" y2="14"></line>
+          <line x1="9" y1="8" x2="15" y2="8"></line>
+          <line x1="17" y1="16" x2="23" y2="16"></line>
+        </svg>
+      </button>
+
       <!-- Quick Switch to Mini Player -->
       <button
         type="button"
@@ -335,6 +359,9 @@
     </div>
   </div>
 </footer>
+
+<!-- Equalizer Drawer Component -->
+<EqualizerDrawer isOpen={isEqualizerOpen} onClose={() => (isEqualizerOpen = false)} />
 
 <style>
   footer.playerbar-animated {

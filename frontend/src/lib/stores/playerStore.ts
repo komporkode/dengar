@@ -4,6 +4,7 @@ import { GetStream, RecordPlay, Search } from '../../../wailsjs/go/main/App'
 import { userDataStore } from './userDataStore'
 import { queueStore, isAutoplayEnabled } from './queueStore'
 import { audioQualityStore } from './settingsStore'
+import { equalizerStore } from './equalizerStore'
 
 const STORAGE_VOLUME_KEY = 'dengar_player_volume'
 const STORAGE_MUTED_KEY = 'dengar_player_muted'
@@ -90,6 +91,13 @@ function createPlayerStore() {
     audio.volume = initialVolume
     audio.muted = initialMuted
 
+    // Connect Web Audio Equalizer graph
+    try {
+      equalizerStore.connectAudio(audio)
+    } catch (e) {
+      console.warn('Equalizer connect audio warning:', e)
+    }
+
     let lastTokenRefresh = 0
     audio.addEventListener('timeupdate', () => {
       if (audio) {
@@ -111,10 +119,12 @@ function createPlayerStore() {
     })
 
     audio.addEventListener('ended', () => {
+      clearLoadWatchdog()
       onTrackEnded()
     })
 
     audio.addEventListener('error', () => {
+      clearLoadWatchdog()
       handleMediaError()
     })
 
@@ -132,20 +142,58 @@ function createPlayerStore() {
 
     audio.addEventListener('waiting', () => {
       update(st => ({ ...st, isLoading: true }))
+      startLoadWatchdog()
     })
 
     audio.addEventListener('playing', () => {
       clearTimeout(stallTimer)
+      clearLoadWatchdog()
       update(st => ({ ...st, isPlaying: true, isLoading: false }))
     })
 
     audio.addEventListener('pause', () => {
+      clearLoadWatchdog()
       update(st => ({ ...st, isPlaying: false }))
     })
 
     audio.addEventListener('canplay', () => {
+      clearLoadWatchdog()
       update(st => ({ ...st, isLoading: false }))
     })
+  }
+
+  let loadWatchdogTimer: any = null
+  function startLoadWatchdog() {
+    clearTimeout(loadWatchdogTimer)
+    loadWatchdogTimer = setTimeout(() => {
+      const s = get({ subscribe })
+      if (s.isLoading && !s.isPlaying && s.currentTrack) {
+        console.warn('[StallWatchdog] Playback failed to start within 7s, triggering automatic instance rotation...')
+        handleMediaError()
+      }
+    }, 7000)
+  }
+
+  function clearLoadWatchdog() {
+    clearTimeout(loadWatchdogTimer)
+  }
+
+  function setAudioSourceAndPlay(streamUrl: string, startTime = 0, autoPlay = true) {
+    if (!audio) return
+    const proxied = equalizerStore.getProxiedStreamUrl(streamUrl)
+    if (audio.src !== proxied) {
+      audio.src = proxied
+    }
+    audio.currentTime = startTime
+    applyVolumeToAudio()
+    equalizerStore.resumeContext()
+    if (autoPlay) {
+      startLoadWatchdog()
+      audio.play().catch(e => {
+        console.warn('Audio play error, attempting recovery:', e)
+        handleMediaError()
+      })
+    }
   }
 
   // Initialize singleton audio instance in browser environment
@@ -244,16 +292,7 @@ function createPlayerStore() {
       }))
 
       if (audio) {
-        if (audio.src !== streamUrl) {
-          audio.src = streamUrl
-        }
-        audio.currentTime = 0
-        audio.volume = s.volume
-        audio.muted = s.isMuted
-        audio.play().catch(e => {
-          console.warn('Audio play error, attempting recovery:', e)
-          handleMediaError()
-        })
+        setAudioSourceAndPlay(streamUrl, 0, true)
       }
     } catch (e: any) {
       if (requestId !== currentRequestId) return
@@ -304,12 +343,7 @@ function createPlayerStore() {
       if (audio) {
         const streamUrl = freshStream.audioUrl || freshStream.videoUrl
         if (streamUrl) {
-          audio.src = streamUrl
-          audio.currentTime = savedTime
-          audio.play().catch(err => {
-            console.error('Audio play failed after recovery:', err)
-            handleMediaError()
-          })
+          setAudioSourceAndPlay(streamUrl, savedTime, true)
         }
       }
     } catch (err: any) {
@@ -349,12 +383,7 @@ function createPlayerStore() {
       }))
 
       if (audio) {
-        audio.src = streamUrl
-        audio.currentTime = s.currentTime || 0
-        audio.play().catch(e => {
-          console.warn('Manual retry audio play error:', e)
-          handleMediaError()
-        })
+        setAudioSourceAndPlay(streamUrl, s.currentTime || 0, true)
       }
     } catch (err: any) {
       console.error('Manual retry failed:', err)
@@ -396,6 +425,7 @@ function createPlayerStore() {
     if (!audio) return
 
     if (audio.paused) {
+      equalizerStore.resumeContext()
       audio.play().then(() => {
         update(st => ({ ...st, isPlaying: true }))
       }).catch(console.error)

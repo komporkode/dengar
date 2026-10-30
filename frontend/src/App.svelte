@@ -20,6 +20,7 @@
     exitMiniPlayer,
     enterMiniPlayer,
     isTransitioning,
+    isWhatsNewOpen,
   } from "./lib/stores/settingsStore";
   import {
     updateState,
@@ -46,6 +47,7 @@
   import PlaylistModal from "./lib/components/PlaylistModal.svelte";
   import AddToPlaylistModal from "./lib/components/AddToPlaylistModal.svelte";
   import PlaylistShareModal from "./lib/components/PlaylistShareModal.svelte";
+  import WhatsNewModal from "./lib/components/WhatsNewModal.svelte";
   import { activePlaylistId } from "./lib/stores/playlistStore";
 
   let activeTab: NavigationTab = "search";
@@ -92,7 +94,29 @@
 
     // 5. Automatic background update check on app launch
     checkForUpdatesInBackground();
+
+    // 6. Check first run for current version to show What's New
+    const CURRENT_VERSION = "v1.1.2";
+    try {
+      const seen = localStorage.getItem("dengerin_seen_version");
+      if (seen !== CURRENT_VERSION) {
+        setTimeout(() => {
+          isWhatsNewOpen.set(true);
+        }, 500);
+      }
+    } catch (e) {
+      console.warn("Version check warning:", e);
+    }
   });
+
+  function handleCloseWhatsNew() {
+    isWhatsNewOpen.set(false);
+    try {
+      localStorage.setItem("dengerin_seen_version", "v1.1.2");
+    } catch (e) {
+      console.warn("Save version warning:", e);
+    }
+  }
 
   onDestroy(() => {
     window.removeEventListener("keydown", handleGlobalKeydown);
@@ -575,4 +599,7 @@
       </div>
     </aside>
   {/if}
+
+  <!-- What's New Release Popup -->
+  <WhatsNewModal isOpen={$isWhatsNewOpen} onClose={handleCloseWhatsNew} />
 </div>

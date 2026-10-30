@@ -14,6 +14,7 @@
 
   $: isCurrent = $playerStore.currentTrack?.id === track.id;
   $: isPlaying = isCurrent && $playerStore.isPlaying;
+  $: isLoading = isCurrent && $playerStore.isLoading;
   $: isFav = $userDataStore.favorites.some((f) => f.id === track.id);
 
   function handlePlay() {
@@ -49,7 +50,7 @@
 </script>
 
 <div
-  class="track-row group grid grid-cols-12 gap-2 sm:gap-4 px-2.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl items-center transition-all duration-150 cursor-pointer {isCurrent
+  class="track-row group grid grid-cols-12 gap-2 sm:gap-4 px-2.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl items-center transition-all duration-150 cursor-pointer active:scale-[0.985] select-none {isCurrent
     ? 'bg-crimson-500/[0.08] border border-crimson-500/25 hover:bg-crimson-500/[0.12]'
     : 'hover:bg-white/[0.04] border border-transparent'}"
   on:click={handlePlay}
@@ -74,7 +75,7 @@
         ></span>
       </span>
       <button
-        class="play-hover-btn absolute inset-0 m-auto w-7 h-7 rounded-full bg-crimson-500 text-white flex items-center justify-center opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-md cursor-pointer"
+        class="play-hover-btn absolute inset-0 m-auto w-7 h-7 rounded-full bg-crimson-500 text-white flex items-center justify-center opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-md cursor-pointer active:scale-90"
         on:click|stopPropagation={handlePlay}
         title="Jeda Lagu"
       >
@@ -83,6 +84,13 @@
           <rect height="16" width="4" x="14" y="4"></rect>
         </svg>
       </button>
+    {:else if isLoading}
+      <span class="flex items-center justify-center text-crimson-400" title="Memuat stream...">
+        <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </span>
     {:else}
       <span
         class="track-index text-zinc-400 font-mono text-xs group-hover:opacity-0 group-hover:invisible transition-opacity"

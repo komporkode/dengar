@@ -25,6 +25,7 @@ audioQualityStore.subscribe((val) => {
 })
 
 export const isSettingsOpen = writable<boolean>(false)
+export const isWhatsNewOpen = writable<boolean>(false)
 export const isMiniPlayer = writable<boolean>(false)
 export const isTransitioning = writable<boolean>(false)
 export const toastMessage = writable<string | null>(null)

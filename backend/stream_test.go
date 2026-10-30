@@ -73,7 +73,7 @@ func TestStreamResolverPiped(t *testing.T) {
 	}))
 	defer server.Close()
 
-	pool := NewInstancePool([]string{server.URL}, nil)
+	pool := NewInstancePool([]string{server.URL}, []string{})
 	resolver := NewStreamResolver(pool, 30*time.Minute)
 
 	res, err := resolver.Resolve("bohemian", false)
@@ -128,7 +128,7 @@ func TestStreamResolverInvidious(t *testing.T) {
 	}))
 	defer server.Close()
 
-	pool := NewInstancePool(nil, []string{server.URL})
+	pool := NewInstancePool([]string{}, []string{server.URL})
 	resolver := NewStreamResolver(pool, 30*time.Minute)
 
 	res, err := resolver.Resolve("fixyou", false)
@@ -177,7 +177,7 @@ func TestStreamResolverQualitySaver(t *testing.T) {
 	}))
 	defer server.Close()
 
-	pool := NewInstancePool([]string{server.URL}, nil)
+	pool := NewInstancePool([]string{server.URL}, []string{})
 	resolver := NewStreamResolver(pool, 30*time.Minute)
 
 	// Test saver quality

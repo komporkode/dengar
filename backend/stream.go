@@ -90,7 +90,7 @@ func (r *StreamResolver) isStreamURLPlayable(streamURL string) bool {
 	u, err := url.Parse(clean)
 	if err == nil {
 		// Bypass network probe for standard RFC test domains & mock URLs in unit tests
-		if strings.HasSuffix(u.Host, ".example") || u.Host == "example.com" || u.Host == "googlevideo.com" || strings.HasPrefix(u.Host, "127.0.0.1") || strings.HasPrefix(u.Host, "localhost") {
+		if strings.HasSuffix(u.Host, ".example") || u.Host == "example.com" || strings.HasSuffix(u.Host, ".googlevideo.com") || u.Host == "googlevideo.com" || strings.HasPrefix(u.Host, "127.0.0.1") || strings.HasPrefix(u.Host, "localhost") {
 			return true
 		}
 
@@ -99,8 +99,8 @@ func (r *StreamResolver) isStreamURLPlayable(streamURL string) bool {
 		if expStr != "" {
 			exp, err := strconv.ParseInt(expStr, 10, 64)
 			if err == nil {
-				// Must have at least 10 minutes (600s) of validity left
-				if exp <= time.Now().Unix()+600 {
+				// Must have at least 2 minutes of validity left
+				if exp <= time.Now().Unix()+120 {
 					return false
 				}
 			}
@@ -289,17 +289,6 @@ func (r *StreamResolver) resolvePiped(instanceURL, videoID, quality string) (*St
 				bestAudioURL = u.String()
 			}
 		}
-	} else if strings.Contains(bestAudioURL, "googlevideo.com/videoplayback") {
-		// If Invidious returned a direct googlevideo URL, rewrite it to proxy through instance
-		u, err := url.Parse(bestAudioURL)
-		if err == nil {
-			instU, instErr := url.Parse(instanceURL)
-			if instErr == nil {
-				u.Scheme = instU.Scheme
-				u.Host = instU.Host
-				bestAudioURL = u.String()
-			}
-		}
 	}
 
 	if strings.HasPrefix(bestAudioURL, "/") {
@@ -458,17 +447,6 @@ func (r *StreamResolver) resolveInvidious(instanceURL, videoID, quality string) 
 
 	// Normalize companion subdomains (e.g. yt-comp1... -> instanceURL)
 	if strings.Contains(bestAudioURL, "yt-comp") {
-		u, err := url.Parse(bestAudioURL)
-		if err == nil {
-			instU, instErr := url.Parse(instanceURL)
-			if instErr == nil {
-				u.Scheme = instU.Scheme
-				u.Host = instU.Host
-				bestAudioURL = u.String()
-			}
-		}
-	} else if strings.Contains(bestAudioURL, "googlevideo.com/videoplayback") {
-		// If Invidious returned a direct googlevideo URL, rewrite it to proxy through instance
 		u, err := url.Parse(bestAudioURL)
 		if err == nil {
 			instU, instErr := url.Parse(instanceURL)

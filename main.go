@@ -29,7 +29,8 @@ func main() {
 		MinWidth:  360,
 		MinHeight: 140,
 		AssetServer: &assetserver.Options{
-			Assets: assets,
+			Assets:  assets,
+			Handler: app.ProxyHandler(),
 		},
 		BackgroundColour: &options.RGBA{R: 9, G: 10, B: 14, A: 1},
 		OnStartup:        app.startup,

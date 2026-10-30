@@ -4,6 +4,7 @@
   import { cubicOut } from "svelte/easing";
   import {
     isSettingsOpen,
+    isWhatsNewOpen,
     audioQualityStore,
     showToast,
   } from "../stores/settingsStore";
@@ -186,7 +187,7 @@
         <div class="pt-3 border-t border-white/[0.06] hidden md:block">
           <p class="text-[10px] text-zinc-400 font-medium">Dengerin Desktop</p>
           <p class="text-[10px] text-zinc-500 font-mono">
-            v1.1.1 • Open Source
+            v1.1.2 • Open Source
           </p>
         </div>
       </div>
@@ -563,7 +564,7 @@
                     </h4>
                     <span
                       class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 font-mono"
-                      >v1.1.1</span
+                      >v1.1.2</span
                     >
                     <span
                       class="text-[9px] font-medium px-1.5 py-0.2 rounded {$updateState?.isInstalled ? 'bg-sky-500/20 border-sky-500/30 text-sky-400' : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'} border font-mono"
@@ -591,6 +592,15 @@
                       class="px-1.5 py-0.2 rounded bg-white/[0.06] border border-white/10"
                       >🪶 Low RAM</span
                     >
+                  </div>
+                  <div class="mt-2.5">
+                    <button
+                      type="button"
+                      class="px-2.5 py-1 rounded-xl bg-crimson-500/15 hover:bg-crimson-500/25 border border-crimson-500/30 text-[10px] font-semibold text-crimson-300 hover:text-white transition cursor-pointer flex items-center gap-1.5"
+                      on:click={() => isWhatsNewOpen.set(true)}
+                    >
+                      <span>✨ Apa yang Baru di v1.1.2</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -781,7 +791,7 @@
                           class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34D399]"
                         ></span>
                         <span class="text-emerald-400 text-[11px] font-medium"
-                          >Aplikasi sudah versi terbaru ({$updateState?.currentVersion || 'v1.1.1'})</span
+                          >Aplikasi sudah versi terbaru ({$updateState?.currentVersion || 'v1.1.2'})</span
                         >
                       </div>
                       <button

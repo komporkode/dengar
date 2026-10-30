@@ -101,6 +101,18 @@ func (a *App) SearchMore(continuationToken string) (*backend.SearchResponse, err
 	return a.search.SearchMore(continuationToken)
 }
 
+// ProxyHandler returns the HTTP handler for proxying audio streams with CORS.
+func (a *App) ProxyHandler() http.Handler {
+	proxy := backend.NewAudioProxyHandler()
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/audio-proxy") {
+			proxy.ServeHTTP(w, r)
+			return
+		}
+		http.NotFound(w, r)
+	})
+}
+
 // GetStream resolves streaming media URLs with 30-min TTL caching and quality preference ("high" or "saver").
 func (a *App) GetStream(videoID string, forceRefresh bool, quality string) (*backend.StreamResult, error) {
 	return a.resolver.Resolve(videoID, forceRefresh, quality)
@@ -433,7 +445,7 @@ func isVersionNewer(candidate, current string) bool {
 
 // CheckForUpdates checks GitHub releases API for newer version of Dengerin.
 func (a *App) CheckForUpdates() (*UpdateInfo, error) {
-	const currentVersion = "v1.1.1"
+	const currentVersion = "v1.1.2"
 	client := &http.Client{Timeout: 6 * time.Second}
 	req, err := http.NewRequest("GET", "https://api.github.com/repos/komporkode/dengar/releases/latest", nil)
 	if err != nil {
