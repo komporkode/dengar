@@ -48,16 +48,23 @@ type UpdateAsset struct {
 
 // UpdateInfo holds details for GitHub application release updates.
 type UpdateInfo struct {
-	CurrentVersion string        `json:"currentVersion"`
-	LatestVersion  string        `json:"latestVersion"`
-	HasUpdate      bool          `json:"hasUpdate"`
-	ReleaseURL     string        `json:"releaseUrl"`
-	ReleaseNotes   string        `json:"releaseNotes"`
-	PublishedAt    string        `json:"publishedAt"`
-	DownloadURL    string        `json:"downloadUrl"`
-	AssetFileName  string        `json:"assetFileName"`
-	AssetSize      int64         `json:"assetSize"`
-	Assets         []UpdateAsset `json:"assets"`
+	CurrentVersion    string        `json:"currentVersion"`
+	LatestVersion     string        `json:"latestVersion"`
+	HasUpdate         bool          `json:"hasUpdate"`
+	ReleaseURL        string        `json:"releaseUrl"`
+	ReleaseNotes      string        `json:"releaseNotes"`
+	PublishedAt       string        `json:"publishedAt"`
+	DownloadURL       string        `json:"downloadUrl"`
+	AssetFileName     string        `json:"assetFileName"`
+	AssetSize         int64         `json:"assetSize"`
+	Assets            []UpdateAsset `json:"assets"`
+	IsInstalled       bool          `json:"isInstalled"`
+	InstallerURL      string        `json:"installerUrl"`
+	InstallerFileName string        `json:"installerFileName"`
+	InstallerSize     int64         `json:"installerSize"`
+	PortableURL       string        `json:"portableUrl"`
+	PortableFileName  string        `json:"portableFileName"`
+	PortableSize      int64         `json:"portableSize"`
 }
 
 // NewApp creates a new App application struct.
@@ -404,8 +411,15 @@ func (a *App) CheckForUpdates() (*UpdateInfo, error) {
 	}
 	defer resp.Body.Close()
 
+	execPath, _ := os.Executable()
+	isInstalled := false
+	if execPath != "" {
+		execLower := strings.ToLower(execPath)
+		isInstalled = strings.Contains(execLower, "program files") || strings.Contains(execLower, "appdata\\local\\programs") || strings.Contains(execLower, "appdata/local/programs")
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		return &UpdateInfo{CurrentVersion: currentVersion, HasUpdate: false}, nil
+		return &UpdateInfo{CurrentVersion: currentVersion, HasUpdate: false, IsInstalled: isInstalled}, nil
 	}
 
 	var release struct {
@@ -420,15 +434,16 @@ func (a *App) CheckForUpdates() (*UpdateInfo, error) {
 		} `json:"assets"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
-		return &UpdateInfo{CurrentVersion: currentVersion, HasUpdate: false}, nil
+		return &UpdateInfo{CurrentVersion: currentVersion, HasUpdate: false, IsInstalled: isInstalled}, nil
 	}
 
 	hasUpdate := release.TagName != "" && release.TagName != currentVersion
 
 	var assets []UpdateAsset
-	var matchedURL string
-	var matchedFileName string
-	var matchedSize int64
+	var installerURL, installerFileName string
+	var installerSize int64
+	var portableURL, portableFileName string
+	var portableSize int64
 
 	osKeyword := "windows"
 	if goruntime.GOOS == "darwin" {
@@ -443,30 +458,68 @@ func (a *App) CheckForUpdates() (*UpdateInfo, error) {
 			DownloadURL: ast.BrowserDownloadURL,
 			Size:        ast.Size,
 		})
-		if strings.Contains(strings.ToLower(ast.Name), osKeyword) {
-			matchedURL = ast.BrowserDownloadURL
-			matchedFileName = ast.Name
-			matchedSize = ast.Size
+		nameLower := strings.ToLower(ast.Name)
+		if strings.Contains(nameLower, osKeyword) || (goruntime.GOOS == "windows" && (strings.HasSuffix(nameLower, ".exe") || strings.HasSuffix(nameLower, ".zip"))) {
+			if strings.HasSuffix(nameLower, ".exe") && (strings.Contains(nameLower, "installer") || strings.Contains(nameLower, "setup")) {
+				installerURL = ast.BrowserDownloadURL
+				installerFileName = ast.Name
+				installerSize = ast.Size
+			} else if strings.HasSuffix(nameLower, ".zip") || strings.Contains(nameLower, "portable") {
+				portableURL = ast.BrowserDownloadURL
+				portableFileName = ast.Name
+				portableSize = ast.Size
+			} else if installerURL == "" && strings.HasSuffix(nameLower, ".exe") {
+				installerURL = ast.BrowserDownloadURL
+				installerFileName = ast.Name
+				installerSize = ast.Size
+			}
 		}
 	}
 
-	if matchedURL == "" && len(assets) > 0 {
+	// Select primary download URL matching running mode
+	var matchedURL, matchedFileName string
+	var matchedSize int64
+
+	if isInstalled && installerURL != "" {
+		matchedURL = installerURL
+		matchedFileName = installerFileName
+		matchedSize = installerSize
+	} else if !isInstalled && portableURL != "" {
+		matchedURL = portableURL
+		matchedFileName = portableFileName
+		matchedSize = portableSize
+	} else if portableURL != "" {
+		matchedURL = portableURL
+		matchedFileName = portableFileName
+		matchedSize = portableSize
+	} else if installerURL != "" {
+		matchedURL = installerURL
+		matchedFileName = installerFileName
+		matchedSize = installerSize
+	} else if len(assets) > 0 {
 		matchedURL = assets[0].DownloadURL
 		matchedFileName = assets[0].Name
 		matchedSize = assets[0].Size
 	}
 
 	return &UpdateInfo{
-		CurrentVersion: currentVersion,
-		LatestVersion:  release.TagName,
-		HasUpdate:      hasUpdate,
-		ReleaseURL:     release.HTMLURL,
-		ReleaseNotes:   release.Body,
-		PublishedAt:    release.PubAt,
-		DownloadURL:    matchedURL,
-		AssetFileName:  matchedFileName,
-		AssetSize:      matchedSize,
-		Assets:         assets,
+		CurrentVersion:    currentVersion,
+		LatestVersion:     release.TagName,
+		HasUpdate:         hasUpdate,
+		ReleaseURL:        release.HTMLURL,
+		ReleaseNotes:      release.Body,
+		PublishedAt:       release.PubAt,
+		DownloadURL:       matchedURL,
+		AssetFileName:     matchedFileName,
+		AssetSize:         matchedSize,
+		Assets:            assets,
+		IsInstalled:       isInstalled,
+		InstallerURL:      installerURL,
+		InstallerFileName: installerFileName,
+		InstallerSize:     installerSize,
+		PortableURL:       portableURL,
+		PortableFileName:  portableFileName,
+		PortableSize:      portableSize,
 	}, nil
 }
 
@@ -617,10 +670,69 @@ func (a *App) ApplyUpdateAndRestart(filePath string) error {
 				return a.OpenInFolder(cleanPath)
 			}
 
-			// Generate updater batch script to replace running binary after exit
-			updaterBat := filepath.Join(appDir, "dengerin_updater.bat")
-			batContent := fmt.Sprintf("@echo off\r\ntimeout /t 1 /nobreak > NUL\r\nmove /y \"%s\" \"%s\"\r\nstart \"\" \"%s\"\r\ndel \"%%~f0\"\r\n",
-				updateExePath, execPath, execPath)
+			// Generate robust updater batch script in %TEMP%
+			tempDir := os.TempDir()
+			updaterBat := filepath.Join(tempDir, fmt.Sprintf("dengerin_updater_%d.bat", time.Now().UnixNano()))
+			pid := os.Getpid()
+			baseName := filepath.Base(execPath)
+
+			batContent := fmt.Sprintf(`@echo off
+setlocal enabledelayedexpansion
+
+set "PID=%d"
+set "NEW=%s"
+set "CURR=%s"
+set "BACKUP=%s.bak"
+
+:: 1. Wait for Dengerin process to terminate cleanly
+if not "%%PID%%"=="" (
+    for /L %%%%i in (1,1,30) do (
+        tasklist /fi "PID eq %%PID%%" 2>NUL | find /I "%%PID%%" >NUL
+        if errorlevel 1 goto :proc_done
+        timeout /t 1 /nobreak >NUL
+    )
+)
+:proc_done
+
+:: 2. Robust executable swap with retry and .bak trick for AV file locks
+set ATTEMPTS=0
+:retry_loop
+set /a ATTEMPTS+=1
+
+:: Direct move attempt
+move /y "!NEW!" "!CURR!" >NUL 2>&1
+if not errorlevel 1 goto :success
+
+:: Rename trick: Windows permits renaming locked/cached binaries even if overwrite is denied
+if exist "!BACKUP!" del /f /q "!BACKUP!" >NUL 2>&1
+ren "!CURR!" "%s.bak" >NUL 2>&1
+if not errorlevel 1 (
+    move /y "!NEW!" "!CURR!" >NUL 2>&1
+    if not errorlevel 1 (
+        del /f /q "!BACKUP!" >NUL 2>&1
+        goto :success
+    )
+)
+
+if !ATTEMPTS! geq 15 goto :failed
+timeout /t 1 /nobreak >NUL
+goto :retry_loop
+
+:success
+if exist "!BACKUP!" del /f /q "!BACKUP!" >NUL 2>&1
+start "" "!CURR!"
+goto :cleanup
+
+:failed
+if not exist "!CURR!" (
+    if exist "!BACKUP!" ren "!BACKUP!" "%s" >NUL 2>&1
+)
+start "" "!CURR!"
+
+:cleanup
+(goto) 2>nul & del "%%~f0"
+`, pid, updateExePath, execPath, execPath, baseName, baseName)
+
 			if err := os.WriteFile(updaterBat, []byte(batContent), 0755); err != nil {
 				return fmt.Errorf("gagal membuat script updater: %w", err)
 			}
@@ -653,4 +765,3 @@ func (a *App) ApplyUpdateAndRestart(filePath string) error {
 		return a.OpenInFolder(cleanPath)
 	}
 }
-

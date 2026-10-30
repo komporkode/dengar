@@ -7,7 +7,14 @@
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
   "author": {
-    "name": "Dengerin Dev",
-    "email": "dev@dengerin.local"
+    "name": "Komporkode",
+    "email": "dev@komporkode.local"
+  },
+  "info": {
+    "companyName": "Komporkode",
+    "productName": "Dengerin",
+    "productVersion": "1.1.1",
+    "copyright": "Copyright © 2026 Komporkode",
+    "comments": "Dengerin Desktop - Hi-Fi YouTube Music Streaming"
   }
 }

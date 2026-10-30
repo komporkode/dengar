@@ -227,6 +227,13 @@ export namespace main {
 	    assetFileName: string;
 	    assetSize: number;
 	    assets: UpdateAsset[];
+	    isInstalled: boolean;
+	    installerUrl: string;
+	    installerFileName: string;
+	    installerSize: number;
+	    portableUrl: string;
+	    portableFileName: string;
+	    portableSize: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new UpdateInfo(source);
@@ -244,6 +251,13 @@ export namespace main {
 	        this.assetFileName = source["assetFileName"];
 	        this.assetSize = source["assetSize"];
 	        this.assets = this.convertValues(source["assets"], UpdateAsset);
+	        this.isInstalled = source["isInstalled"];
+	        this.installerUrl = source["installerUrl"];
+	        this.installerFileName = source["installerFileName"];
+	        this.installerSize = source["installerSize"];
+	        this.portableUrl = source["portableUrl"];
+	        this.portableFileName = source["portableFileName"];
+	        this.portableSize = source["portableSize"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

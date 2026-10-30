@@ -20,6 +20,13 @@ export interface UpdateInfo {
   assetFileName: string
   assetSize: number
   assets?: UpdateAsset[]
+  isInstalled: boolean
+  installerUrl?: string
+  installerFileName?: string
+  installerSize?: number
+  portableUrl?: string
+  portableFileName?: string
+  portableSize?: number
 }
 
 export const updateState = writable<UpdateInfo | null>(null)

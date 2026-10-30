@@ -1,9 +1,13 @@
 build/bin/
+dist/
+.tools/
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+*.zip
+*.nupkg
 
 # Node
 frontend/node_modules/

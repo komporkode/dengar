@@ -6,12 +6,12 @@ export function AddToHistory(arg1) {
   return window['go']['main']['App']['AddToHistory'](arg1);
 }
 
-export function ApplyUpdateAndRestart(arg1) {
-  return window['go']['main']['App']['ApplyUpdateAndRestart'](arg1);
-}
-
 export function AddTrackToPlaylist(arg1, arg2) {
   return window['go']['main']['App']['AddTrackToPlaylist'](arg1, arg2);
+}
+
+export function ApplyUpdateAndRestart(arg1) {
+  return window['go']['main']['App']['ApplyUpdateAndRestart'](arg1);
 }
 
 export function CheckForUpdates() {
