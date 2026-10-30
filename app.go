@@ -82,6 +82,9 @@ func NewApp() *App {
 	if err != nil {
 		println("Warning: failed to initialize audio cache manager:", err.Error())
 	}
+	if audioCacheMgr != nil && storageSvc != nil {
+		audioCacheMgr.SetPinnedFunc(storageSvc.GetPinnedTrackIDs)
+	}
 
 	return &App{
 		search:     searchSvc,
@@ -121,14 +124,18 @@ func (a *App) ProxyHandler() http.Handler {
 
 // GetStream resolves streaming media URLs with local disk cache check, 30-min TTL caching and quality preference ("high" or "saver").
 func (a *App) GetStream(videoID string, forceRefresh bool, quality string) (*backend.StreamResult, error) {
-	// 1. Check local disk cache first (offline instant play)
-	if a.audioCache != nil {
+	// 1. Check local disk cache first (offline instant play) only when not forcing refresh
+	if !forceRefresh && a.audioCache != nil {
 		if _, mime, found := a.audioCache.Get(videoID); found {
+			meta := a.audioCache.GetMeta(videoID)
 			return &backend.StreamResult{
-				VideoID:  videoID,
-				AudioURL: fmt.Sprintf("/api/audio-proxy?cache_id=%s", videoID),
-				Format:   mime,
-				Quality:  quality,
+				VideoID:   videoID,
+				Title:     meta.Title,
+				Artist:    meta.Artist,
+				Duration:  meta.Duration,
+				AudioURL:  fmt.Sprintf("/api/audio-proxy?cache_id=%s", videoID),
+				Format:    mime,
+				Quality:   quality,
 			}, nil
 		}
 	}
@@ -139,8 +146,15 @@ func (a *App) GetStream(videoID string, forceRefresh bool, quality string) (*bac
 		return nil, err
 	}
 
-	// 3. Queue background full audio caching if valid stream URL exists
+	// 3. Register pending metadata and queue background caching
 	if a.audioCache != nil && res != nil && res.AudioURL != "" {
+		a.audioCache.SetPendingMeta(videoID, backend.AudioCacheMeta{
+			VideoID:  videoID,
+			Title:    res.Title,
+			Artist:   res.Artist,
+			Duration: res.Duration,
+			Format:   res.Format,
+		})
 		a.audioCache.QueueBackgroundCache(videoID, res.AudioURL, res.Title, res.Artist, res.Duration, res.Format)
 	}
 

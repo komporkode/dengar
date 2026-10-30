@@ -239,3 +239,164 @@ func TestAudioCacheManager_Purge(t *testing.T) {
 	}
 }
 
+func TestDetectAudioMimeType(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "dengerin_mime_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Test WebM magic bytes (EBML 1A 45 DF A3)
+	webMPath := filepath.Join(tempDir, "test.webm")
+	_ = os.WriteFile(webMPath, []byte{0x1A, 0x45, 0xDF, 0xA3, 0x01, 0x02}, 0644)
+	if mime := DetectAudioMimeType(webMPath, "video/webm"); mime != "audio/webm" {
+		t.Errorf("Expected audio/webm, got %s", mime)
+	}
+
+	// Test MP4 ftyp
+	mp4Path := filepath.Join(tempDir, "test.mp4")
+	_ = os.WriteFile(mp4Path, []byte{0x00, 0x00, 0x00, 0x20, 'f', 't', 'y', 'p', 'M', '4', 'A', ' '}, 0644)
+	if mime := DetectAudioMimeType(mp4Path, "video/mp4"); mime != "audio/mp4" {
+		t.Errorf("Expected audio/mp4, got %s", mime)
+	}
+
+	// Test Fallback sanitization
+	if mime := DetectAudioMimeType(filepath.Join(tempDir, "nonexistent"), "video/webm; codecs=opus"); mime != "audio/webm" {
+		t.Errorf("Expected sanitized audio/webm, got %s", mime)
+	}
+}
+
+func TestAudioProxyHandler_CacheNotFound(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "dengerin_notfound_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	mgr, err := NewAudioCacheManager(tempDir, 10*1024*1024)
+	if err != nil {
+		t.Fatalf("Failed to create manager: %v", err)
+	}
+
+	handler := NewAudioProxyHandlerWithCache(mgr)
+
+	req := httptest.NewRequest("GET", "/api/audio-proxy?cache_id=nonexistent_track", nil)
+	rr := httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("Expected status 404 Not Found for missing cache entry, got %d", rr.Code)
+	}
+}
+
+func TestAudioCacheManager_PinnedProtection(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "dengerin_pinned_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Set limit to 350 KB
+	mgr, err := NewAudioCacheManager(tempDir, 350*1024)
+	if err != nil {
+		t.Fatalf("Failed to create manager: %v", err)
+	}
+
+	// Pin song_1 (Favorites / Playlist track)
+	mgr.SetPinnedFunc(func() map[string]bool {
+		return map[string]bool{
+			"song_1": true,
+		}
+	})
+
+	// Create 3 fake cache files: 150 KB each (Total 450 KB > 350 KB)
+	buf150KB := make([]byte, 150*1024)
+	for i := 1; i <= 3; i++ {
+		name := fmt.Sprintf("song_%d", i)
+		cachePath := filepath.Join(tempDir, name+".cache")
+		if err := os.WriteFile(cachePath, buf150KB, 0644); err != nil {
+			t.Fatalf("Failed to write test file: %v", err)
+		}
+		// Adjust mod time so song_1 is oldest, song_2 is middle, song_3 is newest
+		modTime := time.Now().Add(time.Duration(i-5) * time.Hour)
+		_ = os.Chtimes(cachePath, modTime, modTime)
+	}
+
+	// Enforce limit
+	mgr.EnforceLimit()
+
+	// song_1 is oldest but PINNED -> must NOT be evicted!
+	_, _, found1 := mgr.Get("song_1")
+	if !found1 {
+		t.Errorf("Expected song_1 to be protected from LRU eviction because it is pinned")
+	}
+
+	// song_2 is not pinned -> should be evicted instead of song_1
+	_, _, found2 := mgr.Get("song_2")
+	if found2 {
+		t.Errorf("Expected unpinned song_2 to be evicted by LRU")
+	}
+
+	// song_3 is newest -> should be kept
+	_, _, found3 := mgr.Get("song_3")
+	if !found3 {
+		t.Errorf("Expected song_3 to be kept")
+	}
+}
+
+func TestAudioCacheManager_CommitStream(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "dengerin_commit_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	mgr, err := NewAudioCacheManager(tempDir, 10*1024*1024)
+	if err != nil {
+		t.Fatalf("Failed to create manager: %v", err)
+	}
+
+	// Set pending metadata
+	mgr.SetPendingMeta("commit_track", AudioCacheMeta{
+		Title:  "Stream Song",
+		Artist: "Stream Artist",
+	})
+
+	// Write mock temporary file (> 128 KB)
+	tmpPath := filepath.Join(tempDir, "commit_track.tmp")
+	data := make([]byte, 150*1024)
+	// EBML header for WebM
+	data[0] = 0x1A
+	data[1] = 0x45
+	data[2] = 0xDF
+	data[3] = 0xA3
+	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+		t.Fatalf("Failed to write tmp file: %v", err)
+	}
+
+	committed := mgr.CommitStream("commit_track", tmpPath, int64(len(data)), "video/webm")
+	if !committed {
+		t.Fatalf("CommitStream failed")
+	}
+
+	// Verify track is in cache
+	filePath, mime, found := mgr.Get("commit_track")
+	if !found {
+		t.Fatalf("Expected commit_track to be found in cache")
+	}
+	if mime != "audio/webm" {
+		t.Errorf("Expected audio/webm, got %s", mime)
+	}
+	if _, err := os.Stat(filePath); err != nil {
+		t.Errorf("Cached file does not exist on disk: %v", err)
+	}
+
+	// Verify metadata was saved
+	meta := mgr.GetMeta("commit_track")
+	if meta.Title != "Stream Song" || meta.Artist != "Stream Artist" {
+		t.Errorf("Metadata mismatch: %+v", meta)
+	}
+}
+
+

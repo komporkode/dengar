@@ -24,6 +24,10 @@
     "wailsjs/**/*.d.ts",
     "wailsjs/**/*.ts"
   ],
+  "exclude": [
+    "node_modules",
+    "wailsjs/**/*.js"
+  ],
   "references": [
     {
       "path": "./tsconfig.node.json"

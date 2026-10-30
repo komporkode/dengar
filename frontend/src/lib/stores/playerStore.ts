@@ -115,6 +115,13 @@ function createPlayerStore() {
     }
   }
 
+  function hasHealthyBuffer(): boolean {
+    if (!audio) return false
+    const cur = audio.currentTime || 0
+    const bufEnd = getBufferedEnd(audio)
+    return (bufEnd > cur + 2) || (audio.readyState >= 3)
+  }
+
   function initAudio() {
     if (typeof window === 'undefined' || typeof Audio === 'undefined') return
     if (audio) return
@@ -173,6 +180,10 @@ function createPlayerStore() {
       stallTimer = setTimeout(() => {
         const s = get({ subscribe })
         if (s.isPlaying && audio && audio.paused === false) {
+          if (hasHealthyBuffer()) {
+            console.log('[Auto-Recovery] Network stalled but buffer is healthy, continuing playback...')
+            return
+          }
           console.warn('[Auto-Recovery] Audio playback stalled for > 6s, refreshing stream...')
           handleMediaError()
         }
@@ -210,6 +221,12 @@ function createPlayerStore() {
     loadWatchdogTimer = setTimeout(() => {
       const s = get({ subscribe })
       if (s.isLoading && !s.isPlaying && s.currentTrack) {
+        if (hasHealthyBuffer()) {
+          console.log('[StallWatchdog] Buffer has playable audio, attempting play instead of rotating...')
+          audio?.play().catch(() => {})
+          startLoadWatchdog()
+          return
+        }
         console.warn('[StallWatchdog] Playback failed to start within 7s, triggering automatic instance rotation...')
         handleMediaError()
       }
@@ -220,10 +237,12 @@ function createPlayerStore() {
     clearTimeout(loadWatchdogTimer)
   }
 
-  function setAudioSourceAndPlay(streamUrl: string, startTime = 0, autoPlay = true) {
+  function setAudioSourceAndPlay(streamUrl: string, startTime = 0, autoPlay = true, trackId?: string) {
     if (!audio) return
-    const proxied = equalizerStore.getProxiedStreamUrl(streamUrl)
-    if (audio.src !== proxied) {
+    const currentTrackId = trackId || get({ subscribe }).currentTrack?.id
+    const proxied = equalizerStore.getProxiedStreamUrl(streamUrl, currentTrackId)
+    const currentAttr = audio.getAttribute('src')
+    if (audio.src !== proxied && currentAttr !== proxied) {
       audio.src = proxied
     }
     audio.currentTime = startTime
@@ -359,7 +378,7 @@ function createPlayerStore() {
       }))
 
       if (audio) {
-        setAudioSourceAndPlay(streamUrl, 0, true)
+        setAudioSourceAndPlay(streamUrl, 0, true, track.id)
       }
     } catch (e: any) {
       if (requestId !== currentRequestId) return
@@ -387,7 +406,7 @@ function createPlayerStore() {
     }))
   }
 
-  function scheduleAutoRetry(action: 'retry' | 'skip', seconds = 3) {
+  function scheduleAutoRetry(action: 'retry' | 'skip', seconds = 2) {
     cancelAutoRetry()
     const s = get({ subscribe })
     if (!s.currentTrack) return
@@ -424,6 +443,11 @@ function createPlayerStore() {
       if (action === 'retry') {
         await executeRetry()
       } else if (action === 'skip') {
+        if (hasHealthyBuffer()) {
+          console.log('[Auto-Recovery] Preserving healthy buffer, continuing playback instead of skipping')
+          audio?.play().catch(() => {})
+          return
+        }
         showToast('Lagu tidak tersedia di server, memutar lagu berikutnya...')
         playNext()
       }
@@ -462,7 +486,7 @@ function createPlayerStore() {
       }))
 
       if (audio) {
-        setAudioSourceAndPlay(streamUrl, savedTime, true)
+        setAudioSourceAndPlay(streamUrl, savedTime, true, s.currentTrack.id)
       }
     } catch (err: any) {
       console.error('[Auto-Recovery] Retry failed:', err)
@@ -479,9 +503,20 @@ function createPlayerStore() {
     initAudio()
     const s = get({ subscribe })
 
-    // If an error occurred on the current track, immediately purge any corrupted disk cache
-    if (s.currentTrack) {
-      PurgeTrackCache(s.currentTrack.id).catch(() => {})
+    // If buffer still has playable audio, suppress error and continue playing
+    if (hasHealthyBuffer()) {
+      console.log('[Auto-Recovery] Error event suppressed because buffer has playable audio')
+      audio?.play().catch(() => {})
+      return
+    }
+
+    // Only purge disk cache if audio genuinely suffered a decoding or unsupported format error
+    if (s.currentTrack && audio?.error) {
+      const code = audio.error.code
+      if (code === 3 /* MEDIA_ERR_DECODE */ || code === 4 /* MEDIA_ERR_SRC_NOT_SUPPORTED */) {
+        console.warn(`[Auto-Recovery] Decoding error (${code}) on ${s.currentTrack.id}, purging cache`)
+        PurgeTrackCache(s.currentTrack.id).catch(() => {})
+      }
     }
 
     if (!get(networkStore).isOnline) {
@@ -507,8 +542,8 @@ function createPlayerStore() {
       return
     }
 
-    console.warn(`[Auto-Recovery] Stream error on track ${s.currentTrack.id}, scheduling auto-retry (${s.retryCount + 1}/3) in 3s...`)
-    scheduleAutoRetry('retry', 3)
+    console.warn(`[Auto-Recovery] Stream error on track ${s.currentTrack.id}, scheduling auto-retry (${s.retryCount + 1}/3) in 2s...`)
+    scheduleAutoRetry('retry', 2)
   }
 
   async function retryWithDifferentSource() {

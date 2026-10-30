@@ -10,7 +10,8 @@ import (
 
 var defaultPipedInstances = []string{
 	"https://api.piped.private.coffee",
-	"https://pipedapi.kavin.rocks",
+	"https://pipedapi.leptons.xyz",
+	"https://pipedapi.drgns.space",
 }
 
 var defaultInvidiousInstances = []string{

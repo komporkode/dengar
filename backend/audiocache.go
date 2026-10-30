@@ -36,11 +36,13 @@ type AudioCacheStats struct {
 
 // AudioCacheManager handles caching full audio files on local disk for offline and instant replay.
 type AudioCacheManager struct {
-	dir      string
-	maxBytes int64
-	mu       sync.RWMutex
-	inFlight sync.Map
-	client   *http.Client
+	dir         string
+	maxBytes    int64
+	mu          sync.RWMutex
+	inFlight    sync.Map
+	pendingMeta sync.Map
+	pinnedFunc  func() map[string]bool
+	client      *http.Client
 }
 
 // DefaultCacheDir returns the standard cache directory under "dengerin" folder.
@@ -98,6 +100,57 @@ func sanitizeVideoID(id string) string {
 	return clean
 }
 
+// DetectAudioMimeType sniffs magic bytes from an audio file to determine the correct audio/* MIME type.
+func DetectAudioMimeType(filePath string, fallback string) string {
+	cleanFallback := strings.TrimSpace(fallback)
+	if strings.HasPrefix(cleanFallback, "video/webm") {
+		cleanFallback = "audio/webm"
+	} else if strings.HasPrefix(cleanFallback, "video/mp4") {
+		cleanFallback = "audio/mp4"
+	} else if !strings.HasPrefix(cleanFallback, "audio/") {
+		cleanFallback = "audio/mp4"
+	}
+
+	f, err := os.Open(filePath)
+	if err != nil {
+		return cleanFallback
+	}
+	defer f.Close()
+
+	var header [16]byte
+	n, _ := io.ReadFull(f, header[:])
+	if n >= 4 {
+		// WebM / Matroska EBML: \x1A\x45\xDF\xA3
+		if header[0] == 0x1A && header[1] == 0x45 && header[2] == 0xDF && header[3] == 0xA3 {
+			return "audio/webm"
+		}
+		// OGG: "OggS"
+		if string(header[0:4]) == "OggS" {
+			return "audio/ogg"
+		}
+		// FLAC: "fLaC"
+		if string(header[0:4]) == "fLaC" {
+			return "audio/flac"
+		}
+		// MP3: "ID3"
+		if header[0] == 'I' && header[1] == 'D' && header[2] == '3' {
+			return "audio/mpeg"
+		}
+		// MP3: sync word (0xFF 0xFB, 0xFF 0xF3, 0xFF 0xF2, 0xFF 0xE3)
+		if header[0] == 0xFF && (header[1]&0xE0) == 0xE0 {
+			return "audio/mpeg"
+		}
+	}
+	if n >= 12 {
+		// MP4 / M4A: bytes 4..8 == "ftyp"
+		if string(header[4:8]) == "ftyp" {
+			return "audio/mp4"
+		}
+	}
+
+	return cleanFallback
+}
+
 // Get checks if a track is cached on local disk and ready for instant/offline playback.
 func (m *AudioCacheManager) Get(videoID string) (filePath string, mimeType string, found bool) {
 	vid := sanitizeVideoID(videoID)
@@ -129,11 +182,100 @@ func (m *AudioCacheManager) Get(videoID string) (filePath string, mimeType strin
 		}
 	}
 
-	// Update touch time for LRU tracking
-	now := time.Now()
-	_ = os.Chtimes(cachePath, now, now)
+	// Sniff real audio MIME from magic bytes (converts video/* to audio/*)
+	detectedMime := DetectAudioMimeType(cachePath, mime)
 
-	return cachePath, mime, true
+	// Update touch time for LRU tracking only if last touched > 10 minutes ago
+	// to avoid resetting ModTime during rapid Range requests by the player
+	if time.Since(info.ModTime()) > 10*time.Minute {
+		now := time.Now()
+		_ = os.Chtimes(cachePath, now, now)
+	}
+
+	return cachePath, detectedMime, true
+}
+
+// SetPinnedFunc sets a provider function returning a map of pinned video IDs (Favorites & Playlists) immune to LRU eviction.
+func (m *AudioCacheManager) SetPinnedFunc(fn func() map[string]bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.pinnedFunc = fn
+}
+
+// SetPendingMeta temporarily caches track metadata so stream-through proxy can tag the cached file without extra requests.
+func (m *AudioCacheManager) SetPendingMeta(videoID string, meta AudioCacheMeta) {
+	vid := sanitizeVideoID(videoID)
+	if vid != "" {
+		m.pendingMeta.Store(vid, meta)
+	}
+}
+
+// CommitStream atomically moves a completed .tmp file to .cache, saves metadata, and enforces LRU limits.
+func (m *AudioCacheManager) CommitStream(videoID string, tmpPath string, written int64, mimeType string) bool {
+	vid := sanitizeVideoID(videoID)
+	if vid == "" || written < MinValidAudioFileSize {
+		_ = os.Remove(tmpPath)
+		return false
+	}
+
+	cachePath := filepath.Join(m.dir, vid+".cache")
+	metaPath := filepath.Join(m.dir, vid+".meta")
+	realMime := DetectAudioMimeType(tmpPath, mimeType)
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if err := os.Rename(tmpPath, cachePath); err != nil {
+		_ = os.Remove(tmpPath)
+		return false
+	}
+
+	meta := AudioCacheMeta{
+		VideoID:        vid,
+		MimeType:       realMime,
+		FileSize:       written,
+		CachedAt:       time.Now().Unix(),
+		LastAccessedAt: time.Now().Unix(),
+	}
+	if val, ok := m.pendingMeta.Load(vid); ok {
+		if pm, ok := val.(AudioCacheMeta); ok {
+			meta.Title = pm.Title
+			meta.Artist = pm.Artist
+			meta.Duration = pm.Duration
+			meta.Format = pm.Format
+		}
+	}
+
+	if metaJSON, err := json.Marshal(meta); err == nil {
+		_ = os.WriteFile(metaPath, metaJSON, 0644)
+	}
+
+	m.enforceLimitLocked()
+	return true
+}
+
+// GetMeta returns metadata for a cached track if available.
+func (m *AudioCacheManager) GetMeta(videoID string) AudioCacheMeta {
+	vid := sanitizeVideoID(videoID)
+	if vid == "" {
+		return AudioCacheMeta{}
+	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	metaPath := filepath.Join(m.dir, vid+".meta")
+	var meta AudioCacheMeta
+	if metaBytes, err := os.ReadFile(metaPath); err == nil {
+		_ = json.Unmarshal(metaBytes, &meta)
+	}
+	if meta.VideoID == "" {
+		if val, ok := m.pendingMeta.Load(vid); ok {
+			if pm, ok := val.(AudioCacheMeta); ok {
+				return pm
+			}
+		}
+	}
+	return meta
 }
 
 // QueueBackgroundCache initiates an atomic background download for a stream if not already cached.
@@ -197,7 +339,11 @@ func (m *AudioCacheManager) downloadAndCommit(vid string, streamURL string, titl
 	}
 
 	mimeType := resp.Header.Get("Content-Type")
-	if mimeType == "" {
+	if strings.HasPrefix(mimeType, "video/webm") {
+		mimeType = "audio/webm"
+	} else if strings.HasPrefix(mimeType, "video/mp4") {
+		mimeType = "audio/mp4"
+	} else if !strings.HasPrefix(mimeType, "audio/") {
 		if strings.Contains(strings.ToLower(format), "webm") || strings.Contains(strings.ToLower(format), "opus") {
 			mimeType = "audio/webm"
 		} else {
@@ -210,7 +356,14 @@ func (m *AudioCacheManager) downloadAndCommit(vid string, streamURL string, titl
 	if err != nil || written < MinValidAudioFileSize {
 		return // Discard incomplete or truncated downloads
 	}
+	// Verify against Content-Length if provided by server
+	if resp.ContentLength > 0 && written < resp.ContentLength {
+		return // Truncated download, discard
+	}
 	_ = tmpFile.Close()
+
+	// Sniff magic bytes from temp file to ensure real audio MIME
+	realMime := DetectAudioMimeType(tmpPath, mimeType)
 
 	// 4. Atomic rename temp file to cache file
 	m.mu.Lock()
@@ -227,7 +380,7 @@ func (m *AudioCacheManager) downloadAndCommit(vid string, streamURL string, titl
 		Artist:         artist,
 		Duration:       duration,
 		Format:         format,
-		MimeType:       mimeType,
+		MimeType:       realMime,
 		FileSize:       written,
 		CachedAt:       time.Now().Unix(),
 		LastAccessedAt: time.Now().Unix(),
@@ -291,11 +444,19 @@ func (m *AudioCacheManager) enforceLimitLocked() {
 		return cacheFiles[i].modTime.Before(cacheFiles[j].modTime)
 	})
 
+	var pinned map[string]bool
+	if m.pinnedFunc != nil {
+		pinned = m.pinnedFunc()
+	}
+
 	for _, f := range cacheFiles {
 		if totalSize <= m.maxBytes {
 			break
 		}
 		vid := strings.TrimSuffix(f.name, ".cache")
+		if pinned != nil && pinned[vid] {
+			continue // Pinned tracks (Favorites & Playlists) are immune to LRU eviction
+		}
 		_ = os.Remove(filepath.Join(m.dir, f.name))
 		_ = os.Remove(filepath.Join(m.dir, vid+".meta"))
 		totalSize -= f.size

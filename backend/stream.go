@@ -53,8 +53,10 @@ func (r *StreamResolver) Resolve(videoID string, forceRefresh bool, quality ...s
 		}
 	}
 
-	// 1. Try Invidious instances first (highest availability for audio streams)
-	for _, inst := range r.pool.GetInvidiousInstances() {
+	// 1. Try current primary Invidious instance first (highest availability for audio streams)
+	invInstances := r.pool.GetInvidiousInstances()
+	if len(invInstances) > 0 {
+		inst := invInstances[0]
 		res, err := r.resolveInvidious(inst, vid, q)
 		if err == nil && res.AudioURL != "" && r.isStreamURLPlayable(res.AudioURL) {
 			res.Quality = q
@@ -64,7 +66,7 @@ func (r *StreamResolver) Resolve(videoID string, forceRefresh bool, quality ...s
 		r.pool.RotateInvidious()
 	}
 
-	// 2. Fallback to Piped instances
+	// 2. Primary fallback: Piped instances (second in priority for fast unblocked playback)
 	for _, inst := range r.pool.GetPipedInstances() {
 		res, err := r.resolvePiped(inst, vid, q)
 		if err == nil && res.AudioURL != "" && r.isStreamURLPlayable(res.AudioURL) {
@@ -73,6 +75,18 @@ func (r *StreamResolver) Resolve(videoID string, forceRefresh bool, quality ...s
 			return res, nil
 		}
 		r.pool.RotatePiped()
+	}
+
+	// 3. Secondary fallback: remaining Invidious instances if Piped fails
+	for i := 1; i < len(invInstances); i++ {
+		inst := invInstances[i]
+		res, err := r.resolveInvidious(inst, vid, q)
+		if err == nil && res.AudioURL != "" && r.isStreamURLPlayable(res.AudioURL) {
+			res.Quality = q
+			r.cache.Set(cacheKey, res)
+			return res, nil
+		}
+		r.pool.RotateInvidious()
 	}
 
 	// Trigger instance refresh for future requests if all failed
@@ -90,7 +104,7 @@ func (r *StreamResolver) isStreamURLPlayable(streamURL string) bool {
 	u, err := url.Parse(clean)
 	if err == nil {
 		// Bypass network probe for standard RFC test domains & mock URLs in unit tests
-		if strings.HasSuffix(u.Host, ".example") || u.Host == "example.com" || strings.HasSuffix(u.Host, ".googlevideo.com") || u.Host == "googlevideo.com" || strings.HasPrefix(u.Host, "127.0.0.1") || strings.HasPrefix(u.Host, "localhost") {
+		if strings.HasSuffix(u.Host, ".example") || u.Host == "example.com" || strings.HasPrefix(u.Host, "127.0.0.1") || strings.HasPrefix(u.Host, "localhost") {
 			return true
 		}
 
@@ -116,15 +130,18 @@ func (r *StreamResolver) isStreamURLPlayable(streamURL string) bool {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
 	probeClient := &http.Client{
-		Timeout: 3 * time.Second,
+		Timeout: 1500 * time.Millisecond,
 	}
 	resp, err := probeClient.Do(req)
 	if err != nil {
-		// If probe times out due to international latency but URL was just generated, allow playback
+		// If probe times out due to international latency or mock URL, allow playback
 		return true
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusGone || resp.StatusCode == http.StatusNotFound {
+		return false
+	}
 	return resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent
 }
 

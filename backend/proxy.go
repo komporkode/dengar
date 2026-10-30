@@ -52,10 +52,20 @@ func (h *AudioProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if err == nil {
 				defer f.Close()
 				stat, err := f.Stat()
-				if err == nil {
-					w.Header().Set("Content-Type", mime)
+				if err == nil && stat.Size() >= MinValidAudioFileSize {
+					realMime := DetectAudioMimeType(filePath, mime)
+					w.Header().Set("Content-Type", realMime)
 					w.Header().Set("Accept-Ranges", "bytes")
-					http.ServeContent(w, r, filepath.Base(filePath), stat.ModTime(), f)
+					// Use proper audio file extension in synthetic filename so browser decoder identifies it correctly
+					ext := ".mp4"
+					if strings.Contains(realMime, "webm") {
+						ext = ".webm"
+					} else if strings.Contains(realMime, "ogg") {
+						ext = ".ogg"
+					} else if strings.Contains(realMime, "mpeg") {
+						ext = ".mp3"
+					}
+					http.ServeContent(w, r, cacheID+ext, stat.ModTime(), f)
 					return
 				}
 			}
@@ -64,6 +74,10 @@ func (h *AudioProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	rawURL := strings.TrimSpace(r.URL.Query().Get("url"))
 	if rawURL == "" {
+		if cacheID != "" {
+			http.Error(w, "cache entry not found or incomplete", http.StatusNotFound)
+			return
+		}
 		http.Error(w, "missing stream url or cache id", http.StatusBadRequest)
 		return
 	}
@@ -111,6 +125,30 @@ func (h *AudioProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if w.Header().Get("Accept-Ranges") == "" {
 		w.Header().Set("Accept-Ranges", "bytes")
+	}
+
+	videoID := strings.TrimSpace(r.URL.Query().Get("video_id"))
+	if videoID != "" && h.cacheManager != nil {
+		if _, _, found := h.cacheManager.Get(videoID); !found {
+			rangeHeader := r.Header.Get("Range")
+			isFromStart := (rangeHeader == "" || strings.HasPrefix(rangeHeader, "bytes=0-"))
+			if isFromStart && (resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent) {
+				tmpPath := filepath.Join(h.cacheManager.dir, sanitizeVideoID(videoID)+".tmp")
+				// shortcut: if another writer is creating the tmp file, fall back to plain proxying
+				if tmpFile, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644); err == nil {
+					w.WriteHeader(resp.StatusCode)
+					tee := io.TeeReader(resp.Body, tmpFile)
+					written, copyErr := io.Copy(w, tee)
+					_ = tmpFile.Close()
+					if copyErr == nil && (resp.ContentLength <= 0 || written >= resp.ContentLength) && written >= MinValidAudioFileSize {
+						h.cacheManager.CommitStream(videoID, tmpPath, written, resp.Header.Get("Content-Type"))
+					} else {
+						_ = os.Remove(tmpPath)
+					}
+					return
+				}
+			}
+		}
 	}
 
 	w.WriteHeader(resp.StatusCode)

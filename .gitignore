@@ -21,3 +21,5 @@ frontend/package.json.md5
 # OS / Editor
 .DS_Store
 Thumbs.db
+bugraph/
+graphify-out/

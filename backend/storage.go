@@ -295,6 +295,27 @@ func (s *StorageService) RemoveTrackFromPlaylist(playlistID string, trackID stri
 	return fmt.Errorf("playlist not found: %s", playlistID)
 }
 
+// GetPinnedTrackIDs returns all track IDs saved in Favorites and Playlists.
+func (s *StorageService) GetPinnedTrackIDs() map[string]bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	pinned := make(map[string]bool)
+	for _, f := range s.data.Favorites {
+		if f.ID != "" {
+			pinned[f.ID] = true
+		}
+	}
+	for _, pl := range s.data.Playlists {
+		for _, t := range pl.Tracks {
+			if t.ID != "" {
+				pinned[t.ID] = true
+			}
+		}
+	}
+	return pinned
+}
+
 // RecordPlay increments play count for a track and caches its metadata.
 func (s *StorageService) RecordPlay(track SearchResultItem) error {
 	s.mu.Lock()

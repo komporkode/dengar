@@ -186,13 +186,17 @@ function createEqualizerStore() {
     setPreset('Flat')
   }
 
-  function getProxiedStreamUrl(rawUrl: string): string {
+  function getProxiedStreamUrl(rawUrl: string, videoId?: string): string {
     if (!rawUrl) return ''
     // If it's already a relative / local API URL, don't double proxy
     if (rawUrl.startsWith('/api/') || rawUrl.startsWith('http://localhost') || rawUrl.startsWith('http://127.0.0.1')) {
       return rawUrl
     }
-    return `/api/audio-proxy?url=${encodeURIComponent(rawUrl)}`
+    let proxied = `/api/audio-proxy?url=${encodeURIComponent(rawUrl)}`
+    if (videoId) {
+      proxied += `&video_id=${encodeURIComponent(videoId)}`
+    }
+    return proxied
   }
 
   return {

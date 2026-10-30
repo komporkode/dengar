@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Wails: Debug Frontend (Edge)",
+      "type": "msedge",
+      "request": "launch",
+      "url": "http://localhost:34115",
+      "webRoot": "${workspaceFolder}/frontend"
+    },
+    {
+      "name": "Wails: Debug Frontend (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:34115",
+      "webRoot": "${workspaceFolder}/frontend"
+    },
+    {
+      "name": "Wails: Debug Backend (Go)",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}",
+      "env": {
+        "WAILS_DEV_ALLOWED_HOSTS": "wails.localhost,localhost,127.0.0.1"
+      }
+    }
+  ]
+}
