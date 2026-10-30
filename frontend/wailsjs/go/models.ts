@@ -129,8 +129,8 @@ export namespace backend {
 	    favorites: SearchResultItem[];
 	    history: SearchResultItem[];
 	    playlists: Playlist[];
-	    playCounts: {[key: string]: number};
-	    trackMeta?: {[key: string]: SearchResultItem};
+	    playCounts: Record<string, number>;
+	    trackMeta?: Record<string, SearchResultItem>;
 	
 	    static createFrom(source: any = {}) {
 	        return new UserData(source);
