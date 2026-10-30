@@ -22,7 +22,7 @@ func main() {
 	app := NewApp()
 
 	err := wails.Run(&options.App{
-		Title:     "Dengar - YouTube Music Desktop",
+		Title:     "Dengerin - YouTube Music Desktop",
 		Width:     1200,
 		Height:    800,
 		Frameless: true,

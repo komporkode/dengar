@@ -211,6 +211,7 @@ func (a *App) ImportPlaylist(payload string) (*backend.Playlist, error) {
 		return nil, fmt.Errorf("storage service unavailable")
 	}
 	trimmed := strings.TrimSpace(payload)
+	trimmed = strings.TrimPrefix(trimmed, "dengerin://playlist/")
 	trimmed = strings.TrimPrefix(trimmed, "dengar://playlist/")
 
 	raw, err := base64.StdEncoding.DecodeString(trimmed)
@@ -387,15 +388,15 @@ func (a *App) getHomeDataInternal(forceRefresh bool) (*HomeData, error) {
 	return result, nil
 }
 
-// CheckForUpdates checks GitHub releases API for newer version of Dengar.
+// CheckForUpdates checks GitHub releases API for newer version of Dengerin.
 func (a *App) CheckForUpdates() (*UpdateInfo, error) {
-	const currentVersion = "v1.1.0"
+	const currentVersion = "v1.1.1"
 	client := &http.Client{Timeout: 6 * time.Second}
 	req, err := http.NewRequest("GET", "https://api.github.com/repos/komporkode/dengar/releases/latest", nil)
 	if err != nil {
 		return &UpdateInfo{CurrentVersion: currentVersion, HasUpdate: false}, nil
 	}
-	req.Header.Set("User-Agent", "Dengar-Desktop-App")
+	req.Header.Set("User-Agent", "Dengerin-Desktop-App")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -487,7 +488,7 @@ func (a *App) DownloadUpdate(downloadURL, fileName string) (string, error) {
 	}
 
 	if fileName == "" {
-		fileName = "dengar-update.zip"
+		fileName = "dengerin-update.zip"
 	}
 	targetPath := filepath.Join(downloadsDir, fileName)
 
@@ -499,7 +500,7 @@ func (a *App) DownloadUpdate(downloadURL, fileName string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("gagal membuat request unduhan: %w", err)
 	}
-	req.Header.Set("User-Agent", "Dengar-Desktop-App")
+	req.Header.Set("User-Agent", "Dengerin-Desktop-App")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -585,12 +586,12 @@ func (a *App) ApplyUpdateAndRestart(filePath string) error {
 			defer r.Close()
 
 			appDir := filepath.Dir(execPath)
-			updateExePath := filepath.Join(appDir, "dengar_new.exe")
+			updateExePath := filepath.Join(appDir, "dengerin_new.exe")
 
 			var foundExe bool
 			for _, f := range r.File {
 				nameLower := strings.ToLower(filepath.Base(f.Name))
-				if nameLower == "dengar.exe" || strings.HasSuffix(nameLower, ".exe") {
+				if nameLower == "dengerin.exe" || nameLower == "dengar.exe" || strings.HasSuffix(nameLower, ".exe") {
 					rc, err := f.Open()
 					if err != nil {
 						return fmt.Errorf("gagal membaca biner baru dari zip: %w", err)
@@ -617,7 +618,7 @@ func (a *App) ApplyUpdateAndRestart(filePath string) error {
 			}
 
 			// Generate updater batch script to replace running binary after exit
-			updaterBat := filepath.Join(appDir, "dengar_updater.bat")
+			updaterBat := filepath.Join(appDir, "dengerin_updater.bat")
 			batContent := fmt.Sprintf("@echo off\r\ntimeout /t 1 /nobreak > NUL\r\nmove /y \"%s\" \"%s\"\r\nstart \"\" \"%s\"\r\ndel \"%%~f0\"\r\n",
 				updateExePath, execPath, execPath)
 			if err := os.WriteFile(updaterBat, []byte(batContent), 0755); err != nil {

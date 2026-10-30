@@ -175,7 +175,7 @@
               </button>
             </div>
             <p class="text-[11px] text-zinc-400 mt-1.5">
-              Bagikan kode ini kepada teman Anda untuk diimpor langsung ke aplikasi Dengar mereka.
+              Bagikan kode ini kepada teman Anda untuk diimpor langsung ke aplikasi Dengerin mereka.
             </p>
           </div>
 

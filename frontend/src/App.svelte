@@ -20,7 +20,8 @@
     downloadedFilePath,
     checkForUpdatesInBackground,
     startDownloadUpdate,
-    revealDownloadedFile
+    revealDownloadedFile,
+    installAndRestartUpdate
   } from './lib/stores/updateStore'
   import { t } from './lib/stores/i18nStore'
 
@@ -250,7 +251,7 @@
             <path fill="currentColor" d="M135.71 0c26.85,0 50.37,5.44 70.57,16.33 20.2,10.89 35.74,26 46.62,45.35 10.88,19.35 16.33,41.36 16.33,66.03 0,24.43 -5.44,46.44 -16.33,66.03 -10.88,19.59 -26.42,35.01 -46.62,46.26 -20.2,11.25 -43.72,16.87 -70.57,16.87l-26.48 0 -8.81 0c-10.22,6.75 -22.47,10.68 -35.64,10.68 -35.78,0 -64.78,-29 -64.78,-64.78 0,-22.41 11.38,-42.16 28.68,-53.79l0 -130.95c0,-9.91 8.11,-18.02 18.02,-18.02l43.87 0 18.66 0 26.48 0zm-107.03 209.99l0 -0.01c5.01,20.39 27.57,32.83 51.03,27.89 24.62,-5.18 38.29,-31.72 34.99,-52.84l13.75 0c18.14,0 32.53,-4.96 43.18,-14.88 10.64,-9.92 15.96,-24.07 15.96,-42.45 0,-18.38 -5.32,-32.53 -15.96,-42.45 -10.64,-9.92 -25.03,-14.87 -43.18,-14.87l-19.23 0 0 97.01c-16.53,-25.13 -72.69,-15.5 -80.54,25.92l0 -0c-0.07,0.3 -0.14,0.59 -0.2,0.89l-0 0.01 -0.01 0.04c-0.06,0.29 -0.12,0.59 -0.18,0.88l-0.01 0.03 -0.01 0.04c-0.17,0.93 -0.31,1.87 -0.41,2.82l-0 0.03 -0 0.03c-0.03,0.31 -0.06,0.63 -0.08,0.94l-0 0.03c-0.02,0.31 -0.04,0.62 -0.06,0.94l-0 0.01 -0 0.02c-0.02,0.32 -0.03,0.63 -0.03,0.95l-0 0.02c-0.01,0.32 -0.01,0.64 -0.01,0.96l0 0.02c0,0.32 0.01,0.64 0.02,0.96l0 0 0 0.02c0.01,0.32 0.03,0.64 0.05,0.97l0 0.01c0.02,0.32 0.05,0.64 0.08,0.95l0 0.02 0 0.01c0.03,0.32 0.07,0.65 0.11,0.98l0 0.01c0.04,0.32 0.08,0.63 0.13,0.95l0 0.03 0 0.01 0 0.02c0.05,0.31 0.1,0.63 0.16,0.94l0 0.01 0 0 0 0.01c0.06,0.32 0.12,0.65 0.19,0.97l0 0.02 0 0.02c0.06,0.3 0.13,0.6 0.2,0.9l0 0.02 0 0.02 0 0.01 0 0.01 0 0.02 0 0 0.03 0.14z"/>
           </svg>
         </div>
-        <span class="text-zinc-200 font-semibold tracking-wide">Dengar</span>
+        <span class="text-zinc-200 font-semibold tracking-wide">Dengerin</span>
       </div>
 
       <!-- Center playing song / status (Responsive: hidden on narrow screens) -->
@@ -398,17 +399,24 @@
               <span class="text-[10px] px-1.5 py-0.2 rounded bg-crimson-500/20 text-crimson-300 font-mono font-semibold">{$updateState.latestVersion}</span>
             </div>
             <p class="text-[11px] text-zinc-400 truncate mt-0.5">
-              Dengar {$updateState.latestVersion} siap diunduh otomatis.
+              Dengerin {$updateState.latestVersion} siap diunduh otomatis.
             </p>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
             {#if $downloadedFilePath}
               <button
-                class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition cursor-pointer text-[11px] flex items-center gap-1 shadow-sm"
+                class="px-2.5 py-1.5 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-semibold transition cursor-pointer text-[11px] flex items-center gap-1 shadow-sm"
+                on:click={installAndRestartUpdate}
+                title="Pasang pembaruan dan mulai ulang aplikasi"
+              >
+                <span>⚡ Pasang & Mulai Ulang</span>
+              </button>
+              <button
+                class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-200 font-semibold transition cursor-pointer text-[11px] flex items-center gap-1 shadow-sm"
                 on:click={revealDownloadedFile}
                 title="Buka folder Downloads"
               >
-                <span>Buka File</span>
+                <span>Buka Folder</span>
               </button>
             {:else if $isDownloadingUpdate}
               <div class="flex items-center gap-1.5 text-zinc-400 text-[11px] px-2 py-1">

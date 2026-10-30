@@ -56,7 +56,7 @@
         <!-- Animated Brand Text -->
         <div class="min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[140px] opacity-100 translate-x-0 ml-3'}">
           <div class="flex items-center gap-1.5 leading-none">
-            <span class="font-extrabold text-base tracking-tight text-white truncate">Dengar</span>
+            <span class="font-extrabold text-base tracking-tight text-white truncate">Dengerin</span>
             <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 uppercase tracking-widest shrink-0">Hi-Fi</span>
           </div>
           <span class="text-[10px] text-zinc-400 font-medium leading-tight truncate block mt-0.5">Master Audio Engine</span>

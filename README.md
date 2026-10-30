@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎵 Dengar Desktop
+# 🎵 Dengerin Desktop
 
 **Aplikasi Pemutar Musik YouTube Modern, Ringan, dan 100% Bebas Iklan**
 
@@ -40,9 +40,9 @@
 ## 📦 Unduhan dan Instalasi
 
 ### Windows (x64)
-1. Unduh rilis portabel terbaru di [GitHub Releases](https://github.com/komporkode/dengar/releases/latest).
-2. Ekstrak file zip `dengar-windows-amd64.zip` (atau sesuai rilis versi terbaru).
-3. Jalankan `dengar.exe` langsung (portabel, tanpa perlu instalasi rumit).
+1. Unduh rilis terbaru di [GitHub Releases](https://github.com/komporkode/dengar/releases/latest).
+2. Unduh `dengerin-windows-amd64.zip` (atau installer `.exe`).
+3. Jalankan `dengerin.exe` langsung (portabel, tanpa perlu instalasi rumit). Dilengkapi fitur **1-Click Self Updater** untuk pembaruan instan otomatis.
 
 ### Linux & macOS
 Aplikasi dapat di-build langsung dari source code dengan Go dan Wails CLI:

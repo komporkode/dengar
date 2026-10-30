@@ -109,7 +109,7 @@
               <h2 class="text-xs font-bold text-white tracking-wide">
                 {$t("settings_title")}
               </h2>
-              <p class="text-[10px] text-zinc-500 font-mono">Dengar Desktop</p>
+              <p class="text-[10px] text-zinc-500 font-mono">Dengerin Desktop</p>
             </div>
           </div>
 
@@ -184,9 +184,9 @@
         </div>
 
         <div class="pt-3 border-t border-white/[0.06] hidden md:block">
-          <p class="text-[10px] text-zinc-400 font-medium">Dengar Desktop</p>
+          <p class="text-[10px] text-zinc-400 font-medium">Dengerin Desktop</p>
           <p class="text-[10px] text-zinc-500 font-mono">
-            v1.1.0 • Open Source
+            v1.1.1 • Open Source
           </p>
         </div>
       </div>
@@ -403,8 +403,10 @@
                       ? 'bg-crimson-500/15 border-crimson-500 shadow-sm shadow-crimson-500/15 text-white'
                       : 'bg-white/[0.03] border-white/10 text-zinc-300 hover:bg-white/[0.06]'}"
                     on:click={() => {
-                      audioQualityStore.set("high")
-                      showToast("Kualitas audio diatur ke Kualitas Tertinggi (Opus 160kbps / AAC)")
+                      audioQualityStore.set("high");
+                      showToast(
+                        "Kualitas audio diatur ke Kualitas Tertinggi (Opus 160kbps / AAC)",
+                      );
                     }}
                   >
                     <div class="flex items-center gap-2.5">
@@ -444,8 +446,10 @@
                       ? 'bg-crimson-500/15 border-crimson-500 shadow-sm shadow-crimson-500/15 text-white'
                       : 'bg-white/[0.03] border-white/10 text-zinc-300 hover:bg-white/[0.06]'}"
                     on:click={() => {
-                      audioQualityStore.set("saver")
-                      showToast("Kualitas audio diatur ke Hemat Kuota (ECO ~70-128kbps)")
+                      audioQualityStore.set("saver");
+                      showToast(
+                        "Kualitas audio diatur ke Hemat Kuota (ECO ~70-128kbps)",
+                      );
                     }}
                   >
                     <div class="flex items-center gap-2.5">
@@ -555,15 +559,15 @@
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
                     <h4 class="text-sm font-extrabold text-white">
-                      Dengar Desktop
+                      Dengerin Desktop
                     </h4>
                     <span
                       class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 font-mono"
-                      >v1.1.0</span
+                      >v1.1.1</span
                     >
                   </div>
                   <p
-                    class="text-[11px] text-zinc-300 leading-snug mt-0.5 truncate"
+                    class="text-[11px] text-zinc-300 leading-relaxed mt-1"
                   >
                     {$t("about_desc")}
                   </p>
@@ -677,8 +681,16 @@
                         on:click={installAndRestartUpdate}
                         title="Ekstrak biner baru dan mulai ulang aplikasi secara otomatis"
                       >
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        <svg
+                          class="w-3 h-3"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <polygon
+                            points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+                          ></polygon>
                         </svg>
                         <span>Pasang & Mulai Ulang</span>
                       </button>
@@ -745,7 +757,7 @@
           class="pt-3 border-t border-white/[0.06] flex items-center justify-between shrink-0"
         >
           <span class="text-[10px] text-zinc-500 font-mono"
-            >Dengar Desktop • Tekan Esc untuk menutup</span
+            >Dengerin Desktop • Tekan Esc untuk menutup</span
           >
           <button
             class="px-4 py-1.5 rounded-xl bg-crimson-500 hover:bg-crimson-600 text-white font-semibold text-xs transition cursor-pointer shadow-md shadow-crimson-500/25"

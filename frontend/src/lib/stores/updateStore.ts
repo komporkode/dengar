@@ -84,7 +84,7 @@ export async function checkForUpdatesManual(): Promise<UpdateInfo | null> {
 export async function startDownloadUpdate(customUrl?: string, customFileName?: string) {
   const current = get(updateState)
   const targetUrl = customUrl || current?.downloadUrl
-  const targetName = customFileName || current?.assetFileName || `dengar-${current?.latestVersion || 'latest'}-windows-amd64.zip`
+  const targetName = customFileName || current?.assetFileName || `dengerin-${current?.latestVersion || 'latest'}-windows-amd64.zip`
 
   if (!targetUrl) {
     if (current?.releaseUrl) {
