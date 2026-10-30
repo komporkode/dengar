@@ -53,7 +53,7 @@
 </script>
 
 <!-- Floating Modern Glassmorphic Island Player -->
-<footer class="fixed bottom-3 sm:bottom-4 left-3 right-3 {$isSidebarCollapsed ? 'md:left-[4.5rem] md:right-6' : 'md:left-64 xl:left-72 md:right-8'} z-30 pointer-events-none select-none transition-all duration-300 flex flex-col gap-2">
+<footer class="fixed bottom-3 sm:bottom-4 left-3 right-3 {$isSidebarCollapsed ? 'md:left-[88px] md:right-6' : 'md:left-[248px] xl:left-[264px] md:right-6'} z-30 pointer-events-none select-none playerbar-animated flex flex-col gap-2">
   {#if $playerStore.error}
     <div class="pointer-events-auto flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-crimson-950/95 border border-crimson-500/50 backdrop-blur-md shadow-lg shadow-crimson-950/60 text-xs text-white">
       <div class="flex items-center gap-2 min-w-0">
@@ -335,3 +335,10 @@
     </div>
   </div>
 </footer>
+
+<style>
+  footer.playerbar-animated {
+    transition: left 280ms cubic-bezier(0.4, 0, 0.2, 1), right 280ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: left, right;
+  }
+</style>

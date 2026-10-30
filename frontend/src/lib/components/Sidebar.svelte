@@ -25,12 +25,12 @@
 </script>
 
 <aside
-  class="bg-surface border-r border-white/[0.06] flex flex-col shrink-0 select-none justify-between h-full transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-50 overflow-visible {$isSidebarCollapsed ? 'w-16' : 'w-56 xl:w-60'}"
+  class="bg-surface border-r border-white/[0.06] flex flex-col shrink-0 select-none justify-between h-full sidebar-animated relative z-50 overflow-visible {$isSidebarCollapsed ? 'w-16' : 'w-56 xl:w-60'}"
 >
   <!-- Brand & Primary Nav Section -->
   <div class="space-y-4 px-3 py-3 overflow-y-auto overflow-x-hidden flex-1">
     <!-- Logo and Header -->
-    <div class="flex items-center {$isSidebarCollapsed ? 'justify-center' : 'justify-between'} h-10 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
+    <div class="flex items-center justify-between h-10 overflow-hidden">
       <div class="flex items-center min-w-0">
         <!-- Logo Box (Click to toggle collapse) with Collapsed Tooltip -->
         <div class="relative group flex items-center justify-center shrink-0">
@@ -54,7 +54,7 @@
         </div>
 
         <!-- Animated Brand Text -->
-        <div class="min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[140px] opacity-100 translate-x-0 ml-3'}">
+        <div class="min-w-0 sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[140px] opacity-100 translate-x-0 ml-3'}">
           <div class="flex items-center gap-1.5 leading-none">
             <span class="font-extrabold text-base tracking-tight text-white truncate">Dengerin</span>
             <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 uppercase tracking-widest shrink-0">Hi-Fi</span>
@@ -64,7 +64,7 @@
       </div>
 
       <!-- Animated Collapse Toggle Button (When expanded) -->
-      <div class="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden {$isSidebarCollapsed ? 'max-w-0 opacity-0 pointer-events-none' : 'max-w-8 opacity-100'}">
+      <div class="sidebar-text-transition overflow-hidden shrink-0 {$isSidebarCollapsed ? 'max-w-0 opacity-0 pointer-events-none' : 'max-w-8 opacity-100'}">
         <button
           class="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.08] transition active:scale-90 cursor-pointer shrink-0"
           on:click={toggleSidebar}
@@ -82,7 +82,7 @@
 
     <!-- Section: Menjelajah -->
     <div class="space-y-1">
-      <div class="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-h-0 opacity-0 -translate-x-2 pointer-events-none my-0' : 'max-h-6 opacity-100 translate-x-0 px-2.5 mb-1'}">
+      <div class="sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-h-0 opacity-0 -translate-x-2 pointer-events-none my-0' : 'max-h-6 opacity-100 translate-x-0 px-2.5 mb-1'}">
         <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
           {$t('section_browse')}
         </p>
@@ -90,7 +90,7 @@
       
       <div class="relative group flex justify-center">
         <button
-          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'search' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3'}"
+          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-colors duration-200 cursor-pointer relative px-2.5 {activeTab === 'search' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'}"
           on:click={() => setTab('search')}
           aria-label={$t('nav_explore')}
         >
@@ -101,7 +101,7 @@
             </svg>
           </div>
 
-          <div class="flex items-center flex-1 min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
+          <div class="flex items-center flex-1 min-w-0 sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
             <span class="truncate">{$t('nav_explore')}</span>
             {#if activeTab === 'search'}
               <span class="ml-auto text-[10px] bg-crimson-500/20 text-crimson-400 font-semibold px-1.5 py-0.5 rounded shrink-0">{$t('nav_active')}</span>
@@ -124,7 +124,7 @@
       <!-- Tab: Untuk Anda (For You) -->
       <div class="relative group flex justify-center">
         <button
-          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'foryou' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3'}"
+          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-colors duration-200 cursor-pointer relative px-2.5 {activeTab === 'foryou' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'}"
           on:click={() => setTab('foryou')}
           aria-label={$t('nav_foryou')}
         >
@@ -134,7 +134,7 @@
             </svg>
           </div>
 
-          <div class="flex items-center flex-1 min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
+          <div class="flex items-center flex-1 min-w-0 sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
             <span class="truncate">{$t('nav_foryou')}</span>
             {#if activeTab === 'foryou'}
               <span class="ml-auto text-[10px] bg-crimson-500/20 text-crimson-400 font-semibold px-1.5 py-0.5 rounded shrink-0">{$t('nav_active')}</span>
@@ -157,7 +157,7 @@
 
     <!-- Section: Koleksi Saya -->
     <div class="space-y-1">
-      <div class="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-h-0 opacity-0 -translate-x-2 pointer-events-none my-0' : 'max-h-6 opacity-100 translate-x-0 px-2.5 mb-1'}">
+      <div class="sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-h-0 opacity-0 -translate-x-2 pointer-events-none my-0' : 'max-h-6 opacity-100 translate-x-0 px-2.5 mb-1'}">
         <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
           {$t('section_collection')}
         </p>
@@ -166,7 +166,7 @@
       <!-- Lagu Favorit -->
       <div class="relative group flex justify-center">
         <button
-          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'favorites' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3'}"
+          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-colors duration-200 cursor-pointer relative px-2.5 {activeTab === 'favorites' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'}"
           on:click={() => setTab('favorites')}
           aria-label={$t('nav_favorites')}
         >
@@ -179,7 +179,7 @@
             {/if}
           </div>
 
-          <div class="flex items-center flex-1 min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
+          <div class="flex items-center flex-1 min-w-0 sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
             <span class="truncate">{$t('nav_favorites')}</span>
             {#if favCount > 0}
               <span class="ml-auto text-xs bg-white/[0.06] text-zinc-300 px-2 py-0.5 rounded-full font-mono shrink-0">{favCount}</span>
@@ -207,7 +207,7 @@
       <!-- Riwayat Putar -->
       <div class="relative group flex justify-center">
         <button
-          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'history' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3'}"
+          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-colors duration-200 cursor-pointer relative px-2.5 {activeTab === 'history' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'}"
           on:click={() => setTab('history')}
           aria-label={$t('nav_history')}
         >
@@ -221,7 +221,7 @@
             {/if}
           </div>
 
-          <div class="flex items-center flex-1 min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
+          <div class="flex items-center flex-1 min-w-0 sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
             <span class="truncate">{$t('nav_history')}</span>
             {#if histCount > 0}
               <span class="ml-auto text-xs bg-white/[0.06] text-zinc-300 px-2 py-0.5 rounded-full font-mono shrink-0">{histCount}</span>
@@ -248,7 +248,7 @@
 
       <!-- Playlists Section -->
       <div class="pt-2">
-        <div class="flex items-center justify-between transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-h-0 opacity-0 -translate-x-2 pointer-events-none my-0' : 'max-h-6 opacity-100 translate-x-0 px-2.5 mb-1.5'}">
+        <div class="flex items-center justify-between sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-h-0 opacity-0 -translate-x-2 pointer-events-none my-0' : 'max-h-6 opacity-100 translate-x-0 px-2.5 mb-1.5'}">
           <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
             {$t('section_playlists')}
           </p>
@@ -303,7 +303,7 @@
           {#each $userDataStore.playlists as pl (pl.id)}
             <div class="relative group flex justify-center">
               <button
-                class="w-full h-10 flex items-center rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer relative {activeTab === 'playlist' && $activePlaylistId === pl.id ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'} {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3'}"
+                class="w-full h-10 flex items-center rounded-xl text-xs font-medium transition-colors duration-200 cursor-pointer relative px-2.5 {activeTab === 'playlist' && $activePlaylistId === pl.id ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'}"
                 on:click={() => selectPlaylist(pl.id)}
                 aria-label={pl.name}
               >
@@ -315,7 +315,7 @@
                   </svg>
                 </div>
 
-                <div class="flex items-center flex-1 min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
+                <div class="flex items-center flex-1 min-w-0 sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
                   <span class="truncate">{pl.name}</span>
                   {#if (pl.tracks || []).length > 0}
                     <span class="ml-auto text-[10px] text-zinc-500 font-mono shrink-0">{(pl.tracks || []).length}</span>
@@ -341,7 +341,7 @@
   <div class="border-t border-white/[0.06] bg-[#0E1017] p-3 relative overflow-visible">
     <div class="relative group w-full flex justify-center">
       <button
-        class="w-full h-10 flex items-center rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.05] transition-all border border-transparent hover:border-white/[0.06] cursor-pointer {$isSidebarCollapsed ? 'justify-center px-0' : 'px-3'}"
+        class="w-full h-10 flex items-center rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06] cursor-pointer px-2.5"
         on:click={() => isSettingsOpen.set(true)}
         aria-label={$t('settings_title')}
       >
@@ -352,7 +352,7 @@
           </svg>
         </div>
 
-        <div class="flex items-center flex-1 min-w-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
+        <div class="flex items-center flex-1 min-w-0 sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
           <span class="truncate">{$t('settings_title')}</span>
         </div>
       </button>
@@ -367,3 +367,14 @@
     </div>
   </div>
 </aside>
+
+<style>
+  aside.sidebar-animated {
+    transition: width 280ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: width;
+  }
+  .sidebar-text-transition {
+    transition: opacity 200ms ease, max-width 280ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms ease, max-height 280ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity, max-width, transform;
+  }
+</style>
