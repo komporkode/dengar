@@ -1,5 +1,5 @@
 import { writable, get } from 'svelte/store'
-import { CheckForUpdates, DownloadUpdate, OpenInFolder } from '../../../wailsjs/go/main/App'
+import { CheckForUpdates, DownloadUpdate, OpenInFolder, ApplyUpdateAndRestart } from '../../../wailsjs/go/main/App'
 import { BrowserOpenURL } from '../../../wailsjs/runtime/runtime.js'
 import { showToast } from './settingsStore'
 
@@ -126,6 +126,26 @@ export async function revealDownloadedFile() {
   } catch (err: any) {
     console.error('OpenInFolder error:', err)
     showToast(`Gagal membuka folder: ${err?.message || err}`)
+  }
+}
+
+/**
+ * Terapkan pembaruan biner atau jalankan installer secara otomatis dan mulai ulang aplikasi.
+ */
+export async function installAndRestartUpdate() {
+  const path = get(downloadedFilePath)
+  if (!path) {
+    showToast('Belum ada file yang diunduh.')
+    return
+  }
+
+  try {
+    showToast('Memasang pembaruan dan memulai ulang aplikasi...')
+    await ApplyUpdateAndRestart(path)
+  } catch (err: any) {
+    console.error('ApplyUpdateAndRestart error:', err)
+    showToast(`Gagal memasang otomatis: ${err?.message || err}. Buka folder untuk memasang manual.`)
+    await OpenInFolder(path)
   }
 }
 

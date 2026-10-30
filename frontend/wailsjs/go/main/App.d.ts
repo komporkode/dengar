@@ -5,6 +5,8 @@ import {main} from '../models';
 
 export function AddToHistory(arg1:backend.SearchResultItem):Promise<void>;
 
+export function ApplyUpdateAndRestart(arg1:string):Promise<void>;
+
 export function AddTrackToPlaylist(arg1:string,arg2:backend.SearchResultItem):Promise<void>;
 
 export function CheckForUpdates():Promise<main.UpdateInfo>;

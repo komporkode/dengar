@@ -90,9 +90,17 @@ function createPlayerStore() {
     audio.volume = initialVolume
     audio.muted = initialMuted
 
+    let lastTokenRefresh = 0
     audio.addEventListener('timeupdate', () => {
       if (audio) {
         onTimeUpdate(audio.currentTime, audio.duration)
+
+        // For long tracks (>30 mins = 1800s), refresh stream token every 25 minutes
+        const s = get({ subscribe })
+        if (s.duration > 1800 && audio.currentTime - lastTokenRefresh > 1500) {
+          lastTokenRefresh = audio.currentTime
+          checkAndRefreshToken(s.currentTrack, audio.currentTime)
+        }
       }
     })
 
@@ -175,13 +183,16 @@ function createPlayerStore() {
     if (!forceRestart && s.currentTrack?.id === track.id && s.streamResult) {
       if (audio) {
         audio.currentTime = 0
-        audio.play().catch(console.error)
+        audio.play().catch(e => {
+          console.warn('Replay error:', e)
+          handleMediaError()
+        })
       }
       update(st => ({
         ...st,
-        isPlaying: true,
         currentTime: 0,
-        isLoading: false,
+        isLoading: true,
+        isPlaying: false,
         error: null,
         mode: activeMode,
       }))
@@ -227,8 +238,9 @@ function createPlayerStore() {
         streamResult: stream,
         duration: stream.duration || track.duration || 0,
         currentTime: 0,
-        isLoading: false,
-        isPlaying: true,
+        isLoading: true,
+        isPlaying: false,
+        error: null,
       }))
 
       if (audio) {
@@ -239,7 +251,8 @@ function createPlayerStore() {
         audio.volume = s.volume
         audio.muted = s.isMuted
         audio.play().catch(e => {
-          console.warn('Audio play error:', e)
+          console.warn('Audio play error, attempting recovery:', e)
+          handleMediaError()
         })
       }
     } catch (e: any) {
@@ -248,6 +261,7 @@ function createPlayerStore() {
       update(st => ({
         ...st,
         isLoading: false,
+        isPlaying: false,
         error: e?.message || 'Gagal memutar stream media',
       }))
     }
@@ -257,17 +271,24 @@ function createPlayerStore() {
     initAudio()
     const s = get({ subscribe })
     if (!s.currentTrack || s.retryCount >= 3) {
-      update(st => ({ ...st, error: 'Stream error setelah beberapa percobaan', isLoading: false }))
+      update(st => ({
+        ...st,
+        error: 'Gagal memutar audio dari server saat ini',
+        isLoading: false,
+        isPlaying: false,
+      }))
       return
     }
 
-    console.warn(`[Auto-Recovery] Stream error on track ${s.currentTrack.id}, retrying with fresh instance...`)
+    console.warn(`[Auto-Recovery] Stream error on track ${s.currentTrack.id}, retrying with fresh instance (${s.retryCount + 1}/3)...`)
     const savedTime = s.currentTime
 
     update(st => ({
       ...st,
       isLoading: true,
+      isPlaying: false,
       retryCount: st.retryCount + 1,
+      error: null,
     }))
 
     try {
@@ -276,8 +297,8 @@ function createPlayerStore() {
       update(st => ({
         ...st,
         streamResult: freshStream,
-        isLoading: false,
-        isPlaying: true,
+        isLoading: true,
+        isPlaying: false,
       }))
 
       if (audio) {
@@ -285,7 +306,10 @@ function createPlayerStore() {
         if (streamUrl) {
           audio.src = streamUrl
           audio.currentTime = savedTime
-          audio.play().catch(console.error)
+          audio.play().catch(err => {
+            console.error('Audio play failed after recovery:', err)
+            handleMediaError()
+          })
         }
       }
     } catch (err: any) {
@@ -293,8 +317,77 @@ function createPlayerStore() {
       update(st => ({
         ...st,
         isLoading: false,
-        error: 'Gagal memperbarui stream cadangan',
+        isPlaying: false,
+        error: 'Gagal memperbarui server cadangan. Silakan coba sumber lain.',
       }))
+    }
+  }
+
+  async function retryWithDifferentSource() {
+    const s = get({ subscribe })
+    if (!s.currentTrack) return
+    console.log(`[Manual-Retry] User requested new streaming source for: ${s.currentTrack.title}`)
+    update(st => ({
+      ...st,
+      retryCount: 0,
+      isLoading: true,
+      isPlaying: false,
+      error: null,
+    }))
+    try {
+      const currentQuality = get(audioQualityStore) || 'high'
+      const freshStream = await GetStream(s.currentTrack.id, true, currentQuality)
+      const streamUrl = freshStream.audioUrl || freshStream.videoUrl
+      if (!streamUrl) throw new Error('Tidak ada stream audio yang valid')
+
+      update(st => ({
+        ...st,
+        streamResult: freshStream,
+        duration: freshStream.duration || s.currentTrack?.duration || 0,
+        isLoading: true,
+        isPlaying: false,
+      }))
+
+      if (audio) {
+        audio.src = streamUrl
+        audio.currentTime = s.currentTime || 0
+        audio.play().catch(e => {
+          console.warn('Manual retry audio play error:', e)
+          handleMediaError()
+        })
+      }
+    } catch (err: any) {
+      console.error('Manual retry failed:', err)
+      update(st => ({
+        ...st,
+        isLoading: false,
+        isPlaying: false,
+        error: 'Semua sumber server saat ini sedang sibuk. Coba lewati ke lagu berikutnya.',
+      }))
+    }
+  }
+
+  function clearError() {
+    update(st => ({ ...st, error: null }))
+  }
+
+  async function checkAndRefreshToken(track: SearchResultItem | null, currentTime: number) {
+    if (!track) return
+    try {
+      console.log(`[TokenRenewal] Refreshing streaming token for long track (${Math.round(currentTime / 60)}m)...`)
+      const currentQuality = get(audioQualityStore) || 'high'
+      const fresh = await GetStream(track.id, false, currentQuality)
+      const streamUrl = fresh.audioUrl || fresh.videoUrl
+      if (streamUrl && audio && audio.src !== streamUrl) {
+        const wasPaused = audio.paused
+        audio.src = streamUrl
+        audio.currentTime = currentTime
+        if (!wasPaused) {
+          audio.play().catch(console.warn)
+        }
+      }
+    } catch (e) {
+      console.warn('[TokenRenewal] Failed to refresh token in background:', e)
     }
   }
 
@@ -515,6 +608,8 @@ function createPlayerStore() {
     onTimeUpdate,
     onTrackEnded,
     handleMediaError,
+    retryWithDifferentSource,
+    clearError,
     playNext,
     playPrev,
   }

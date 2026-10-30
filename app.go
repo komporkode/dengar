@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -17,6 +18,8 @@ import (
 	"time"
 
 	"dengar/backend"
+
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct manages runtime context and backend services.
@@ -537,6 +540,116 @@ func (a *App) OpenInFolder(filePath string) error {
 	default:
 		dir := filepath.Dir(cleanPath)
 		return exec.Command("xdg-open", dir).Start()
+	}
+}
+
+// ApplyUpdateAndRestart extracts the updated binary or runs the installer, applies it in-place, and restarts the application.
+func (a *App) ApplyUpdateAndRestart(filePath string) error {
+	if filePath == "" {
+		return fmt.Errorf("path file pembaruan kosong")
+	}
+
+	cleanPath := filepath.Clean(filePath)
+	if _, err := os.Stat(cleanPath); os.IsNotExist(err) {
+		return fmt.Errorf("file pembaruan tidak ditemukan: %s", cleanPath)
+	}
+
+	execPath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("gagal mendapatkan path eksekusi aplikasi: %w", err)
+	}
+
+	ext := strings.ToLower(filepath.Ext(cleanPath))
+
+	switch goruntime.GOOS {
+	case "windows":
+		// Case 1: Downloaded asset is an installer (.exe)
+		if ext == ".exe" {
+			cmd := exec.Command("cmd.exe", "/c", "start", "", cleanPath)
+			if err := cmd.Start(); err != nil {
+				return fmt.Errorf("gagal memulai installer: %w", err)
+			}
+			go func() {
+				time.Sleep(500 * time.Millisecond)
+				wailsRuntime.Quit(a.ctx)
+			}()
+			return nil
+		}
+
+		// Case 2: Downloaded asset is a .zip archive - extract dengar.exe in-place and run updater
+		if ext == ".zip" {
+			r, err := zip.OpenReader(cleanPath)
+			if err != nil {
+				return fmt.Errorf("gagal membuka file zip pembaruan: %w", err)
+			}
+			defer r.Close()
+
+			appDir := filepath.Dir(execPath)
+			updateExePath := filepath.Join(appDir, "dengar_new.exe")
+
+			var foundExe bool
+			for _, f := range r.File {
+				nameLower := strings.ToLower(filepath.Base(f.Name))
+				if nameLower == "dengar.exe" || strings.HasSuffix(nameLower, ".exe") {
+					rc, err := f.Open()
+					if err != nil {
+						return fmt.Errorf("gagal membaca biner baru dari zip: %w", err)
+					}
+					outFile, err := os.OpenFile(updateExePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+					if err != nil {
+						rc.Close()
+						return fmt.Errorf("gagal mengekstrak biner baru: %w", err)
+					}
+					_, err = io.Copy(outFile, rc)
+					outFile.Close()
+					rc.Close()
+					if err != nil {
+						return fmt.Errorf("gagal menyimpan biner baru: %w", err)
+					}
+					foundExe = true
+					break
+				}
+			}
+
+			if !foundExe {
+				// No exe found in zip, fallback to opening folder
+				return a.OpenInFolder(cleanPath)
+			}
+
+			// Generate updater batch script to replace running binary after exit
+			updaterBat := filepath.Join(appDir, "dengar_updater.bat")
+			batContent := fmt.Sprintf("@echo off\r\ntimeout /t 1 /nobreak > NUL\r\nmove /y \"%s\" \"%s\"\r\nstart \"\" \"%s\"\r\ndel \"%%~f0\"\r\n",
+				updateExePath, execPath, execPath)
+			if err := os.WriteFile(updaterBat, []byte(batContent), 0755); err != nil {
+				return fmt.Errorf("gagal membuat script updater: %w", err)
+			}
+
+			// Run updater script in background detached
+			cmd := exec.Command("cmd.exe", "/c", updaterBat)
+			if err := cmd.Start(); err != nil {
+				return fmt.Errorf("gagal mengeksekusi updater: %w", err)
+			}
+
+			go func() {
+				time.Sleep(500 * time.Millisecond)
+				wailsRuntime.Quit(a.ctx)
+			}()
+			return nil
+		}
+
+		return a.OpenInFolder(cleanPath)
+	case "darwin":
+		if ext == ".dmg" {
+			exec.Command("open", cleanPath).Start()
+			go func() {
+				time.Sleep(500 * time.Millisecond)
+				wailsRuntime.Quit(a.ctx)
+			}()
+			return nil
+		}
+		return a.OpenInFolder(cleanPath)
+	default:
+		return a.OpenInFolder(cleanPath)
 	}
 }
 

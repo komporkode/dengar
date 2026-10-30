@@ -53,7 +53,49 @@
 </script>
 
 <!-- Floating Modern Glassmorphic Island Player -->
-<footer class="fixed bottom-3 sm:bottom-4 left-3 right-3 {$isSidebarCollapsed ? 'md:left-[4.5rem] md:right-6' : 'md:left-64 xl:left-72 md:right-8'} z-30 pointer-events-none select-none transition-all duration-300">
+<footer class="fixed bottom-3 sm:bottom-4 left-3 right-3 {$isSidebarCollapsed ? 'md:left-[4.5rem] md:right-6' : 'md:left-64 xl:left-72 md:right-8'} z-30 pointer-events-none select-none transition-all duration-300 flex flex-col gap-2">
+  {#if $playerStore.error}
+    <div class="pointer-events-auto flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-crimson-950/95 border border-crimson-500/50 backdrop-blur-md shadow-lg shadow-crimson-950/60 text-xs text-white">
+      <div class="flex items-center gap-2 min-w-0">
+        <svg class="w-4 h-4 text-crimson-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span class="truncate text-zinc-200">{$playerStore.error}</span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          class="px-2.5 py-1 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-medium text-[11px] transition active:scale-95 cursor-pointer shadow-sm flex items-center gap-1.5"
+          on:click={() => playerStore.retryWithDifferentSource()}
+          title="Coba cari server pemutar lain"
+        >
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Ganti Sumber
+        </button>
+        <button
+          class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-200 text-[11px] transition active:scale-95 cursor-pointer"
+          on:click={() => { playerStore.clearError(); playerStore.playNext(); }}
+          title="Lewati lagu yang bermasalah ini"
+        >
+          Lewati
+        </button>
+        <button
+          class="p-1 text-zinc-400 hover:text-white transition cursor-pointer"
+          on:click={() => playerStore.clearError()}
+          title="Tutup pesan"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  {/if}
+
   <div class="pointer-events-auto floating-island rounded-2xl border border-white/[0.12] shadow-island-glow px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300">
     
     <!-- Sisi Kiri: Album art melengkung, interaktif favorit, detail lagu & HQ stream info -->

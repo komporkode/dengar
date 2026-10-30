@@ -17,6 +17,7 @@
     checkForUpdatesManual,
     startDownloadUpdate,
     revealDownloadedFile,
+    installAndRestartUpdate,
   } from "../stores/updateStore";
 
   let activeTab: "general" | "audio" | "about" = "general";
@@ -672,9 +673,19 @@
                   <div class="flex items-center gap-1.5">
                     {#if $downloadedFilePath}
                       <button
-                        class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer shadow-sm flex items-center gap-1"
+                        class="px-2.5 py-1 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-xs transition cursor-pointer shadow-sm flex items-center gap-1"
+                        on:click={installAndRestartUpdate}
+                        title="Ekstrak biner baru dan mulai ulang aplikasi secara otomatis"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                        <span>Pasang & Mulai Ulang</span>
+                      </button>
+                      <button
+                        class="px-2.5 py-1 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-zinc-300 hover:text-white font-medium text-xs transition cursor-pointer shadow-sm flex items-center gap-1"
                         on:click={revealDownloadedFile}
-                        title="Buka file .zip di Explorer"
+                        title="Buka folder unduhan di Explorer"
                       >
                         <svg
                           class="w-3 h-3"
@@ -686,7 +697,7 @@
                             d="M5 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5z"
                           ></path></svg
                         >
-                        <span>Buka File</span>
+                        <span>Buka Folder</span>
                       </button>
                     {:else if $isDownloadingUpdate}
                       <div

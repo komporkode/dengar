@@ -15,12 +15,14 @@ var defaultPipedInstances = []string{
 }
 
 var defaultInvidiousInstances = []string{
+	"https://yt.chocolatemoo53.com",
 	"https://inv.nadeko.net",
-	"https://invidious.asir.dev",
+	"https://invidious.projectsegfau.lt",
+	"https://invidious.slipfox.xyz",
+	"https://inv.bp.projectsegfau.lt",
+	"https://yewtu.be",
 	"https://iv.melmac.space",
 	"https://invidious.flokinet.to",
-	"https://yt.chocolatemoo53.com",
-	"https://invidious.private.coffee",
 }
 
 // InstancePool manages rotating instance endpoints for failover.
