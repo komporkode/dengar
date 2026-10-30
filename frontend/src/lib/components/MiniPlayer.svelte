@@ -26,6 +26,7 @@
   $: repeatMode = $queueStore.repeatMode
   $: isShuffle = $queueStore.isShuffle
 
+  $: bufferedPercent = duration > 0 ? Math.min(100, Math.max(0, (($playerStore.bufferedTime || 0) / duration) * 100)) : 0
   $: progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0
   $: volumePercent = isMuted ? 0 : Math.round(volume * 100)
 
@@ -269,8 +270,14 @@
     <!-- Interactive Track Scrubber -->
     <div class="relative flex-1 group py-1 flex items-center cursor-pointer min-w-[70px]">
       <div class="h-1 w-full bg-white/[0.12] rounded-full overflow-hidden group-hover:h-1.5 transition-all relative">
+        <!-- YouTube-style Buffer Bar (Semi-transparent white) -->
         <div
-          class="h-full bg-gradient-to-r from-crimson-500 to-rose-400 rounded-full shadow-[0_0_8px_rgba(230,30,56,0.6)]"
+          class="absolute top-0 bottom-0 left-0 bg-white/35 rounded-full transition-[width] duration-150 ease-out pointer-events-none"
+          style="width: {bufferedPercent}%"
+        ></div>
+        <!-- Played Progress Bar (Crimson gradient) -->
+        <div
+          class="absolute top-0 bottom-0 left-0 h-full bg-gradient-to-r from-crimson-500 to-rose-400 rounded-full shadow-[0_0_8px_rgba(230,30,56,0.6)] pointer-events-none"
           style="width: {progressPercent}%"
         ></div>
       </div>

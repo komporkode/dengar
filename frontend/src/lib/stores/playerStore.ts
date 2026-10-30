@@ -59,6 +59,7 @@ interface PlayerState {
   retryCount: number
   autoRetryCountdown: number | null
   autoRetryAction: 'retry' | 'skip' | null
+  bufferedTime: number
 }
 
 function createPlayerStore() {
@@ -80,12 +81,39 @@ function createPlayerStore() {
     retryCount: 0,
     autoRetryCountdown: null,
     autoRetryAction: null,
+    bufferedTime: 0,
   })
 
   let audio: HTMLAudioElement | null = null
   let currentRequestId = 0
   let hasRecordedPlay = false
   let recordedTrackId = ''
+
+  function getBufferedEnd(a: HTMLAudioElement): number {
+    if (!a || !a.buffered || a.buffered.length === 0) return 0
+    const cur = a.currentTime
+    for (let i = 0; i < a.buffered.length; i++) {
+      const start = a.buffered.start(i)
+      const end = a.buffered.end(i)
+      if (start <= cur + 0.5 && cur <= end) {
+        return end
+      }
+    }
+    try {
+      return a.buffered.end(a.buffered.length - 1)
+    } catch {
+      return 0
+    }
+  }
+
+  function updateBuffered() {
+    if (!audio) return
+    const bufEnd = getBufferedEnd(audio)
+    const s = get({ subscribe })
+    if (Math.abs(bufEnd - s.bufferedTime) > 0.25 || (s.duration > 0 && bufEnd >= s.duration && s.bufferedTime < s.duration)) {
+      update(st => ({ ...st, bufferedTime: bufEnd }))
+    }
+  }
 
   function initAudio() {
     if (typeof window === 'undefined' || typeof Audio === 'undefined') return
@@ -107,6 +135,7 @@ function createPlayerStore() {
     audio.addEventListener('timeupdate', () => {
       if (audio) {
         onTimeUpdate(audio.currentTime, audio.duration)
+        updateBuffered()
 
         // For long tracks (>30 mins = 1800s), refresh stream token every 25 minutes
         const s = get({ subscribe })
@@ -117,9 +146,14 @@ function createPlayerStore() {
       }
     })
 
+    audio.addEventListener('progress', updateBuffered)
+    audio.addEventListener('loadeddata', updateBuffered)
+    audio.addEventListener('canplaythrough', updateBuffered)
+
     audio.addEventListener('durationchange', () => {
       if (audio && audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
         update(st => ({ ...st, duration: audio!.duration }))
+        updateBuffered()
       }
     })
 
@@ -153,7 +187,9 @@ function createPlayerStore() {
     audio.addEventListener('playing', () => {
       clearTimeout(stallTimer)
       clearLoadWatchdog()
-      update(st => ({ ...st, isPlaying: true, isLoading: false }))
+      cancelAutoRetry()
+      updateBuffered()
+      update(st => ({ ...st, isPlaying: true, isLoading: false, error: null, retryCount: 0 }))
     })
 
     audio.addEventListener('pause', () => {
@@ -163,6 +199,7 @@ function createPlayerStore() {
 
     audio.addEventListener('canplay', () => {
       clearLoadWatchdog()
+      updateBuffered()
       update(st => ({ ...st, isLoading: false }))
     })
   }
@@ -254,6 +291,7 @@ function createPlayerStore() {
       update(st => ({
         ...st,
         currentTime: 0,
+        bufferedTime: 0,
         isLoading: true,
         isPlaying: false,
         error: null,
@@ -275,6 +313,7 @@ function createPlayerStore() {
       retryCount: 0,
       autoRetryCountdown: null,
       autoRetryAction: null,
+      bufferedTime: 0,
     }))
 
     // Record to history
