@@ -72,3 +72,4 @@ export const CHANGELOG_DATA: ChangelogRelease[] = [
     ],
   },
 ]
+
