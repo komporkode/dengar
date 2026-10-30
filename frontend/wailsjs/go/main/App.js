@@ -62,6 +62,10 @@ export function OpenInFolder(arg1) {
   return window['go']['main']['App']['OpenInFolder'](arg1);
 }
 
+export function ProxyHandler() {
+  return window['go']['main']['App']['ProxyHandler']();
+}
+
 export function RecordPlay(arg1) {
   return window['go']['main']['App']['RecordPlay'](arg1);
 }

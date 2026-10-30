@@ -18,7 +18,6 @@ export namespace backend {
 	        this.cacheDir = source["cacheDir"];
 	    }
 	}
-
 	export class SearchResultItem {
 	    id: string;
 	    title: string;
