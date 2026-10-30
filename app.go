@@ -172,6 +172,13 @@ func (a *App) SetAudioCacheLimit(limitBytes int64) error {
 	return nil
 }
 
+// PurgeTrackCache removes cached audio files for a specific track (e.g. if decoding failed).
+func (a *App) PurgeTrackCache(videoID string) {
+	if a.audioCache != nil {
+		a.audioCache.Purge(videoID)
+	}
+}
+
 // GetUserData loads bookmarks and playback history.
 func (a *App) GetUserData() (*backend.UserData, error) {
 	if a.storage == nil {

@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store'
 import type { SearchResultItem, StreamResult, PlayMode } from '../types'
-import { GetStream, RecordPlay, Search } from '../../../wailsjs/go/main/App'
+import { GetStream, RecordPlay, Search, PurgeTrackCache } from '../../../wailsjs/go/main/App'
 import { userDataStore } from './userDataStore'
 import { queueStore, isAutoplayEnabled } from './queueStore'
 import { audioQualityStore, showToast } from './settingsStore'
@@ -330,6 +330,11 @@ function createPlayerStore() {
   async function handleMediaError() {
     initAudio()
     const s = get({ subscribe })
+
+    // If an error occurred on the current track, immediately purge any corrupted disk cache
+    if (s.currentTrack) {
+      PurgeTrackCache(s.currentTrack.id).catch(() => {})
+    }
 
     if (!get(networkStore).isOnline) {
       console.warn('[Player] Media error while offline, waiting for connection...')

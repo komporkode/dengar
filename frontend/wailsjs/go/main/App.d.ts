@@ -36,6 +36,8 @@ export function OpenInFolder(arg1:string):Promise<void>;
 
 export function ProxyHandler():Promise<http.Handler>;
 
+export function PurgeTrackCache(arg1:string):Promise<void>;
+
 export function RecordPlay(arg1:backend.SearchResultItem):Promise<void>;
 
 export function RefreshHomeData():Promise<main.HomeData>;

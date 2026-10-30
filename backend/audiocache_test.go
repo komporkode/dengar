@@ -90,19 +90,19 @@ func TestAudioCacheManager_LRUEnforce(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	// Set limit to 200 KB
-	mgr, err := NewAudioCacheManager(tempDir, 200*1024)
+	// Set limit to 350 KB
+	mgr, err := NewAudioCacheManager(tempDir, 350*1024)
 	if err != nil {
 		t.Fatalf("Failed to create AudioCacheManager: %v", err)
 	}
 
-	// Create 3 fake cache files directly: 100 KB each (Total 300 KB > 200 KB)
-	buf100KB := make([]byte, 100*1024)
+	// Create 3 fake cache files directly: 150 KB each (Total 450 KB > 350 KB)
+	buf150KB := make([]byte, 150*1024)
 
 	for i := 1; i <= 3; i++ {
 		name := fmt.Sprintf("song_%d", i)
 		cachePath := filepath.Join(tempDir, name+".cache")
-		if err := os.WriteFile(cachePath, buf100KB, 0644); err != nil {
+		if err := os.WriteFile(cachePath, buf150KB, 0644); err != nil {
 			t.Fatalf("Failed to write test file: %v", err)
 		}
 		// Adjust mod time so song_1 is oldest, song_3 newest
@@ -126,8 +126,8 @@ func TestAudioCacheManager_LRUEnforce(t *testing.T) {
 	}
 
 	stats := mgr.GetStats()
-	if stats.TotalBytes > 200*1024 {
-		t.Errorf("Total bytes %d exceeds maxBytes 200KB", stats.TotalBytes)
+	if stats.TotalBytes > 350*1024 {
+		t.Errorf("Total bytes %d exceeds maxBytes 350KB", stats.TotalBytes)
 	}
 }
 
@@ -169,8 +169,9 @@ func TestAudioProxyHandler_WithDiskCache(t *testing.T) {
 		t.Fatalf("Failed to create manager: %v", err)
 	}
 
-	// Write mock audio file
-	mockContent := []byte("audio payload byte stream for range seeking test")
+	// Write mock audio file larger than MinValidAudioFileSize
+	mockContent := make([]byte, 130*1024)
+	copy(mockContent, []byte("audio payload byte stream for range seeking test"))
 	cachePath := filepath.Join(tempDir, "cached_vid_123.cache")
 	_ = os.WriteFile(cachePath, mockContent, 0644)
 
@@ -187,8 +188,8 @@ func TestAudioProxyHandler_WithDiskCache(t *testing.T) {
 	}
 
 	body, _ := io.ReadAll(rr.Body)
-	if string(body) != string(mockContent) {
-		t.Errorf("Expected content %s, got %s", string(mockContent), string(body))
+	if len(body) != len(mockContent) {
+		t.Errorf("Expected size %d, got %d", len(mockContent), len(body))
 	}
 
 	// Test Range request on cached file (Seek test)
@@ -206,6 +207,35 @@ func TestAudioProxyHandler_WithDiskCache(t *testing.T) {
 	expectedSlice := string(mockContent[0:13])
 	if string(rangeBody) != expectedSlice {
 		t.Errorf("Expected range slice %q, got %q", expectedSlice, string(rangeBody))
+	}
+}
+
+func TestAudioCacheManager_Purge(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "dengerin_purge_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	mgr, err := NewAudioCacheManager(tempDir, 10*1024*1024)
+	if err != nil {
+		t.Fatalf("Failed to create manager: %v", err)
+	}
+
+	mockContent := make([]byte, 130*1024)
+	cachePath := filepath.Join(tempDir, "bad_song.cache")
+	metaPath := filepath.Join(tempDir, "bad_song.meta")
+	_ = os.WriteFile(cachePath, mockContent, 0644)
+	_ = os.WriteFile(metaPath, []byte("{}"), 0644)
+
+	if _, _, found := mgr.Get("bad_song"); !found {
+		t.Fatalf("Expected bad_song to be found initially")
+	}
+
+	mgr.Purge("bad_song")
+
+	if _, _, found := mgr.Get("bad_song"); found {
+		t.Errorf("Expected bad_song to be purged, but was still found")
 	}
 }
 

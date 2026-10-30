@@ -66,6 +66,10 @@ export function ProxyHandler() {
   return window['go']['main']['App']['ProxyHandler']();
 }
 
+export function PurgeTrackCache(arg1) {
+  return window['go']['main']['App']['PurgeTrackCache'](arg1);
+}
+
 export function RecordPlay(arg1) {
   return window['go']['main']['App']['RecordPlay'](arg1);
 }

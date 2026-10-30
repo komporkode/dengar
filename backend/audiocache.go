@@ -55,6 +55,9 @@ func DefaultCacheDir() string {
 	return filepath.Join(baseDir, "dengerin", "audiocache")
 }
 
+// MinValidAudioFileSize is the minimum threshold (128 KB) for a file to be considered a valid, playable song.
+const MinValidAudioFileSize int64 = 128 * 1024
+
 // NewAudioCacheManager creates a new AudioCacheManager.
 // If customDir is empty, DefaultCacheDir() is used.
 // If maxBytes <= 0, default 1 GB (1024*1024*1024) is used.
@@ -72,13 +75,18 @@ func NewAudioCacheManager(customDir string, maxBytes int64) (*AudioCacheManager,
 		maxBytes = 1024 * 1024 * 1024 // 1 GB default
 	}
 
-	return &AudioCacheManager{
+	mgr := &AudioCacheManager{
 		dir:      dir,
 		maxBytes: maxBytes,
 		client: &http.Client{
 			Timeout: 45 * time.Second,
 		},
-	}, nil
+	}
+
+	// Self-healing: sweep and purge any leftover .tmp or corrupted < 128KB files from older versions
+	go mgr.sanitizeCacheDir()
+
+	return mgr, nil
 }
 
 // sanitizeVideoID prevents path traversal attacks.
@@ -102,7 +110,12 @@ func (m *AudioCacheManager) Get(videoID string) (filePath string, mimeType strin
 
 	cachePath := filepath.Join(m.dir, vid+".cache")
 	info, err := os.Stat(cachePath)
-	if err != nil || info.Size() == 0 {
+	if err != nil || info.Size() < MinValidAudioFileSize {
+		// Corrupted or incomplete file from an aborted session - clean up immediately
+		if err == nil && info.Size() < MinValidAudioFileSize {
+			_ = os.Remove(cachePath)
+			_ = os.Remove(filepath.Join(m.dir, vid+".meta"))
+		}
 		return "", "", false
 	}
 
@@ -194,7 +207,7 @@ func (m *AudioCacheManager) downloadAndCommit(vid string, streamURL string, titl
 
 	// 3. Stream data to temp file
 	written, err := io.Copy(tmpFile, resp.Body)
-	if err != nil || written < 64*1024 {
+	if err != nil || written < MinValidAudioFileSize {
 		return // Discard incomplete or truncated downloads
 	}
 	_ = tmpFile.Close()
@@ -344,4 +357,50 @@ func (m *AudioCacheManager) SetLimit(maxBytes int64) {
 	m.maxBytes = maxBytes
 	m.enforceLimitLocked()
 	m.mu.Unlock()
+}
+
+// sanitizeCacheDir cleans up orphaned .tmp files and corrupted .cache files smaller than MinValidAudioFileSize.
+func (m *AudioCacheManager) sanitizeCacheDir() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	entries, err := os.ReadDir(m.dir)
+	if err != nil {
+		return
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		fullPath := filepath.Join(m.dir, name)
+
+		if strings.HasSuffix(name, ".tmp") {
+			_ = os.Remove(fullPath)
+			continue
+		}
+
+		if strings.HasSuffix(name, ".cache") {
+			info, err := entry.Info()
+			if err != nil || info.Size() < MinValidAudioFileSize {
+				_ = os.Remove(fullPath)
+				vid := strings.TrimSuffix(name, ".cache")
+				_ = os.Remove(filepath.Join(m.dir, vid+".meta"))
+			}
+		}
+	}
+}
+
+// Purge removes cached files for a specific track (e.g. if playback reported media error).
+func (m *AudioCacheManager) Purge(videoID string) {
+	vid := sanitizeVideoID(videoID)
+	if vid == "" {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	_ = os.Remove(filepath.Join(m.dir, vid+".cache"))
+	_ = os.Remove(filepath.Join(m.dir, vid+".meta"))
+	_ = os.Remove(filepath.Join(m.dir, vid+".tmp"))
 }
