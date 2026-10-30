@@ -116,11 +116,12 @@ func (r *StreamResolver) isStreamURLPlayable(streamURL string) bool {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
 	probeClient := &http.Client{
-		Timeout: 1500 * time.Millisecond,
+		Timeout: 3 * time.Second,
 	}
 	resp, err := probeClient.Do(req)
 	if err != nil {
-		return false
+		// If probe times out due to international latency but URL was just generated, allow playback
+		return true
 	}
 	defer resp.Body.Close()
 
@@ -293,8 +294,6 @@ func (r *StreamResolver) resolvePiped(instanceURL, videoID, quality string) (*St
 	}
 
 	// Normalize companion subdomains (e.g. yt-comp1... -> instanceURL)
-	bestAudioURL = extractDirectStreamURL(bestAudioURL)
-	bestVideoURL = extractDirectStreamURL(bestVideoURL)
 	if strings.Contains(bestAudioURL, "yt-comp") && !strings.Contains(bestAudioURL, "googlevideo.com") {
 		u, err := url.Parse(bestAudioURL)
 		if err == nil {
@@ -357,7 +356,7 @@ func parseRawBitrate(raw json.RawMessage) int64 {
 }
 
 func (r *StreamResolver) resolveInvidious(instanceURL, videoID, quality string) (*StreamResult, error) {
-	apiURL := fmt.Sprintf("%s/api/v1/videos/%s", strings.TrimRight(instanceURL, "/"), videoID)
+	apiURL := fmt.Sprintf("%s/api/v1/videos/%s?local=true", strings.TrimRight(instanceURL, "/"), videoID)
 
 	resp, err := r.client.Get(apiURL)
 	if err != nil {
@@ -394,7 +393,7 @@ func (r *StreamResolver) resolveInvidious(instanceURL, videoID, quality string) 
 		if strings.Contains(f.Type, "audio") && f.URL != "" {
 			b := parseRawBitrate(f.Bitrate)
 			audioList = append(audioList, audioCandidate{
-				url:     extractDirectStreamURL(f.URL),
+				url:     f.URL,
 				bitrate: b,
 				mime:    f.Type,
 			})
@@ -453,7 +452,7 @@ func (r *StreamResolver) resolveInvidious(instanceURL, videoID, quality string) 
 
 	bestVideoURL := ""
 	if len(data.FormatStreams) > 0 {
-		bestVideoURL = extractDirectStreamURL(data.FormatStreams[0].URL)
+		bestVideoURL = data.FormatStreams[0].URL
 	}
 
 	thumb := ""
@@ -461,8 +460,7 @@ func (r *StreamResolver) resolveInvidious(instanceURL, videoID, quality string) 
 		thumb = data.VideoThumbnails[0].URL
 	}
 
-	bestAudioURL = extractDirectStreamURL(bestAudioURL)
-	// Normalize companion subdomains (e.g. yt-comp1... -> instanceURL) only if not directly pointing to CDN
+	// Normalize companion subdomains (e.g. yt-comp1... -> instanceURL)
 	if strings.Contains(bestAudioURL, "yt-comp") && !strings.Contains(bestAudioURL, "googlevideo.com") {
 		u, err := url.Parse(bestAudioURL)
 		if err == nil {

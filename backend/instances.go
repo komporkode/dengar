@@ -15,9 +15,6 @@ var defaultPipedInstances = []string{
 
 var defaultInvidiousInstances = []string{
 	"https://yt.chocolatemoo53.com",
-	"https://invidious.nerdvpn.de",
-	"https://inv.nadeko.net",
-	"https://invidious.tiekoetter.com",
 }
 
 // InstancePool manages rotating instance endpoints for failover.

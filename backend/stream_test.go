@@ -150,7 +150,7 @@ func TestStreamResolverInvidious(t *testing.T) {
 	}
 }
 
-func TestStreamResolverSABRExtraction(t *testing.T) {
+func TestStreamResolverCompanionNormalization(t *testing.T) {
 	mockInvidiousSABR := `{
 		"title": "Mawar Bodas",
 		"author": "Fazhri official",
@@ -161,7 +161,7 @@ func TestStreamResolverSABRExtraction(t *testing.T) {
 		"adaptiveFormats": [
 			{
 				"type": "audio/webm; codecs=\"opus\"",
-				"url": "https://yt-comp1.example/companion/sabr-segment?itag=251&sabr_url=https%3A%2F%2Fgooglevideo.com%2Fdirect-opus.webm",
+				"url": "https://yt-comp1.example/companion/sabr-segment?itag=251",
 				"bitrate": "160000"
 			}
 		],
@@ -169,7 +169,7 @@ func TestStreamResolverSABRExtraction(t *testing.T) {
 			{
 				"quality": "medium",
 				"resolution": "720p",
-				"url": "https://yt-comp1.example/companion/sabr-segment?itag=22&sabr_url=https%3A%2F%2Fgooglevideo.com%2Fdirect-muxed.mp4"
+				"url": "https://yt-comp1.example/companion/sabr-segment?itag=22"
 			}
 		]
 	}`
@@ -186,14 +186,12 @@ func TestStreamResolverSABRExtraction(t *testing.T) {
 
 	res, err := resolver.Resolve("mawar", false)
 	if err != nil {
-		t.Fatalf("Invidious SABR resolve failed: %v", err)
+		t.Fatalf("Invidious companion resolve failed: %v", err)
 	}
 
-	if res.AudioURL != "https://googlevideo.com/direct-opus.webm" {
-		t.Errorf("Expected unwrapped direct SABR GoogleVideo audio URL, got '%s'", res.AudioURL)
-	}
-	if res.VideoURL != "https://googlevideo.com/direct-muxed.mp4" {
-		t.Errorf("Expected unwrapped direct SABR GoogleVideo video URL, got '%s'", res.VideoURL)
+	expectedAudio := server.URL + "/companion/sabr-segment?itag=251"
+	if res.AudioURL != expectedAudio {
+		t.Errorf("Expected normalized companion audio URL '%s', got '%s'", expectedAudio, res.AudioURL)
 	}
 }
 

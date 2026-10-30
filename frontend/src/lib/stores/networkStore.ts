@@ -47,7 +47,7 @@ function createNetworkStore() {
 
       // Zero-byte captive portal endpoint from Google (universal CORS-free endpoint)
       await fetch('https://www.gstatic.com/generate_204', {
-        method: 'HEAD',
+        method: 'GET',
         mode: 'no-cors',
         cache: 'no-store',
         signal: controller.signal,
@@ -85,6 +85,19 @@ function createNetworkStore() {
       isChecking = false
       return true
     } catch {
+      // If probe timed out but browser OS reports online, consider as weak rather than offline
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        update(st => ({
+          ...st,
+          status: 'weak',
+          isOnline: true,
+          isWeak: true,
+          latencyMs: 3000,
+          lastChecked: Date.now(),
+        }))
+        isChecking = false
+        return true
+      }
       handleOffline()
       isChecking = false
       return false

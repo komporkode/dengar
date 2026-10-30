@@ -68,9 +68,13 @@ func (h *AudioProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	targetURL, err := url.QueryUnescape(rawURL)
-	if err != nil {
-		targetURL = rawURL
+	// r.URL.Query().Get("url") has already unescaped the query string once.
+	// Only unescape if it still looks percentage-encoded (does not begin with http).
+	targetURL := rawURL
+	if !strings.HasPrefix(targetURL, "http://") && !strings.HasPrefix(targetURL, "https://") {
+		if unescaped, err := url.QueryUnescape(rawURL); err == nil {
+			targetURL = unescaped
+		}
 	}
 
 	u, err := url.Parse(targetURL)
