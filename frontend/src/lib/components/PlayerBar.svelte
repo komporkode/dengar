@@ -61,34 +61,85 @@
   {#if $playerStore.error}
     <div class="pointer-events-auto flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-crimson-950/95 border border-crimson-500/50 backdrop-blur-md shadow-lg shadow-crimson-950/60 text-xs text-white">
       <div class="flex items-center gap-2 min-w-0">
-        <svg class="w-4 h-4 text-crimson-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        <span class="truncate text-zinc-200">{$playerStore.error}</span>
-      </div>
-      <div class="flex items-center gap-2 shrink-0">
-        <button
-          class="px-2.5 py-1 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-medium text-[11px] transition active:scale-95 cursor-pointer shadow-sm flex items-center gap-1.5"
-          on:click={() => playerStore.retryWithDifferentSource()}
-          title="Coba cari server pemutar lain"
-        >
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        {#if $playerStore.autoRetryAction === 'retry'}
+          <svg class="w-4 h-4 text-amber-400 animate-spin shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
             <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
           </svg>
-          Ganti Sumber
-        </button>
-        <button
-          class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-200 text-[11px] transition active:scale-95 cursor-pointer"
-          on:click={() => { playerStore.clearError(); playerStore.playNext(); }}
-          title="Lewati lagu yang bermasalah ini"
-        >
-          Lewati
-        </button>
+          <span class="truncate text-zinc-200">
+            Koneksi server terganggu. Menghubungkan ke server cadangan dalam <span class="font-bold text-amber-300">{$playerStore.autoRetryCountdown ?? 3}s</span>...
+          </span>
+        {:else if $playerStore.autoRetryAction === 'skip'}
+          <svg class="w-4 h-4 text-crimson-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+          </svg>
+          <span class="truncate text-zinc-200">
+            Lagu tidak dapat diputar dari server. Memutar lagu berikutnya dalam <span class="font-bold text-crimson-300">{$playerStore.autoRetryCountdown ?? 3}s</span>...
+          </span>
+        {:else}
+          <svg class="w-4 h-4 text-crimson-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span class="truncate text-zinc-200">{$playerStore.error}</span>
+        {/if}
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        {#if $playerStore.autoRetryAction === 'retry'}
+          <button
+            class="px-2.5 py-1 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-medium text-[11px] transition active:scale-95 cursor-pointer shadow-sm flex items-center gap-1.5"
+            on:click={() => playerStore.retryWithDifferentSource()}
+            title="Coba hubungkan ulang sekarang tanpa menunggu"
+          >
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Coba Sekarang
+          </button>
+          <button
+            class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-200 text-[11px] transition active:scale-95 cursor-pointer"
+            on:click={() => { playerStore.cancelAutoRetry(); playerStore.clearError(); playerStore.playNext(); }}
+            title="Lewati lagu ini langsung"
+          >
+            Lewati
+          </button>
+        {:else if $playerStore.autoRetryAction === 'skip'}
+          <button
+            class="px-2.5 py-1 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-medium text-[11px] transition active:scale-95 cursor-pointer shadow-sm flex items-center gap-1.5"
+            on:click={() => { playerStore.cancelAutoRetry(); playerStore.clearError(); playerStore.playNext(); }}
+            title="Lewati langsung sekarang"
+          >
+            Lewati Sekarang
+          </button>
+          <button
+            class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-200 text-[11px] transition active:scale-95 cursor-pointer"
+            on:click={() => playerStore.retryWithDifferentSource()}
+            title="Coba cari server pemutar lagi"
+          >
+            Coba Lagi
+          </button>
+        {:else}
+          <button
+            class="px-2.5 py-1 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-medium text-[11px] transition active:scale-95 cursor-pointer shadow-sm flex items-center gap-1.5"
+            on:click={() => playerStore.retryWithDifferentSource()}
+            title="Coba cari server pemutar lain"
+          >
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Ganti Sumber
+          </button>
+          <button
+            class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-200 text-[11px] transition active:scale-95 cursor-pointer"
+            on:click={() => { playerStore.clearError(); playerStore.playNext(); }}
+            title="Lewati lagu yang bermasalah ini"
+          >
+            Lewati
+          </button>
+        {/if}
         <button
           class="p-1 text-zinc-400 hover:text-white transition cursor-pointer"
-          on:click={() => playerStore.clearError()}
+          on:click={() => { playerStore.cancelAutoRetry(); playerStore.clearError(); }}
           title="Tutup pesan"
         >
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

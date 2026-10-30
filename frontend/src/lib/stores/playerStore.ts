@@ -57,6 +57,8 @@ interface PlayerState {
   isLoading: boolean
   error: string | null
   retryCount: number
+  autoRetryCountdown: number | null
+  autoRetryAction: 'retry' | 'skip' | null
 }
 
 function createPlayerStore() {
@@ -76,6 +78,8 @@ function createPlayerStore() {
     isLoading: false,
     error: null,
     retryCount: 0,
+    autoRetryCountdown: null,
+    autoRetryAction: null,
   })
 
   let audio: HTMLAudioElement | null = null
@@ -258,6 +262,7 @@ function createPlayerStore() {
       return
     }
 
+    cancelAutoRetry()
     const requestId = ++currentRequestId
     hasRecordedPlay = false
     recordedTrackId = track.id
@@ -268,6 +273,8 @@ function createPlayerStore() {
       error: null,
       mode: activeMode,
       retryCount: 0,
+      autoRetryCountdown: null,
+      autoRetryAction: null,
     }))
 
     // Record to history
@@ -318,12 +325,114 @@ function createPlayerStore() {
     } catch (e: any) {
       if (requestId !== currentRequestId) return
       console.error('Failed to resolve stream:', e)
+      handleMediaError()
+    }
+  }
+
+  let autoRetryTimer: any = null
+  let countdownInterval: any = null
+
+  function cancelAutoRetry() {
+    if (autoRetryTimer) {
+      clearTimeout(autoRetryTimer)
+      autoRetryTimer = null
+    }
+    if (countdownInterval) {
+      clearInterval(countdownInterval)
+      countdownInterval = null
+    }
+    update(st => ({
+      ...st,
+      autoRetryCountdown: null,
+      autoRetryAction: null,
+    }))
+  }
+
+  function scheduleAutoRetry(action: 'retry' | 'skip', seconds = 3) {
+    cancelAutoRetry()
+    const s = get({ subscribe })
+    if (!s.currentTrack) return
+
+    let remaining = seconds
+    update(st => ({
+      ...st,
+      isLoading: true,
+      isPlaying: false,
+      autoRetryCountdown: remaining,
+      autoRetryAction: action,
+      error: action === 'retry'
+        ? `Gagal memutar audio dari server saat ini (${st.retryCount + 1}/3)`
+        : 'Semua server gagal memutar lagu ini',
+    }))
+
+    countdownInterval = setInterval(() => {
+      remaining -= 1
+      if (remaining > 0) {
+        update(st => ({ ...st, autoRetryCountdown: remaining }))
+      } else {
+        if (countdownInterval) {
+          clearInterval(countdownInterval)
+          countdownInterval = null
+        }
+      }
+    }, 1000)
+
+    autoRetryTimer = setTimeout(async () => {
+      cancelAutoRetry()
+      const currentState = get({ subscribe })
+      if (!currentState.currentTrack) return
+
+      if (action === 'retry') {
+        await executeRetry()
+      } else if (action === 'skip') {
+        showToast('Lagu tidak tersedia di server, memutar lagu berikutnya...')
+        playNext()
+      }
+    }, seconds * 1000)
+  }
+
+  async function executeRetry() {
+    const s = get({ subscribe })
+    if (!s.currentTrack) return
+
+    const nextRetry = s.retryCount + 1
+    const savedTime = s.currentTime
+
+    update(st => ({
+      ...st,
+      isLoading: true,
+      isPlaying: false,
+      retryCount: nextRetry,
+      error: null,
+    }))
+
+    try {
+      const currentQuality = get(audioQualityStore) || 'high'
+      console.log(`[Auto-Recovery] Rotating instance for track ${s.currentTrack.id} (attempt ${nextRetry}/3)...`)
+      const freshStream = await GetStream(s.currentTrack.id, true, currentQuality)
+      const streamUrl = freshStream.audioUrl || freshStream.videoUrl
+      if (!streamUrl) throw new Error('Tidak ada stream audio yang valid')
+
       update(st => ({
         ...st,
-        isLoading: false,
+        streamResult: freshStream,
+        duration: freshStream.duration || s.currentTrack?.duration || 0,
+        isLoading: true,
         isPlaying: false,
-        error: e?.message || 'Gagal memutar stream media',
+        error: null,
       }))
+
+      if (audio) {
+        setAudioSourceAndPlay(streamUrl, savedTime, true)
+      }
+    } catch (err: any) {
+      console.error('[Auto-Recovery] Retry failed:', err)
+      if (nextRetry >= 3) {
+        console.warn('[Auto-Recovery] Max retries reached, scheduling auto-skip...')
+        scheduleAutoRetry('skip', 3)
+      } else {
+        scheduleAutoRetry('retry', 3)
+      }
     }
   }
 
@@ -338,6 +447,7 @@ function createPlayerStore() {
 
     if (!get(networkStore).isOnline) {
       console.warn('[Player] Media error while offline, waiting for connection...')
+      cancelAutoRetry()
       update(st => ({
         ...st,
         isLoading: false,
@@ -347,55 +457,23 @@ function createPlayerStore() {
       return
     }
 
-    if (!s.currentTrack || s.retryCount >= 3) {
-      update(st => ({
-        ...st,
-        error: 'Gagal memutar audio dari server saat ini',
-        isLoading: false,
-        isPlaying: false,
-      }))
+    if (!s.currentTrack) {
+      cancelAutoRetry()
       return
     }
 
-    console.warn(`[Auto-Recovery] Stream error on track ${s.currentTrack.id}, retrying with fresh instance (${s.retryCount + 1}/3)...`)
-    const savedTime = s.currentTime
-
-    update(st => ({
-      ...st,
-      isLoading: true,
-      isPlaying: false,
-      retryCount: st.retryCount + 1,
-      error: null,
-    }))
-
-    try {
-      const currentQuality = get(audioQualityStore) || 'high'
-      const freshStream = await GetStream(s.currentTrack.id, true, currentQuality)
-      update(st => ({
-        ...st,
-        streamResult: freshStream,
-        isLoading: true,
-        isPlaying: false,
-      }))
-
-      if (audio) {
-        const streamUrl = freshStream.audioUrl || freshStream.videoUrl
-        if (streamUrl) {
-          setAudioSourceAndPlay(streamUrl, savedTime, true)
-        }
-      }
-    } catch (err: any) {
-      console.error('Auto re-resolve failed:', err)
-      update(st => ({
-        ...st,
-        isLoading: false,
-        isPlaying: false,
-        error: 'Gagal memperbarui server cadangan. Silakan coba sumber lain.',
-      }))
+    if (s.retryCount >= 3) {
+      console.warn(`[Auto-Recovery] Retries exhausted (${s.retryCount}/3) for track ${s.currentTrack.id}. Scheduling auto-skip...`)
+      scheduleAutoRetry('skip', 3)
+      return
     }
+
+    console.warn(`[Auto-Recovery] Stream error on track ${s.currentTrack.id}, scheduling auto-retry (${s.retryCount + 1}/3) in 3s...`)
+    scheduleAutoRetry('retry', 3)
   }
 
   async function retryWithDifferentSource() {
+    cancelAutoRetry()
     const s = get({ subscribe })
     if (!s.currentTrack) return
     console.log(`[Manual-Retry] User requested new streaming source for: ${s.currentTrack.title}`)
@@ -418,6 +496,7 @@ function createPlayerStore() {
         duration: freshStream.duration || s.currentTrack?.duration || 0,
         isLoading: true,
         isPlaying: false,
+        error: null,
       }))
 
       if (audio) {
@@ -425,16 +504,12 @@ function createPlayerStore() {
       }
     } catch (err: any) {
       console.error('Manual retry failed:', err)
-      update(st => ({
-        ...st,
-        isLoading: false,
-        isPlaying: false,
-        error: 'Semua sumber server saat ini sedang sibuk. Coba lewati ke lagu berikutnya.',
-      }))
+      scheduleAutoRetry('skip', 3)
     }
   }
 
   function clearError() {
+    cancelAutoRetry()
     update(st => ({ ...st, error: null }))
   }
 
@@ -609,6 +684,7 @@ function createPlayerStore() {
   }
 
   function playNext() {
+    cancelAutoRetry()
     // When manually clicking next, advance forward even if repeat one is set
     const nextTrack = queueStore.next(true)
     if (nextTrack) {
@@ -622,6 +698,7 @@ function createPlayerStore() {
   }
 
   function playPrev() {
+    cancelAutoRetry()
     const prevTrack = queueStore.prev()
     if (prevTrack) {
       playTrack(prevTrack, undefined, true)
@@ -677,6 +754,7 @@ function createPlayerStore() {
     onTrackEnded,
     handleMediaError,
     retryWithDifferentSource,
+    cancelAutoRetry,
     clearError,
     playNext,
     playPrev,
