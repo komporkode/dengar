@@ -3,26 +3,21 @@ package backend
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
 
 var defaultPipedInstances = []string{
 	"https://api.piped.private.coffee",
-	"https://pipedapi.leptons.xyz",
-	"https://pipedapi.ducks.party",
-	"https://pipedapi.adminforge.de",
+	"https://pipedapi.kavin.rocks",
 }
 
 var defaultInvidiousInstances = []string{
 	"https://yt.chocolatemoo53.com",
+	"https://invidious.nerdvpn.de",
 	"https://inv.nadeko.net",
-	"https://invidious.projectsegfau.lt",
-	"https://invidious.slipfox.xyz",
-	"https://inv.bp.projectsegfau.lt",
-	"https://yewtu.be",
-	"https://iv.melmac.space",
-	"https://invidious.flokinet.to",
+	"https://invidious.tiekoetter.com",
 }
 
 // InstancePool manages rotating instance endpoints for failover.
@@ -89,6 +84,10 @@ func (ip *InstancePool) RefreshInvidiousInstances() {
 				continue
 			}
 			if meta.Type == "https" && meta.API {
+				d := strings.ToLower(domain)
+				if strings.HasSuffix(d, ".onion") || strings.HasSuffix(d, ".i2p") || strings.HasSuffix(d, ".ygg") || strings.Contains(d, "ygg") || strings.HasSuffix(d, ".local") {
+					continue
+				}
 				newInstances = append(newInstances, "https://"+domain)
 			}
 		}
@@ -97,13 +96,14 @@ func (ip *InstancePool) RefreshInvidiousInstances() {
 			ip.mu.Lock()
 			seen := make(map[string]bool)
 			merged := make([]string, 0, len(newInstances)+len(ip.invidious))
-			for _, inst := range newInstances {
+			// Always keep existing known-good instances at the front of the pool
+			for _, inst := range ip.invidious {
 				if !seen[inst] {
 					seen[inst] = true
 					merged = append(merged, inst)
 				}
 			}
-			for _, inst := range ip.invidious {
+			for _, inst := range newInstances {
 				if !seen[inst] {
 					seen[inst] = true
 					merged = append(merged, inst)

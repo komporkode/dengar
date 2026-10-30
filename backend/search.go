@@ -30,7 +30,7 @@ func NewSearchService(customPiped, customInvidious []string) *SearchService {
 	return &SearchService{
 		pool: NewInstancePool(customPiped, customInvidious),
 		client: &http.Client{
-			Timeout: 5000 * time.Millisecond,
+			Timeout: 3500 * time.Millisecond,
 		},
 		innertubeURL: itURL,
 		cache:        NewSearchCache(1*time.Hour, 60), // Caps RAM to max 60 queries (~1MB)
@@ -108,6 +108,19 @@ type innertubeContinuationItem struct {
 	} `json:"continuationEndpoint"`
 }
 
+type innertubeSearchItem struct {
+	VideoRenderer *innertubeVideoRenderer `json:"videoRenderer,omitempty"`
+	ShelfRenderer *struct {
+		Content *struct {
+			VerticalListRenderer *struct {
+				Items []struct {
+					VideoRenderer *innertubeVideoRenderer `json:"videoRenderer,omitempty"`
+				} `json:"items"`
+			} `json:"verticalListRenderer"`
+		} `json:"content"`
+	} `json:"shelfRenderer,omitempty"`
+}
+
 type innertubeSearchResponse struct {
 	Contents struct {
 		TwoColumnSearchResultsRenderer struct {
@@ -115,9 +128,7 @@ type innertubeSearchResponse struct {
 				SectionListRenderer struct {
 					Contents []struct {
 						ItemSectionRenderer *struct {
-							Contents []struct {
-								VideoRenderer *innertubeVideoRenderer `json:"videoRenderer,omitempty"`
-							} `json:"contents"`
+							Contents []innertubeSearchItem `json:"contents"`
 						} `json:"itemSectionRenderer,omitempty"`
 						ContinuationItemRenderer *innertubeContinuationItem `json:"continuationItemRenderer,omitempty"`
 					} `json:"contents"`
@@ -132,9 +143,7 @@ type innertubeContinuationResponse struct {
 		AppendContinuationItemsAction *struct {
 			ContinuationItems []struct {
 				ItemSectionRenderer *struct {
-					Contents []struct {
-						VideoRenderer *innertubeVideoRenderer `json:"videoRenderer,omitempty"`
-					} `json:"contents"`
+					Contents []innertubeSearchItem `json:"contents"`
 				} `json:"itemSectionRenderer,omitempty"`
 				ContinuationItemRenderer *innertubeContinuationItem `json:"continuationItemRenderer,omitempty"`
 			} `json:"continuationItems"`
@@ -157,7 +166,7 @@ func (s *SearchService) Search(query string, filterType string) (*SearchResponse
 	// Use SingleFlight to deduplicate simultaneous duplicate requests
 	val, err := s.flight.Do(cacheKey, func() (interface{}, error) {
 		// 1. Primary: Direct YouTube Innertube search
-		if resp, err := s.searchYouTubeInnertube(q); err == nil && len(resp.Items) > 0 {
+		if resp, err := s.searchYouTubeInnertube(q); err == nil {
 			s.cache.Set(cacheKey, resp)
 			return resp, nil
 		}
@@ -279,10 +288,16 @@ func (s *SearchService) searchYouTubeInnertube(query string) (*SearchResponse, e
 		}
 		if sec.ItemSectionRenderer != nil {
 			for _, it := range sec.ItemSectionRenderer.Contents {
-				if it.VideoRenderer == nil || it.VideoRenderer.VideoID == "" {
-					continue
+				if it.VideoRenderer != nil && it.VideoRenderer.VideoID != "" {
+					items = append(items, extractVideoItem(it.VideoRenderer))
 				}
-				items = append(items, extractVideoItem(it.VideoRenderer))
+				if it.ShelfRenderer != nil && it.ShelfRenderer.Content != nil && it.ShelfRenderer.Content.VerticalListRenderer != nil {
+					for _, sub := range it.ShelfRenderer.Content.VerticalListRenderer.Items {
+						if sub.VideoRenderer != nil && sub.VideoRenderer.VideoID != "" {
+							items = append(items, extractVideoItem(sub.VideoRenderer))
+						}
+					}
+				}
 			}
 		}
 	}
@@ -355,10 +370,16 @@ func (s *SearchService) searchYouTubeInnertubeContinuation(continuationToken str
 				}
 				if ci.ItemSectionRenderer != nil {
 					for _, it := range ci.ItemSectionRenderer.Contents {
-						if it.VideoRenderer == nil || it.VideoRenderer.VideoID == "" {
-							continue
+						if it.VideoRenderer != nil && it.VideoRenderer.VideoID != "" {
+							items = append(items, extractVideoItem(it.VideoRenderer))
 						}
-						items = append(items, extractVideoItem(it.VideoRenderer))
+						if it.ShelfRenderer != nil && it.ShelfRenderer.Content != nil && it.ShelfRenderer.Content.VerticalListRenderer != nil {
+							for _, sub := range it.ShelfRenderer.Content.VerticalListRenderer.Items {
+								if sub.VideoRenderer != nil && sub.VideoRenderer.VideoID != "" {
+									items = append(items, extractVideoItem(sub.VideoRenderer))
+								}
+							}
+						}
 					}
 				}
 			}

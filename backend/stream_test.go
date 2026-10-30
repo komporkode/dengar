@@ -150,6 +150,53 @@ func TestStreamResolverInvidious(t *testing.T) {
 	}
 }
 
+func TestStreamResolverSABRExtraction(t *testing.T) {
+	mockInvidiousSABR := `{
+		"title": "Mawar Bodas",
+		"author": "Fazhri official",
+		"lengthSeconds": 300,
+		"videoThumbnails": [
+			{"url": "https://img.youtube.com/vi/mawar/hqdefault.jpg"}
+		],
+		"adaptiveFormats": [
+			{
+				"type": "audio/webm; codecs=\"opus\"",
+				"url": "https://yt-comp1.example/companion/sabr-segment?itag=251&sabr_url=https%3A%2F%2Fgooglevideo.com%2Fdirect-opus.webm",
+				"bitrate": "160000"
+			}
+		],
+		"formatStreams": [
+			{
+				"quality": "medium",
+				"resolution": "720p",
+				"url": "https://yt-comp1.example/companion/sabr-segment?itag=22&sabr_url=https%3A%2F%2Fgooglevideo.com%2Fdirect-muxed.mp4"
+			}
+		]
+	}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(mockInvidiousSABR))
+	}))
+	defer server.Close()
+
+	pool := NewInstancePool([]string{}, []string{server.URL})
+	resolver := NewStreamResolver(pool, 30*time.Minute)
+
+	res, err := resolver.Resolve("mawar", false)
+	if err != nil {
+		t.Fatalf("Invidious SABR resolve failed: %v", err)
+	}
+
+	if res.AudioURL != "https://googlevideo.com/direct-opus.webm" {
+		t.Errorf("Expected unwrapped direct SABR GoogleVideo audio URL, got '%s'", res.AudioURL)
+	}
+	if res.VideoURL != "https://googlevideo.com/direct-muxed.mp4" {
+		t.Errorf("Expected unwrapped direct SABR GoogleVideo video URL, got '%s'", res.VideoURL)
+	}
+}
+
 func TestStreamResolverQualitySaver(t *testing.T) {
 	mockPipedStream := `{
 		"title": "Starboy",
