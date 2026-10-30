@@ -161,6 +161,14 @@ func (a *App) GetStream(videoID string, forceRefresh bool, quality string) (*bac
 	return res, nil
 }
 
+// GetPrimaryServerProvider returns the current active server provider in Smart Server Mode ("invidious" or "piped").
+func (a *App) GetPrimaryServerProvider() string {
+	if a.resolver == nil {
+		return "invidious"
+	}
+	return a.resolver.GetPrimaryProvider()
+}
+
 // GetAudioCacheStats returns usage statistics of local audio disk cache.
 func (a *App) GetAudioCacheStats() backend.AudioCacheStats {
 	if a.audioCache == nil {

@@ -249,3 +249,134 @@ func TestStreamResolverQualitySaver(t *testing.T) {
 		t.Errorf("Expected Quality 'high', got %s", resHigh.Quality)
 	}
 }
+
+func TestSmartServerMode(t *testing.T) {
+	invidiousServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "invidious 500 error", http.StatusInternalServerError)
+	}))
+	defer invidiousServer.Close()
+
+	pipedServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{
+			"title": "Piped Track",
+			"uploader": "Artist",
+			"audioStreams": [{"url": "https://stream.example/audio.m4a", "bitrate": 160000, "mimeType": "audio/mp4"}]
+		}`))
+	}))
+	defer pipedServer.Close()
+
+	pool := NewInstancePool([]string{pipedServer.URL}, []string{invidiousServer.URL})
+	resolver := NewStreamResolver(pool, 1*time.Minute)
+
+	if resolver.GetPrimaryProvider() != "invidious" {
+		t.Fatalf("Expected initial primary provider to be 'invidious', got '%s'", resolver.GetPrimaryProvider())
+	}
+
+	// Track 1: Invidious fails, Piped succeeds -> fails=1, primary remains invidious
+	_, err := resolver.Resolve("track1", true)
+	if err != nil {
+		t.Fatalf("Resolve track1 failed: %v", err)
+	}
+	if resolver.GetPrimaryProvider() != "invidious" {
+		t.Errorf("Expected primary to remain 'invidious' after 1 fail, got '%s'", resolver.GetPrimaryProvider())
+	}
+
+	// Retry Track 1: should NOT increase failure counter
+	_, _ = resolver.Resolve("track1", true)
+	if resolver.GetPrimaryProvider() != "invidious" {
+		t.Errorf("Expected primary to remain 'invidious' after repeating same track, got '%s'", resolver.GetPrimaryProvider())
+	}
+
+	// Track 2: Invidious fails, Piped succeeds -> fails=2, primary remains invidious
+	_, err = resolver.Resolve("track2", true)
+	if err != nil {
+		t.Fatalf("Resolve track2 failed: %v", err)
+	}
+	if resolver.GetPrimaryProvider() != "invidious" {
+		t.Errorf("Expected primary to remain 'invidious' after 2 fails, got '%s'", resolver.GetPrimaryProvider())
+	}
+
+	// Track 3: Invidious fails, Piped succeeds -> fails=3 -> PROMOTED to piped!
+	_, err = resolver.Resolve("track3", true)
+	if err != nil {
+		t.Fatalf("Resolve track3 failed: %v", err)
+	}
+	if resolver.GetPrimaryProvider() != "piped" {
+		t.Errorf("Expected primary to be promoted to 'piped' after 3 consecutive song failovers, got '%s'", resolver.GetPrimaryProvider())
+	}
+
+	// Track 4: Now Piped is primary, resolves directly
+	res4, err := resolver.Resolve("track4", true)
+	if err != nil {
+		t.Fatalf("Resolve track4 failed: %v", err)
+	}
+	if res4.Title != "Piped Track" {
+		t.Errorf("Expected track from Piped, got title: '%s'", res4.Title)
+	}
+}
+
+func TestSmartServerSuccessReset(t *testing.T) {
+	invidiousFail := true
+	invidiousServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if invidiousFail {
+			http.Error(w, "error", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{
+			"title": "Invidious Track",
+			"author": "Author",
+			"adaptiveFormats": [{"type": "audio/mp4", "url": "https://stream.example/invidious.m4a", "bitrate": "130000"}]
+		}`))
+	}))
+	defer invidiousServer.Close()
+
+	pipedServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{
+			"title": "Piped Track",
+			"uploader": "Artist",
+			"audioStreams": [{"url": "https://stream.example/audio.m4a", "bitrate": 160000, "mimeType": "audio/mp4"}]
+		}`))
+	}))
+	defer pipedServer.Close()
+
+	pool := NewInstancePool([]string{pipedServer.URL}, []string{invidiousServer.URL})
+	resolver := NewStreamResolver(pool, 1*time.Minute)
+
+	// Song 1 fails on Invidious, succeeds on Piped (1/3)
+	invidiousFail = true
+	_, err := resolver.Resolve("song1", true)
+	if err != nil {
+		t.Fatalf("Resolve song1 failed: %v", err)
+	}
+
+	// Song 2 succeeds on Invidious -> resets consecutive fails to 0
+	invidiousFail = false
+	_, err = resolver.Resolve("song2", true)
+	if err != nil {
+		t.Fatalf("Resolve song2 failed: %v", err)
+	}
+
+	// Song 3 fails on Invidious, succeeds on Piped (1/3 again)
+	invidiousFail = true
+	_, err = resolver.Resolve("song3", true)
+	if err != nil {
+		t.Fatalf("Resolve song3 failed: %v", err)
+	}
+
+	// Song 4 fails on Invidious, succeeds on Piped (2/3)
+	_, err = resolver.Resolve("song4", true)
+	if err != nil {
+		t.Fatalf("Resolve song4 failed: %v", err)
+	}
+
+	// Provider must STILL be invidious (not promoted yet because counter was reset by song2)
+	if resolver.GetPrimaryProvider() != "invidious" {
+		t.Errorf("Expected primary provider to still be 'invidious', got '%s'", resolver.GetPrimaryProvider())
+	}
+}

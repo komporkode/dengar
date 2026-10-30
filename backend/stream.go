@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -16,6 +18,11 @@ type StreamResolver struct {
 	pool   *InstancePool
 	cache  *StreamCache
 	client *http.Client
+
+	mu               sync.RWMutex
+	primaryProvider  string // "invidious" (default) or "piped"
+	consecutiveFails int    // count of consecutive songs where primary failed and secondary succeeded
+	lastFailVideoID  string // track distinct video ID to prevent counting retries of the same song
 }
 
 // NewStreamResolver creates a new StreamResolver.
@@ -26,6 +33,53 @@ func NewStreamResolver(pool *InstancePool, ttl time.Duration) *StreamResolver {
 		client: &http.Client{
 			Timeout: 4 * time.Second,
 		},
+		primaryProvider: "invidious",
+	}
+}
+
+// GetPrimaryProvider returns current primary provider ("invidious" or "piped").
+func (r *StreamResolver) GetPrimaryProvider() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if r.primaryProvider == "" {
+		return "invidious"
+	}
+	return r.primaryProvider
+}
+
+// SetPrimaryProvider forces or resets the primary provider for the session.
+func (r *StreamResolver) SetPrimaryProvider(provider string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.primaryProvider = provider
+	r.consecutiveFails = 0
+	r.lastFailVideoID = ""
+}
+
+func (r *StreamResolver) recordSuccess(provider string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.primaryProvider == provider {
+		r.consecutiveFails = 0
+		r.lastFailVideoID = ""
+	}
+}
+
+func (r *StreamResolver) recordFailover(failedProvider, succeededProvider, videoID string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.primaryProvider == failedProvider {
+		if r.lastFailVideoID != videoID {
+			r.lastFailVideoID = videoID
+			r.consecutiveFails++
+			log.Printf("[SmartServer] Primary %s gagal memutar lagu '%s' (%d/3), secondary %s sukses", failedProvider, videoID, r.consecutiveFails, succeededProvider)
+			if r.consecutiveFails >= 3 {
+				r.primaryProvider = succeededProvider
+				r.consecutiveFails = 0
+				r.lastFailVideoID = ""
+				log.Printf("[SmartServer] Mode Server Pintar: %s resmi dipromosikan menjadi server utama untuk sesi ini!", strings.ToUpper(succeededProvider))
+			}
+		}
 	}
 }
 
@@ -53,12 +107,46 @@ func (r *StreamResolver) Resolve(videoID string, forceRefresh bool, quality ...s
 		}
 	}
 
-	// 1. Try current primary Invidious instance first (highest availability for audio streams)
+	primary := r.GetPrimaryProvider()
+
+	// 1. SMART SERVER MODE: If Piped is promoted to primary provider
+	if primary == "piped" {
+		// Tier 1: Piped instances first
+		for _, inst := range r.pool.GetPipedInstances() {
+			res, err := r.resolvePiped(inst, vid, q)
+			if err == nil && res.AudioURL != "" && r.isStreamURLPlayable(res.AudioURL) {
+				r.recordSuccess("piped")
+				res.Quality = q
+				r.cache.Set(cacheKey, res)
+				return res, nil
+			}
+			r.pool.RotatePiped()
+		}
+
+		// Tier 2 Fallback: Invidious instances
+		for _, inst := range r.pool.GetInvidiousInstances() {
+			res, err := r.resolveInvidious(inst, vid, q)
+			if err == nil && res.AudioURL != "" && r.isStreamURLPlayable(res.AudioURL) {
+				res.Quality = q
+				r.cache.Set(cacheKey, res)
+				return res, nil
+			}
+			r.pool.RotateInvidious()
+		}
+
+		r.pool.RefreshInvidiousInstances()
+		return nil, fmt.Errorf("gagal memutar media dari seluruh instance")
+	}
+
+	// 2. DEFAULT MODE: Invidious is primary provider
 	invInstances := r.pool.GetInvidiousInstances()
+	invidiousFailed := true
 	if len(invInstances) > 0 {
 		inst := invInstances[0]
 		res, err := r.resolveInvidious(inst, vid, q)
 		if err == nil && res.AudioURL != "" && r.isStreamURLPlayable(res.AudioURL) {
+			invidiousFailed = false
+			r.recordSuccess("invidious")
 			res.Quality = q
 			r.cache.Set(cacheKey, res)
 			return res, nil
@@ -66,10 +154,13 @@ func (r *StreamResolver) Resolve(videoID string, forceRefresh bool, quality ...s
 		r.pool.RotateInvidious()
 	}
 
-	// 2. Primary fallback: Piped instances (second in priority for fast unblocked playback)
+	// Primary fallback: Piped instances (second in priority for fast unblocked playback)
 	for _, inst := range r.pool.GetPipedInstances() {
 		res, err := r.resolvePiped(inst, vid, q)
 		if err == nil && res.AudioURL != "" && r.isStreamURLPlayable(res.AudioURL) {
+			if invidiousFailed {
+				r.recordFailover("invidious", "piped", vid)
+			}
 			res.Quality = q
 			r.cache.Set(cacheKey, res)
 			return res, nil
@@ -77,7 +168,7 @@ func (r *StreamResolver) Resolve(videoID string, forceRefresh bool, quality ...s
 		r.pool.RotatePiped()
 	}
 
-	// 3. Secondary fallback: remaining Invidious instances if Piped fails
+	// Secondary fallback: remaining Invidious instances if Piped fails
 	for i := 1; i < len(invInstances); i++ {
 		inst := invInstances[i]
 		res, err := r.resolveInvidious(inst, vid, q)
