@@ -208,3 +208,4 @@ func TestAudioProxyHandler_WithDiskCache(t *testing.T) {
 		t.Errorf("Expected range slice %q, got %q", expectedSlice, string(rangeBody))
 	}
 }
+
