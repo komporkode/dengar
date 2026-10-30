@@ -26,6 +26,8 @@ export function GetAudioCacheStats():Promise<backend.AudioCacheStats>;
 
 export function GetHomeData():Promise<main.HomeData>;
 
+export function GetPrimaryServerProvider():Promise<string>;
+
 export function GetStream(arg1:string,arg2:boolean,arg3:string):Promise<backend.StreamResult>;
 
 export function GetUserData():Promise<backend.UserData>;

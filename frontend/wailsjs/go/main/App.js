@@ -46,6 +46,10 @@ export function GetHomeData() {
   return window['go']['main']['App']['GetHomeData']();
 }
 
+export function GetPrimaryServerProvider() {
+  return window['go']['main']['App']['GetPrimaryServerProvider']();
+}
+
 export function GetStream(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetStream'](arg1, arg2, arg3);
 }
