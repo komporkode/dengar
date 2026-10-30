@@ -29,6 +29,7 @@ type App struct {
 	search        *backend.SearchService
 	resolver      *backend.StreamResolver
 	storage       *backend.StorageService
+	audioCache    *backend.AudioCacheManager
 	recCacheMutex sync.Mutex
 	cachedRec     []backend.SearchResultItem
 	lastRecFetch  time.Time
@@ -77,11 +78,16 @@ func NewApp() *App {
 	if err != nil {
 		println("Warning: failed to initialize storage:", err.Error())
 	}
+	audioCacheMgr, err := backend.NewAudioCacheManager("", 1024*1024*1024)
+	if err != nil {
+		println("Warning: failed to initialize audio cache manager:", err.Error())
+	}
 
 	return &App{
-		search:   searchSvc,
-		resolver: resolverSvc,
-		storage:  storageSvc,
+		search:     searchSvc,
+		resolver:   resolverSvc,
+		storage:    storageSvc,
+		audioCache: audioCacheMgr,
 	}
 }
 
@@ -101,9 +107,9 @@ func (a *App) SearchMore(continuationToken string) (*backend.SearchResponse, err
 	return a.search.SearchMore(continuationToken)
 }
 
-// ProxyHandler returns the HTTP handler for proxying audio streams with CORS.
+// ProxyHandler returns the HTTP handler for proxying audio streams with CORS and local cache serving.
 func (a *App) ProxyHandler() http.Handler {
-	proxy := backend.NewAudioProxyHandler()
+	proxy := backend.NewAudioProxyHandlerWithCache(a.audioCache)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/api/audio-proxy") {
 			proxy.ServeHTTP(w, r)
@@ -113,9 +119,57 @@ func (a *App) ProxyHandler() http.Handler {
 	})
 }
 
-// GetStream resolves streaming media URLs with 30-min TTL caching and quality preference ("high" or "saver").
+// GetStream resolves streaming media URLs with local disk cache check, 30-min TTL caching and quality preference ("high" or "saver").
 func (a *App) GetStream(videoID string, forceRefresh bool, quality string) (*backend.StreamResult, error) {
-	return a.resolver.Resolve(videoID, forceRefresh, quality)
+	// 1. Check local disk cache first (offline instant play)
+	if a.audioCache != nil {
+		if _, mime, found := a.audioCache.Get(videoID); found {
+			return &backend.StreamResult{
+				VideoID:  videoID,
+				AudioURL: fmt.Sprintf("/api/audio-proxy?cache_id=%s", videoID),
+				Format:   mime,
+				Quality:  quality,
+			}, nil
+		}
+	}
+
+	// 2. Resolve from upstream stream pool
+	res, err := a.resolver.Resolve(videoID, forceRefresh, quality)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Queue background full audio caching if valid stream URL exists
+	if a.audioCache != nil && res != nil && res.AudioURL != "" {
+		a.audioCache.QueueBackgroundCache(videoID, res.AudioURL, res.Title, res.Artist, res.Duration, res.Format)
+	}
+
+	return res, nil
+}
+
+// GetAudioCacheStats returns usage statistics of local audio disk cache.
+func (a *App) GetAudioCacheStats() backend.AudioCacheStats {
+	if a.audioCache == nil {
+		return backend.AudioCacheStats{}
+	}
+	return a.audioCache.GetStats()
+}
+
+// ClearAudioCache empties all cached audio files on local disk.
+func (a *App) ClearAudioCache() error {
+	if a.audioCache == nil {
+		return nil
+	}
+	return a.audioCache.Clear()
+}
+
+// SetAudioCacheLimit updates maximum disk cache size (in bytes).
+func (a *App) SetAudioCacheLimit(limitBytes int64) error {
+	if a.audioCache == nil {
+		return nil
+	}
+	a.audioCache.SetLimit(limitBytes)
+	return nil
 }
 
 // GetUserData loads bookmarks and playback history.

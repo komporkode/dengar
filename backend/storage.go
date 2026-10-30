@@ -27,7 +27,14 @@ func NewStorageService(customPath string) (*StorageService, error) {
 		if err != nil {
 			cfgDir = "."
 		}
-		dir := filepath.Join(cfgDir, "dengar")
+		dir := filepath.Join(cfgDir, "dengerin")
+		legacyDir := filepath.Join(cfgDir, "dengar")
+		// Fallback to legacy dengar folder if it exists and dengerin does not yet have userdata.json
+		if _, err := os.Stat(filepath.Join(legacyDir, "userdata.json")); err == nil {
+			if _, err := os.Stat(filepath.Join(dir, "userdata.json")); os.IsNotExist(err) {
+				dir = legacyDir
+			}
+		}
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return nil, err
 		}

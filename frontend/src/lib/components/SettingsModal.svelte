@@ -11,6 +11,12 @@
   import { currentLocale, t } from "../stores/i18nStore";
   import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime.js";
   import {
+    GetAudioCacheStats,
+    ClearAudioCache,
+    SetAudioCacheLimit,
+  } from "../../../wailsjs/go/main/App";
+  import type { backend } from "../../../wailsjs/go/models";
+  import {
     updateState,
     isCheckingUpdate,
     isDownloadingUpdate,
@@ -22,6 +28,9 @@
   } from "../stores/updateStore";
 
   let activeTab: "general" | "audio" | "about" = "general";
+  let cacheStats: backend.AudioCacheStats | null = null;
+  let isClearingCache = false;
+  let selectedLimitMb: number = 1024;
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape" && $isSettingsOpen) {
@@ -29,21 +38,66 @@
     }
   }
 
-  onMount(() => {
-    window.addEventListener("keydown", handleKeydown);
-  });
-
-  onDestroy(() => {
-    window.removeEventListener("keydown", handleKeydown);
-  });
-
-  function handleClearCache() {
+  async function loadCacheStats() {
     try {
-      showToast($t("toast_cleared_cache"));
+      const stats = await GetAudioCacheStats();
+      if (stats) {
+        cacheStats = stats;
+        selectedLimitMb =
+          stats.maxBytes > 0 ? Math.round(stats.maxBytes / (1024 * 1024)) : 0;
+      }
     } catch (e) {
-      console.warn("Clear cache error:", e);
+      console.warn("Failed to load cache stats:", e);
     }
   }
+
+  function formatBytes(bytes: number): string {
+    if (!bytes || bytes <= 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+  }
+
+  async function handleClearCache() {
+    if (isClearingCache) return;
+    isClearingCache = true;
+    try {
+      await ClearAudioCache();
+      await loadCacheStats();
+      showToast("Seluruh berkas cache audio offline berhasil dibersihkan!");
+    } catch (e) {
+      console.warn("Clear cache error:", e);
+      showToast("Gagal membersihkan cache");
+    } finally {
+      isClearingCache = false;
+    }
+  }
+
+  async function handleLimitChange(limitMb: number) {
+    selectedLimitMb = limitMb;
+    const bytes = limitMb > 0 ? limitMb * 1024 * 1024 : 0;
+    try {
+      await SetAudioCacheLimit(bytes);
+      await loadCacheStats();
+      showToast(
+        limitMb > 0
+          ? `Batas kuota cache diatur ke ${limitMb >= 1024 ? limitMb / 1024 + " GB" : limitMb + " MB"}`
+          : "Batas kuota cache dinonaktifkan (Tanpa Batas)",
+      );
+    } catch (e) {
+      console.warn("Set limit error:", e);
+    }
+  }
+
+  $: if ($isSettingsOpen && activeTab === "audio") {
+    loadCacheStats();
+  }
+
+  onMount(() => {
+    window.addEventListener("keydown", handleKeydown);
+    loadCacheStats();
+  });
 
   function openGithub() {
     try {
@@ -504,36 +558,63 @@
                 <span>{$t("quality_notice")}</span>
               </div>
 
-              <!-- Cache Clean Bar -->
+              <!-- Smart Audio Disk Cache Card -->
               <div
-                class="p-3 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between"
+                class="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-3"
               >
-                <div>
-                  <h4 class="text-xs font-bold text-white">
-                    Cache & Stream Resolver
-                  </h4>
-                  <p class="text-[10px] text-zinc-400 mt-0.5">
-                    Bersihkan data cache streaming audio sementara di perangkat
-                  </p>
-                </div>
-                <button
-                  class="px-3.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-zinc-200 hover:text-white transition cursor-pointer flex items-center gap-1.5 shrink-0"
-                  on:click={handleClearCache}
-                >
-                  <svg
-                    class="w-3 h-3 text-zinc-400"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
+                <div class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                      <h4 class="text-xs font-bold text-white">
+                        Smart Cache & Mode Offline
+                      </h4>
+                      <span
+                        class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      >
+                        {formatBytes(cacheStats?.totalBytes || 0)}
+                      </span>
+                    </div>
+                    <p class="text-[10px] text-zinc-400 mt-0.5 truncate">
+                      Lagu yang diputar otomatis tersimpan ke disk ({cacheStats?.totalFiles || 0} lagu siap putar offline)
+                    </p>
+                  </div>
+
+                  <button
+                    class="px-3 py-1.5 rounded-xl bg-crimson-600/20 hover:bg-crimson-600 border border-crimson-500/30 text-xs font-semibold text-crimson-200 hover:text-white transition cursor-pointer flex items-center gap-1.5 shrink-0 active:scale-95 disabled:opacity-50"
+                    on:click={handleClearCache}
+                    disabled={isClearingCache || !cacheStats?.totalFiles}
+                    title="Kosongkan seluruh file audio cache dari disk"
                   >
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path
-                      d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                    ></path>
-                  </svg>
-                  <span>{$t("clear_cache_btn")}</span>
-                </button>
+                    {#if isClearingCache}
+                      <svg class="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
+                        <path d="M12 2a10 10 0 0 1 10 10" />
+                      </svg>
+                      <span>Membersihkan...</span>
+                    {:else}
+                      <svg class="w-3 h-3 text-crimson-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                      <span>Bersihkan</span>
+                    {/if}
+                  </button>
+                </div>
+
+                <!-- Cache Limit Pill Selector -->
+                <div class="pt-2 border-t border-white/[0.05] flex items-center justify-between text-[11px]">
+                  <span class="text-zinc-400 text-[10px]">Batas Kapasitas Disk (LRU):</span>
+                  <div class="flex items-center gap-1">
+                    {#each [500, 1024, 2048, 0] as limit}
+                      <button
+                        class="px-2 py-0.5 rounded-lg text-[10px] font-mono transition cursor-pointer {selectedLimitMb === limit ? 'bg-white/15 text-white font-bold border border-white/20' : 'text-zinc-400 hover:text-zinc-200 bg-white/[0.03]'}"
+                        on:click={() => handleLimitChange(limit)}
+                      >
+                        {limit === 0 ? 'Unlimited' : limit >= 1024 ? (limit/1024) + ' GB' : limit + ' MB'}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
               </div>
             </div>
           {:else if activeTab === "about"}

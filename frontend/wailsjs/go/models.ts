@@ -1,5 +1,24 @@
 export namespace backend {
 	
+	export class AudioCacheStats {
+	    totalBytes: number;
+	    totalFiles: number;
+	    maxBytes: number;
+	    cacheDir: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new AudioCacheStats(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.totalBytes = source["totalBytes"];
+	        this.totalFiles = source["totalFiles"];
+	        this.maxBytes = source["maxBytes"];
+	        this.cacheDir = source["cacheDir"];
+	    }
+	}
+
 	export class SearchResultItem {
 	    id: string;
 	    title: string;

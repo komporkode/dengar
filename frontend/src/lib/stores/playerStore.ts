@@ -3,7 +3,7 @@ import type { SearchResultItem, StreamResult, PlayMode } from '../types'
 import { GetStream, RecordPlay, Search } from '../../../wailsjs/go/main/App'
 import { userDataStore } from './userDataStore'
 import { queueStore, isAutoplayEnabled } from './queueStore'
-import { audioQualityStore } from './settingsStore'
+import { audioQualityStore, showToast } from './settingsStore'
 import { equalizerStore } from './equalizerStore'
 import { networkStore } from './networkStore'
 
@@ -236,17 +236,7 @@ function createPlayerStore() {
     initAudio()
     const s = get({ subscribe })
     const activeMode = modeOverride || s.mode
-
-    if (!get(networkStore).isOnline) {
-      update(st => ({
-        ...st,
-        currentTrack: track,
-        isLoading: false,
-        isPlaying: false,
-        error: 'Koneksi internet terputus. Menunggu jaringan kembali...',
-      }))
-      return
-    }
+    const isOnline = get(networkStore).isOnline
 
     // Replay check for the exact same track (repeat-one or re-clicking current song)
     if (!forceRestart && s.currentTrack?.id === track.id && s.streamResult) {
@@ -289,6 +279,16 @@ function createPlayerStore() {
       try {
         stream = await GetStream(track.id, false, currentQuality)
       } catch (firstErr) {
+        if (!isOnline) {
+          update(st => ({
+            ...st,
+            isLoading: false,
+            isPlaying: false,
+            error: 'Lagu belum tersedia di cache offline. Sambungkan internet untuk memutar.',
+          }))
+          showToast('Lagu belum tersedia di cache offline. Sambungkan internet untuk memutar.')
+          return
+        }
         console.warn('Initial stream resolution failed, attempting with rotated instance...', firstErr)
         stream = await GetStream(track.id, true, currentQuality)
       }

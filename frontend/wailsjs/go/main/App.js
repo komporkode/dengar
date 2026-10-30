@@ -18,6 +18,10 @@ export function CheckForUpdates() {
   return window['go']['main']['App']['CheckForUpdates']();
 }
 
+export function ClearAudioCache() {
+  return window['go']['main']['App']['ClearAudioCache']();
+}
+
 export function CreatePlaylist(arg1, arg2) {
   return window['go']['main']['App']['CreatePlaylist'](arg1, arg2);
 }
@@ -32,6 +36,10 @@ export function DownloadUpdate(arg1, arg2) {
 
 export function ExportPlaylist(arg1) {
   return window['go']['main']['App']['ExportPlaylist'](arg1);
+}
+
+export function GetAudioCacheStats() {
+  return window['go']['main']['App']['GetAudioCacheStats']();
 }
 
 export function GetHomeData() {
@@ -72,6 +80,10 @@ export function Search(arg1, arg2) {
 
 export function SearchMore(arg1) {
   return window['go']['main']['App']['SearchMore'](arg1);
+}
+
+export function SetAudioCacheLimit(arg1) {
+  return window['go']['main']['App']['SetAudioCacheLimit'](arg1);
 }
 
 export function ToggleFavorite(arg1) {

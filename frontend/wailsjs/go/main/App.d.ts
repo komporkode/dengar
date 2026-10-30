@@ -11,6 +11,8 @@ export function ApplyUpdateAndRestart(arg1:string):Promise<void>;
 
 export function CheckForUpdates():Promise<main.UpdateInfo>;
 
+export function ClearAudioCache():Promise<void>;
+
 export function CreatePlaylist(arg1:string,arg2:string):Promise<backend.Playlist>;
 
 export function DeletePlaylist(arg1:string):Promise<void>;
@@ -18,6 +20,8 @@ export function DeletePlaylist(arg1:string):Promise<void>;
 export function DownloadUpdate(arg1:string,arg2:string):Promise<string>;
 
 export function ExportPlaylist(arg1:string):Promise<string>;
+
+export function GetAudioCacheStats():Promise<backend.AudioCacheStats>;
 
 export function GetHomeData():Promise<main.HomeData>;
 
@@ -38,6 +42,8 @@ export function RemoveTrackFromPlaylist(arg1:string,arg2:string):Promise<void>;
 export function Search(arg1:string,arg2:string):Promise<backend.SearchResponse>;
 
 export function SearchMore(arg1:string):Promise<backend.SearchResponse>;
+
+export function SetAudioCacheLimit(arg1:number):Promise<void>;
 
 export function ToggleFavorite(arg1:backend.SearchResultItem):Promise<boolean>;
 
