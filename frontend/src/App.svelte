@@ -470,81 +470,50 @@
       class="fixed top-14 right-5 z-50 animate-spring-up duration-300"
     >
       <div
-        class="px-4 py-3 rounded-2xl bg-[#141622]/95 border border-crimson-500/35 shadow-2xl text-xs text-white flex items-center gap-3 backdrop-blur-xl max-w-sm"
+        class="w-[390px] p-4 rounded-2xl bg-[#12131D]/95 border border-crimson-500/40 shadow-2xl text-xs text-white backdrop-blur-xl space-y-3"
       >
-        <div
-          class="w-8 h-8 rounded-xl bg-crimson-500/20 text-crimson-400 flex items-center justify-center shrink-0"
-        >
-          <svg
-            class="w-4 h-4 animate-bounce"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
-          </svg>
-        </div>
-        <div class="min-w-0 flex-1">
-          <div class="font-bold text-zinc-100 flex items-center gap-1.5">
-            <span>Versi Baru Tersedia!</span>
-            <span
-              class="text-[10px] px-1.5 py-0.2 rounded bg-crimson-500/20 text-crimson-300 font-mono font-semibold"
-              >{$updateState.latestVersion}</span
-            >
-            <span
-              class="text-[9px] px-1.5 py-0.2 rounded {$updateState.isInstalled ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'} font-mono"
-            >
-              {$updateState.isInstalled ? 'Installer' : 'Portabel'}
-            </span>
-          </div>
-          <p class="text-[11px] text-zinc-400 truncate mt-0.5">
-            Dengerin {$updateState.latestVersion} ({$updateState.isInstalled ? 'Setup .exe' : 'Portable .zip'}) siap diunduh otomatis.
-          </p>
-        </div>
-        <div class="flex items-center gap-1.5 shrink-0">
-          {#if $downloadedFilePath}
-            <button
-              class="px-2.5 py-1.5 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-semibold transition cursor-pointer text-[11px] flex items-center gap-1 shadow-sm"
-              on:click={installAndRestartUpdate}
-              title="Pasang pembaruan dan mulai ulang aplikasi"
-            >
-              <span>⚡ Pasang & Mulai Ulang</span>
-            </button>
-            <button
-              class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-zinc-200 font-semibold transition cursor-pointer text-[11px] flex items-center gap-1 shadow-sm"
-              on:click={revealDownloadedFile}
-              title="Buka folder Downloads"
-            >
-              <span>Buka Folder</span>
-            </button>
-          {:else if $isDownloadingUpdate}
+        <!-- Top Row: Icon, Titles & Close button -->
+        <div class="flex items-start justify-between gap-2.5">
+          <div class="flex items-start gap-2.5 min-w-0">
             <div
-              class="flex items-center gap-1.5 text-zinc-400 text-[11px] px-2 py-1"
+              class="w-8 h-8 rounded-xl bg-crimson-500/20 text-crimson-400 flex items-center justify-center shrink-0 border border-crimson-500/30 mt-0.5"
             >
               <svg
-                class="w-3.5 h-3.5 animate-spin text-crimson-400"
-                viewBox="0 0 24 24"
+                class="w-4 h-4 animate-bounce"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
+                viewBox="0 0 24 24"
               >
-                <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
-                <path d="M12 2a10 10 0 0 1 10 10" />
+                <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
               </svg>
-              <span>Unduh...</span>
             </div>
-          {:else}
-            <button
-              class="px-2.5 py-1.5 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-semibold transition cursor-pointer text-[11px] shadow-sm"
-              on:click={() => startDownloadUpdate()}
-              title="Unduh file .zip langsung ke folder Downloads"
-            >
-              Unduh
-            </button>
-          {/if}
+            <div class="min-w-0">
+              <div class="font-bold text-zinc-100 flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs">Versi Baru Tersedia!</span>
+                <span
+                  class="text-[10px] px-1.5 py-0.5 rounded bg-crimson-500/20 text-crimson-300 font-mono font-semibold"
+                  >{$updateState.latestVersion}</span
+                >
+                <span
+                  class="text-[9px] px-1.5 py-0.5 rounded {$updateState.isInstalled ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'} font-mono"
+                >
+                  {$updateState.isInstalled ? 'Installer' : 'Portabel'}
+                </span>
+              </div>
+              <p class="text-[11px] text-zinc-400 mt-1 leading-snug">
+                {#if $downloadedFilePath}
+                  Pembaruan siap dipasang. Klik tombol di bawah untuk mulai ulang.
+                {:else if $isDownloadingUpdate}
+                  Sedang mengunduh berkas pembaruan...
+                {:else}
+                  Dengerin {$updateState.latestVersion} ({$updateState.isInstalled ? 'Setup .exe' : 'Portable .zip'}) siap diunduh otomatis.
+                {/if}
+              </p>
+            </div>
+          </div>
           <button
-            class="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+            class="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer shrink-0 -mt-0.5 -mr-0.5"
             on:click={() => showUpdateBanner.set(false)}
             title="Tutup notifikasi"
           >
@@ -558,6 +527,50 @@
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
+        </div>
+
+        <!-- Bottom Row: Action Buttons -->
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/[0.08]">
+          {#if $downloadedFilePath}
+            <button
+              class="flex-1 py-1.5 px-3 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-semibold transition cursor-pointer text-xs flex items-center justify-center gap-1.5 shadow-md shadow-crimson-600/30"
+              on:click={installAndRestartUpdate}
+              title="Pasang pembaruan dan mulai ulang aplikasi"
+            >
+              <span>⚡ Pasang & Mulai Ulang</span>
+            </button>
+            <button
+              class="py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-200 font-semibold transition cursor-pointer text-xs flex items-center justify-center gap-1 shadow-sm shrink-0"
+              on:click={revealDownloadedFile}
+              title="Buka folder Downloads"
+            >
+              <span>Buka Folder</span>
+            </button>
+          {:else if $isDownloadingUpdate}
+            <div
+              class="flex items-center gap-2 text-zinc-300 text-xs py-1"
+            >
+              <svg
+                class="w-3.5 h-3.5 animate-spin text-crimson-400"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
+                <path d="M12 2a10 10 0 0 1 10 10" />
+              </svg>
+              <span>Mengunduh biner pembaruan...</span>
+            </div>
+          {:else}
+            <button
+              class="w-full py-1.5 px-3 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-semibold transition cursor-pointer text-xs shadow-md shadow-crimson-600/30 text-center"
+              on:click={() => startDownloadUpdate()}
+              title="Unduh paket pembaruan resmi"
+            >
+              Unduh Pembaruan ({$updateState.isInstalled ? 'Installer .exe' : 'Portable .zip'})
+            </button>
+          {/if}
         </div>
       </div>
     </aside>

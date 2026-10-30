@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	goruntime "runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -395,6 +396,41 @@ func (a *App) getHomeDataInternal(forceRefresh bool) (*HomeData, error) {
 	return result, nil
 }
 
+// isVersionNewer returns true if candidate is strictly newer than current according to semantic versioning.
+func isVersionNewer(candidate, current string) bool {
+	cleanCandidate := strings.TrimPrefix(strings.TrimSpace(candidate), "v")
+	cleanCurrent := strings.TrimPrefix(strings.TrimSpace(current), "v")
+
+	if cleanCandidate == "" || cleanCandidate == cleanCurrent {
+		return false
+	}
+
+	partsCandidate := strings.Split(cleanCandidate, ".")
+	partsCurrent := strings.Split(cleanCurrent, ".")
+
+	maxLen := len(partsCandidate)
+	if len(partsCurrent) > maxLen {
+		maxLen = len(partsCurrent)
+	}
+
+	for i := 0; i < maxLen; i++ {
+		var numCand, numCurr int
+		if i < len(partsCandidate) {
+			numCand, _ = strconv.Atoi(partsCandidate[i])
+		}
+		if i < len(partsCurrent) {
+			numCurr, _ = strconv.Atoi(partsCurrent[i])
+		}
+		if numCand > numCurr {
+			return true
+		}
+		if numCand < numCurr {
+			return false
+		}
+	}
+	return false
+}
+
 // CheckForUpdates checks GitHub releases API for newer version of Dengerin.
 func (a *App) CheckForUpdates() (*UpdateInfo, error) {
 	const currentVersion = "v1.1.1"
@@ -437,7 +473,7 @@ func (a *App) CheckForUpdates() (*UpdateInfo, error) {
 		return &UpdateInfo{CurrentVersion: currentVersion, HasUpdate: false, IsInstalled: isInstalled}, nil
 	}
 
-	hasUpdate := release.TagName != "" && release.TagName != currentVersion
+	hasUpdate := isVersionNewer(release.TagName, currentVersion)
 
 	var assets []UpdateAsset
 	var installerURL, installerFileName string
@@ -619,9 +655,12 @@ func (a *App) ApplyUpdateAndRestart(filePath string) error {
 	case "windows":
 		// Case 1: Downloaded asset is an installer (.exe)
 		if ext == ".exe" {
-			cmd := exec.Command("cmd.exe", "/c", "start", "", cleanPath)
-			if err := cmd.Start(); err != nil {
-				return fmt.Errorf("gagal memulai installer: %w", err)
+			isProtected := strings.Contains(strings.ToLower(execPath), "program files")
+			if isProtected {
+				psCmd := fmt.Sprintf(`Start-Process -FilePath "%s" -Verb RunAs`, cleanPath)
+				_ = exec.Command("powershell.exe", "-NoProfile", "-WindowStyle", "Hidden", "-Command", psCmd).Start()
+			} else {
+				_ = exec.Command("cmd.exe", "/c", "start", "", cleanPath).Start()
 			}
 			go func() {
 				time.Sleep(500 * time.Millisecond)
@@ -630,7 +669,7 @@ func (a *App) ApplyUpdateAndRestart(filePath string) error {
 			return nil
 		}
 
-		// Case 2: Downloaded asset is a .zip archive - extract dengar.exe in-place and run updater
+		// Case 2: Downloaded asset is a .zip archive - extract biner to %TEMP% and run updater
 		if ext == ".zip" {
 			r, err := zip.OpenReader(cleanPath)
 			if err != nil {
@@ -638,8 +677,8 @@ func (a *App) ApplyUpdateAndRestart(filePath string) error {
 			}
 			defer r.Close()
 
-			appDir := filepath.Dir(execPath)
-			updateExePath := filepath.Join(appDir, "dengerin_new.exe")
+			tempDir := os.TempDir()
+			updateExePath := filepath.Join(tempDir, fmt.Sprintf("dengerin_new_%d.exe", time.Now().UnixNano()))
 
 			var foundExe bool
 			for _, f := range r.File {
@@ -671,7 +710,6 @@ func (a *App) ApplyUpdateAndRestart(filePath string) error {
 			}
 
 			// Generate robust updater batch script in %TEMP%
-			tempDir := os.TempDir()
 			updaterBat := filepath.Join(tempDir, fmt.Sprintf("dengerin_updater_%d.bat", time.Now().UnixNano()))
 			pid := os.Getpid()
 			baseName := filepath.Base(execPath)
@@ -730,6 +768,7 @@ if not exist "!CURR!" (
 start "" "!CURR!"
 
 :cleanup
+if exist "!NEW!" del /f /q "!NEW!" >NUL 2>&1
 (goto) 2>nul & del "%%~f0"
 `, pid, updateExePath, execPath, execPath, baseName, baseName)
 
@@ -737,10 +776,19 @@ start "" "!CURR!"
 				return fmt.Errorf("gagal membuat script updater: %w", err)
 			}
 
-			// Run updater script in background detached
-			cmd := exec.Command("cmd.exe", "/c", updaterBat)
-			if err := cmd.Start(); err != nil {
-				return fmt.Errorf("gagal mengeksekusi updater: %w", err)
+			// Run updater script: if in Program Files, launch elevated via RunAs
+			isProtected := strings.Contains(strings.ToLower(execPath), "program files")
+			if isProtected {
+				psCmd := fmt.Sprintf(`Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "`+"`\"%s`\""+`" -Verb RunAs`, updaterBat)
+				cmd := exec.Command("powershell.exe", "-NoProfile", "-WindowStyle", "Hidden", "-Command", psCmd)
+				if err := cmd.Start(); err != nil {
+					_ = exec.Command("cmd.exe", "/c", updaterBat).Start()
+				}
+			} else {
+				cmd := exec.Command("cmd.exe", "/c", updaterBat)
+				if err := cmd.Start(); err != nil {
+					return fmt.Errorf("gagal mengeksekusi updater: %w", err)
+				}
 			}
 
 			go func() {

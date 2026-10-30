@@ -54,3 +54,32 @@ func TestPlaylistExportImport(t *testing.T) {
 		t.Fatalf("Imported playlist mismatch: %+v", imported)
 	}
 }
+
+func TestIsVersionNewer(t *testing.T) {
+	tests := []struct {
+		candidate string
+		current   string
+		expected  bool
+	}{
+		// Downgrade or same version should NOT trigger update
+		{"v1.1.0", "v1.1.1", false},
+		{"v1.1.1", "v1.1.1", false},
+		{"1.1.0", "v1.1.1", false},
+		{"1.0.9", "1.1.1", false},
+		{"", "v1.1.1", false},
+
+		// Upgrade SHOULD trigger update
+		{"v1.1.2", "v1.1.1", true},
+		{"v1.2.0", "v1.1.1", true},
+		{"v2.0.0", "v1.1.1", true},
+		{"1.1.2", "v1.1.1", true},
+		{"v1.1.10", "v1.1.9", true},
+	}
+
+	for _, tc := range tests {
+		actual := isVersionNewer(tc.candidate, tc.current)
+		if actual != tc.expected {
+			t.Errorf("isVersionNewer(%q, %q) = %v; expected %v", tc.candidate, tc.current, actual, tc.expected)
+		}
+	}
+}
