@@ -48,6 +48,8 @@
   import AddToPlaylistModal from "./lib/components/AddToPlaylistModal.svelte";
   import PlaylistShareModal from "./lib/components/PlaylistShareModal.svelte";
   import WhatsNewModal from "./lib/components/WhatsNewModal.svelte";
+  import NetworkBanner from "./lib/components/NetworkBanner.svelte";
+  import { networkStore } from "./lib/stores/networkStore";
   import { activePlaylistId } from "./lib/stores/playlistStore";
 
   let activeTab: NavigationTab = "search";
@@ -130,6 +132,12 @@
 
   async function performSearch(query: string, filter: SearchFilter) {
     if (!query) {
+      searchResults = [];
+      continuationToken = "";
+      return;
+    }
+    if (!$networkStore.isOnline) {
+      searchError = "Perangkat sedang offline. Sambungkan internet untuk mencari lagu.";
       searchResults = [];
       continuationToken = "";
       return;
@@ -372,6 +380,9 @@
       </button>
     </div>
   </header>
+
+  <!-- Network Connectivity Banner (Offline / Weak / Restored) -->
+  <NetworkBanner />
 
   <!-- Application Body Layout -->
   <div class="flex flex-1 overflow-hidden relative">

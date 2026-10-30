@@ -11,6 +11,7 @@
     isTransitioning
   } from '../stores/settingsStore'
   import { t } from '../stores/i18nStore'
+  import { networkStore } from '../stores/networkStore'
 
   $: currentTrack = $playerStore.currentTrack
   $: isPlaying = $playerStore.isPlaying
@@ -88,7 +89,11 @@
         <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-zinc-400 border border-white/5">Mini</span>
       {/if}
 
-      <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 shrink-0">HQ</span>
+      {#if !$networkStore.isOnline}
+        <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-crimson-500/20 text-crimson-400 font-semibold border border-crimson-500/30 shrink-0">Offline</span>
+      {:else}
+        <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 shrink-0">HQ</span>
+      {/if}
     </div>
 
     <!-- Right: Unified Capsule / Pill Toolbar for Pin & Restore -->

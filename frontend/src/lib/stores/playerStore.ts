@@ -5,6 +5,7 @@ import { userDataStore } from './userDataStore'
 import { queueStore, isAutoplayEnabled } from './queueStore'
 import { audioQualityStore } from './settingsStore'
 import { equalizerStore } from './equalizerStore'
+import { networkStore } from './networkStore'
 
 const STORAGE_VOLUME_KEY = 'dengar_player_volume'
 const STORAGE_MUTED_KEY = 'dengar_player_muted'
@@ -199,6 +200,15 @@ function createPlayerStore() {
   // Initialize singleton audio instance in browser environment
   initAudio()
 
+  // Auto-recovery when device reconnects to internet
+  networkStore.onReconnect(() => {
+    const s = get({ subscribe })
+    if (s.currentTrack && s.error && s.error.includes('Koneksi internet')) {
+      console.log('[Auto-Recovery] Network restored! Resuming track:', s.currentTrack.title)
+      retryWithDifferentSource()
+    }
+  })
+
   function applyVolumeToAudio() {
     if (!audio) return
     const s = get({ subscribe })
@@ -226,6 +236,17 @@ function createPlayerStore() {
     initAudio()
     const s = get({ subscribe })
     const activeMode = modeOverride || s.mode
+
+    if (!get(networkStore).isOnline) {
+      update(st => ({
+        ...st,
+        currentTrack: track,
+        isLoading: false,
+        isPlaying: false,
+        error: 'Koneksi internet terputus. Menunggu jaringan kembali...',
+      }))
+      return
+    }
 
     // Replay check for the exact same track (repeat-one or re-clicking current song)
     if (!forceRestart && s.currentTrack?.id === track.id && s.streamResult) {
@@ -309,6 +330,18 @@ function createPlayerStore() {
   async function handleMediaError() {
     initAudio()
     const s = get({ subscribe })
+
+    if (!get(networkStore).isOnline) {
+      console.warn('[Player] Media error while offline, waiting for connection...')
+      update(st => ({
+        ...st,
+        isLoading: false,
+        isPlaying: false,
+        error: 'Koneksi internet terputus. Pemutaran akan dilanjutkan otomatis saat kembali online.',
+      }))
+      return
+    }
+
     if (!s.currentTrack || s.retryCount >= 3) {
       update(st => ({
         ...st,
