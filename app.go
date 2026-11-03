@@ -202,6 +202,21 @@ func (a *App) PurgeTrackCache(videoID string) {
 	}
 }
 
+// ShowAppWindow restores and shows the main application window.
+func (a *App) ShowAppWindow() {
+	if a.ctx != nil {
+		wailsRuntime.WindowShow(a.ctx)
+		wailsRuntime.WindowUnminimise(a.ctx)
+	}
+}
+
+// HideAppWindow hides the main application window to background tray.
+func (a *App) HideAppWindow() {
+	if a.ctx != nil {
+		wailsRuntime.WindowHide(a.ctx)
+	}
+}
+
 // GetUserData loads bookmarks and playback history.
 func (a *App) GetUserData() (*backend.UserData, error) {
 	if a.storage == nil {

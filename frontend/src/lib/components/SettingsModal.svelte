@@ -7,6 +7,10 @@
     isWhatsNewOpen,
     audioQualityStore,
     showToast,
+    closeActionStore,
+    isDiscordRpcEnabled,
+    crossfadeDurationStore,
+    type CloseAction,
   } from "../stores/settingsStore";
   import { currentLocale, t } from "../stores/i18nStore";
   import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime.js";
@@ -372,6 +376,80 @@
                     {/if}
                   </button>
                 </div>
+              </div>
+
+              <!-- Close Button Action Preference -->
+              <div>
+                <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
+                  Tindakan Tombol Tutup ('X')
+                </span>
+                <div class="grid grid-cols-3 gap-2 mt-1.5">
+                  <button
+                    class="py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer {$closeActionStore === 'ask'
+                      ? 'bg-crimson-500/15 border-crimson-500 text-white font-semibold'
+                      : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'}"
+                    on:click={() => {
+                      closeActionStore.set('ask');
+                      showToast('Tombol Tutup: Tanya Setiap Kali');
+                    }}
+                  >
+                    <div class="text-[11px] leading-tight font-medium">Tanya Selalu</div>
+                    <div class="text-[9px] text-zinc-500 mt-0.5">Prompt Dialog</div>
+                  </button>
+
+                  <button
+                    class="py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer {$closeActionStore === 'tray'
+                      ? 'bg-crimson-500/15 border-crimson-500 text-white font-semibold'
+                      : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'}"
+                    on:click={() => {
+                      closeActionStore.set('tray');
+                      showToast('Tombol Tutup: Sembunyi ke Background');
+                    }}
+                  >
+                    <div class="text-[11px] leading-tight font-medium">System Tray</div>
+                    <div class="text-[9px] text-zinc-500 mt-0.5">Jalan Background</div>
+                  </button>
+
+                  <button
+                    class="py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer {$closeActionStore === 'quit'
+                      ? 'bg-crimson-500/15 border-crimson-500 text-white font-semibold'
+                      : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'}"
+                    on:click={() => {
+                      closeActionStore.set('quit');
+                      showToast('Tombol Tutup: Langsung Keluar');
+                    }}
+                  >
+                    <div class="text-[11px] leading-tight font-medium">Keluar</div>
+                    <div class="text-[9px] text-zinc-500 mt-0.5">Tutup Total</div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Discord Rich Presence Switch -->
+              <div class="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-xl bg-[#5865F2]/20 text-[#5865F2] flex items-center justify-center font-bold text-xs">
+                    🎮
+                  </span>
+                  <div>
+                    <div class="text-xs font-bold text-white leading-tight">Discord Rich Presence</div>
+                    <div class="text-[10px] text-zinc-400">Tampilkan judul & status pemutaran di profil Discord</div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  on:click={() => {
+                    const next = !$isDiscordRpcEnabled;
+                    isDiscordRpcEnabled.set(next);
+                    showToast(next ? 'Discord Rich Presence Diaktifkan' : 'Discord Rich Presence Dinonaktifkan');
+                  }}
+                  class="w-10 h-5 rounded-full transition-colors relative cursor-pointer {$isDiscordRpcEnabled ? 'bg-crimson-600' : 'bg-white/10'}"
+                  aria-label="Toggle Discord RPC"
+                >
+                  <span
+                    class="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform {$isDiscordRpcEnabled ? 'left-5' : 'left-0.5'}"
+                  ></span>
+                </button>
               </div>
 
               <!-- Shortcut Reference Card -->

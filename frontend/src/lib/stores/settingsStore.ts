@@ -267,3 +267,36 @@ export async function exitMiniPlayer() {
     }, 100)
   }
 }
+
+// Window close confirmation & background tray behavior
+export type CloseAction = 'ask' | 'tray' | 'quit'
+const savedCloseAction = (typeof localStorage !== 'undefined' ? localStorage.getItem('dengar_close_action') : null) as CloseAction | null
+export const closeActionStore = writable<CloseAction>(savedCloseAction || 'ask')
+
+closeActionStore.subscribe((val) => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('dengar_close_action', val)
+  }
+})
+
+export const isCloseConfirmOpen = writable<boolean>(false)
+
+// Discord Rich Presence toggle store
+const savedDiscordRpc = typeof localStorage !== 'undefined' ? localStorage.getItem('dengar_discord_rpc') !== 'false' : true
+export const isDiscordRpcEnabled = writable<boolean>(savedDiscordRpc)
+
+isDiscordRpcEnabled.subscribe((enabled) => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('dengar_discord_rpc', String(enabled))
+  }
+})
+
+// Crossfade duration store (0 - 10 seconds, default 3s)
+const savedCrossfade = typeof localStorage !== 'undefined' ? Number(localStorage.getItem('dengar_crossfade') || '3') : 3
+export const crossfadeDurationStore = writable<number>(isNaN(savedCrossfade) ? 3 : Math.max(0, Math.min(10, savedCrossfade)))
+
+crossfadeDurationStore.subscribe((dur) => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('dengar_crossfade', String(dur))
+  }
+})

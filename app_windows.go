@@ -20,6 +20,7 @@ var (
 
 	modShell32          = syscall.NewLazyDLL("shell32.dll")
 	procSHChangeNotify  = modShell32.NewProc("SHChangeNotify")
+	procShellNotifyIconW = modShell32.NewProc("Shell_NotifyIconW")
 )
 
 const (
@@ -31,7 +32,28 @@ const (
 
 	shcneAssocChanged = 0x08000000
 	shcnfIdList       = 0x0000
+
+	nimAdd    = 0x00000000
+	nimModify = 0x00000001
+	nimDelete = 0x00000002
+
+	nifMessage = 0x00000001
+	nifIcon    = 0x00000002
+	nifTip     = 0x00000004
+	wmApp      = 0x8000
 )
+
+type notifyIconDataW struct {
+	cbSize           uint32
+	hWnd             uintptr
+	uID              uint32
+	uFlags           uint32
+	uCallbackMessage uint32
+	hIcon            uintptr
+	szTip            [128]uint16
+}
+
+var globalHwnd uintptr
 
 var (
 	gclpHIcon   int32 = -14
@@ -109,9 +131,40 @@ func setupWindowsAppIcon() {
 				procSetClassLongPtrW.Call(hwnd, uintptr(gclpHIconSm), hIconSmall)
 			}
 
+			// Save global handle and initialize tray
+			globalHwnd = hwnd
+			if hIconSmall != 0 {
+				setupWindowsTray(hwnd, hIconSmall)
+			}
+
 			// Notify Windows Shell to refresh any cached taskbar icons
 			procSHChangeNotify.Call(shcneAssocChanged, shcnfIdList, 0, 0)
 			return
 		}
 	}()
+}
+
+func setupWindowsTray(hwnd uintptr, hIcon uintptr) {
+	var nid notifyIconDataW
+	nid.cbSize = uint32(unsafe.Sizeof(nid))
+	nid.hWnd = hwnd
+	nid.uID = 1001
+	nid.uFlags = nifMessage | nifIcon | nifTip
+	nid.uCallbackMessage = wmApp + 101
+	nid.hIcon = hIcon
+
+	tip, _ := syscall.UTF16FromString("Dengerin Desktop")
+	copy(nid.szTip[:], tip)
+
+	procShellNotifyIconW.Call(uintptr(nimAdd), uintptr(unsafe.Pointer(&nid)))
+}
+
+func removeWindowsTray() {
+	if globalHwnd != 0 {
+		var nid notifyIconDataW
+		nid.cbSize = uint32(unsafe.Sizeof(nid))
+		nid.hWnd = globalHwnd
+		nid.uID = 1001
+		procShellNotifyIconW.Call(uintptr(nimDelete), uintptr(unsafe.Pointer(&nid)))
+	}
 }

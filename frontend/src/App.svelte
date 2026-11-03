@@ -8,6 +8,7 @@
   import { Search, SearchMore } from "../wailsjs/go/main/App";
   import {
     Quit,
+    WindowHide,
     WindowMinimise,
     WindowToggleMaximise,
   } from "../wailsjs/runtime/runtime.js";
@@ -21,6 +22,9 @@
     enterMiniPlayer,
     isTransitioning,
     isWhatsNewOpen,
+    closeActionStore,
+    isCloseConfirmOpen,
+    showToast,
   } from "./lib/stores/settingsStore";
   import {
     updateState,
@@ -48,6 +52,7 @@
   import AddToPlaylistModal from "./lib/components/AddToPlaylistModal.svelte";
   import PlaylistShareModal from "./lib/components/PlaylistShareModal.svelte";
   import WhatsNewModal from "./lib/components/WhatsNewModal.svelte";
+  import CloseConfirmModal from "./lib/components/CloseConfirmModal.svelte";
   import NetworkBanner from "./lib/components/NetworkBanner.svelte";
   import { networkStore } from "./lib/stores/networkStore";
   import { activePlaylistId } from "./lib/stores/playlistStore";
@@ -195,9 +200,17 @@
 
   function handleWindowClose() {
     try {
-      Quit();
+      const action = $closeActionStore;
+      if (action === "ask") {
+        isCloseConfirmOpen.set(true);
+      } else if (action === "tray") {
+        WindowHide();
+        showToast("Dengerin tetap berputar di background.");
+      } else {
+        Quit();
+      }
     } catch (e) {
-      console.warn("Wails Quit error:", e);
+      console.warn("Wails Window close error:", e);
     }
   }
 
@@ -617,4 +630,7 @@
 
   <!-- What's New Release Popup -->
   <WhatsNewModal isOpen={$isWhatsNewOpen} onClose={handleCloseWhatsNew} />
+
+  <!-- Close Confirmation Dialog -->
+  <CloseConfirmModal />
 </div>
