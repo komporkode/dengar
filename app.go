@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -428,59 +429,16 @@ func (a *App) getHomeDataInternal(forceRefresh bool) (*HomeData, error) {
 	})
 
 	var topArtists []string
-	for i := 0; i < len(scoredList) && i < 4; i++ {
+	for i := 0; i < len(scoredList) && i < 6; i++ {
 		topArtists = append(topArtists, scoredList[i].name)
 	}
 
-	var recTracks []backend.SearchResultItem
 	seenIDs := make(map[string]bool)
 	for _, item := range top {
 		seenIDs[item.ID] = true
 	}
 
-	// Fetch tracks from user's actual favorite artists
-	if len(topArtists) > 0 {
-		for _, artist := range topArtists {
-			resp, err := a.search.Search(artist, "music")
-			if err == nil && resp != nil {
-				for _, item := range resp.Items {
-					if !seenIDs[item.ID] {
-						seenIDs[item.ID] = true
-						recTracks = append(recTracks, item)
-						if len(recTracks) >= 16 {
-							break
-						}
-					}
-				}
-			}
-			if len(recTracks) >= 16 {
-				break
-			}
-		}
-	}
-
-	// Cold-start fallback for new users with little/no history:
-	// Use curated regional & popular queries rather than bare generic queries
-	if len(recTracks) < 6 {
-		fallbacks := []string{"Top Hits Indonesia", "Lagu Populer Indonesia", "Viral Music Hits"}
-		for _, q := range fallbacks {
-			resp, err := a.search.Search(q, "music")
-			if err == nil && resp != nil {
-				for _, item := range resp.Items {
-					if !seenIDs[item.ID] {
-						seenIDs[item.ID] = true
-						recTracks = append(recTracks, item)
-						if len(recTracks) >= 16 {
-							break
-						}
-					}
-				}
-			}
-			if len(recTracks) >= 16 {
-				break
-			}
-		}
-	}
+	recTracks := buildRecommendedTracks(topArtists, a.search.Search, seenIDs)
 
 	a.recCacheMutex.Lock()
 	a.cachedRec = recTracks
@@ -489,6 +447,137 @@ func (a *App) getHomeDataInternal(forceRefresh bool) (*HomeData, error) {
 
 	result.Recommended = recTracks
 	return result, nil
+}
+
+// buildRecommendedTracks builds a diverse, interleaved multi-artist FYP recommendation feed.
+// It limits each artist to at most 2 tracks, fetches mixes/related tracks, and shuffles the result.
+func buildRecommendedTracks(
+	topArtists []string,
+	searchFn func(query, filterType string) (*backend.SearchResponse, error),
+	seenIDs map[string]bool,
+) []backend.SearchResultItem {
+	if seenIDs == nil {
+		seenIDs = make(map[string]bool)
+	}
+
+	type artistPool struct {
+		artist string
+		items  []backend.SearchResultItem
+	}
+
+	var pools []artistPool
+	maxArtists := 6
+	if len(topArtists) < maxArtists {
+		maxArtists = len(topArtists)
+	}
+
+	for i := 0; i < maxArtists; i++ {
+		artist := topArtists[i]
+		query := artist
+		if i%2 == 1 {
+			query = artist + " mix"
+		}
+		resp, err := searchFn(query, "music")
+		if err == nil && resp != nil && len(resp.Items) > 0 {
+			var valid []backend.SearchResultItem
+			for _, item := range resp.Items {
+				if !seenIDs[item.ID] {
+					valid = append(valid, item)
+					if len(valid) >= 4 {
+						break
+					}
+				}
+			}
+			if len(valid) > 0 {
+				pools = append(pools, artistPool{artist: artist, items: valid})
+			}
+		}
+	}
+
+	// Cold-start fallback if user has few or no artists
+	if len(pools) < 3 {
+		fallbacks := []string{"Top Hits Indonesia", "Viral Music Hits", "Lagu Populer Indonesia", "Indie Music Indonesia"}
+		for _, q := range fallbacks {
+			resp, err := searchFn(q, "music")
+			if err == nil && resp != nil && len(resp.Items) > 0 {
+				var valid []backend.SearchResultItem
+				for _, item := range resp.Items {
+					if !seenIDs[item.ID] {
+						valid = append(valid, item)
+						if len(valid) >= 3 {
+							break
+						}
+					}
+				}
+				if len(valid) > 0 {
+					pools = append(pools, artistPool{artist: q, items: valid})
+				}
+			}
+			if len(pools) >= 5 {
+				break
+			}
+		}
+	}
+
+	// Multi-artist round-robin interleaving (max 2 songs per artist)
+	var interleaved []backend.SearchResultItem
+	artistCounts := make(map[string]int)
+
+	for round := 0; round < 2; round++ {
+		for _, pool := range pools {
+			var picked *backend.SearchResultItem
+			for _, item := range pool.items {
+				if !seenIDs[item.ID] {
+					currentCount := artistCounts[item.UploaderName]
+					if currentCount < 2 {
+						picked = &item
+						break
+					}
+				}
+			}
+			if picked != nil {
+				seenIDs[picked.ID] = true
+				artistCounts[picked.UploaderName]++
+				interleaved = append(interleaved, *picked)
+				if len(interleaved) >= 16 {
+					break
+				}
+			}
+		}
+		if len(interleaved) >= 16 {
+			break
+		}
+	}
+
+	// In case we still have room (< 12), fill with any remaining unseen items obeying the cap
+	if len(interleaved) < 12 {
+		for _, pool := range pools {
+			for _, item := range pool.items {
+				if !seenIDs[item.ID] && artistCounts[item.UploaderName] < 2 {
+					seenIDs[item.ID] = true
+					artistCounts[item.UploaderName]++
+					interleaved = append(interleaved, item)
+					if len(interleaved) >= 16 {
+						break
+					}
+				}
+			}
+			if len(interleaved) >= 16 {
+				break
+			}
+		}
+	}
+
+	// Fisher-Yates dynamic shuffle so feed feels fresh on each refresh
+	if len(interleaved) > 1 {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		for i := len(interleaved) - 1; i > 0; i-- {
+			j := r.Intn(i + 1)
+			interleaved[i], interleaved[j] = interleaved[j], interleaved[i]
+		}
+	}
+
+	return interleaved
 }
 
 // isVersionNewer returns true if candidate is strictly newer than current according to semantic versioning.
