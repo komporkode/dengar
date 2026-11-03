@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ImportExternalPlaylist } from '../../../wailsjs/go/main/App'
   import { fade, scale } from 'svelte/transition'
   import { cubicOut } from 'svelte/easing'
   import { sharingPlaylist, isImportPlaylistOpen, activePlaylistId } from '../stores/playlistStore'
@@ -78,14 +79,30 @@
 
     isProcessing = true
     try {
-      const pl = await userDataStore.importPlaylist(trimmed)
-      if (pl) {
-        activePlaylistId.set(pl.id)
-        showToast(`Berhasil mengimpor playlist "${pl.name}"!`)
+      const isURL = trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.includes('spotify.com') || trimmed.includes('youtube.com') || trimmed.includes('youtu.be')
+      if (isURL) {
+        const res = await ImportExternalPlaylist(trimmed)
+        if (!res || !res.tracks || res.tracks.length === 0) {
+          throw new Error('Tidak ada lagu yang ditemukan pada tautan ini')
+        }
+        const pl = await userDataStore.createPlaylist(res.name || 'Playlist Impor', res.description || '')
+        if (pl) {
+          for (const track of res.tracks) {
+            await userDataStore.addTrackToPlaylist(pl.id, track)
+          }
+          activePlaylistId.set(pl.id)
+          showToast(`Berhasil mengimpor "${res.name}" (${res.tracks.length} lagu)!`)
+        }
+      } else {
+        const pl = await userDataStore.importPlaylist(trimmed)
+        if (pl) {
+          activePlaylistId.set(pl.id)
+          showToast(`Berhasil mengimpor playlist "${pl.name}"!`)
+        }
       }
       handleClose()
     } catch (e: any) {
-      showToast(e?.message || 'Format kode atau file tidak valid')
+      showToast(e?.message || 'Format kode atau tautan tidak valid')
     } finally {
       isProcessing = false
     }
@@ -204,10 +221,13 @@
             <textarea
               id="import-payload"
               bind:value={importPayload}
-              placeholder="Tempel kode Base64 atau isi JSON playlist di sini..."
+              placeholder="Tempel tautan YouTube/Spotify, kode Base64, atau JSON playlist di sini..."
               rows="4"
               class="w-full bg-[#181A24] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus:border-crimson-500/60 focus:ring-1 focus:ring-crimson-500/60 transition resize-none"
             ></textarea>
+            <p class="text-[11px] text-zinc-400 mt-1.5">
+              Mendukung URL playlist YouTube & Spotify, berkas JSON, atau kode Dengerin.
+            </p>
           </div>
 
           <div class="flex items-center justify-between border-t border-white/[0.08] pt-3">

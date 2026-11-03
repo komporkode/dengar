@@ -65,3 +65,5 @@ export function SetDiscordRPCEnabled(arg1:boolean):Promise<void>;
 export function UpdateDiscordActivity(arg1:string,arg2:string,arg3:number,arg4:number,arg5:boolean):Promise<void>;
 
 export function ClearDiscordActivity():Promise<void>;
+
+export function ImportExternalPlaylist(arg1:string):Promise<backend.ImportedPlaylistResult>;

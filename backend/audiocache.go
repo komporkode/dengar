@@ -538,7 +538,10 @@ func (m *AudioCacheManager) sanitizeCacheDir() {
 		fullPath := filepath.Join(m.dir, name)
 
 		if strings.HasSuffix(name, ".tmp") {
-			_ = os.Remove(fullPath)
+			info, err := entry.Info()
+			if err == nil && time.Since(info.ModTime()) > 5*time.Minute {
+				_ = os.Remove(fullPath)
+			}
 			continue
 		}
 

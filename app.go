@@ -29,12 +29,13 @@ type App struct {
 	ctx           context.Context
 	search        *backend.SearchService
 	resolver      *backend.StreamResolver
-	storage       *backend.StorageService
-	audioCache    *backend.AudioCacheManager
-	discord       *backend.DiscordService
-	recCacheMutex sync.Mutex
-	cachedRec     []backend.SearchResultItem
-	lastRecFetch  time.Time
+	storage          *backend.StorageService
+	audioCache       *backend.AudioCacheManager
+	discord          *backend.DiscordService
+	playlistImporter *backend.PlaylistImportService
+	recCacheMutex    sync.Mutex
+	cachedRec        []backend.SearchResultItem
+	lastRecFetch     time.Time
 }
 
 // HomeData holds sections for the personalized home feed.
@@ -88,13 +89,15 @@ func NewApp() *App {
 		audioCacheMgr.SetPinnedFunc(storageSvc.GetPinnedTrackIDs)
 	}
 	discordSvc := backend.NewDiscordService("")
+	playlistImportSvc := backend.NewPlaylistImportService()
 
 	return &App{
-		search:     searchSvc,
-		resolver:   resolverSvc,
-		storage:    storageSvc,
-		audioCache: audioCacheMgr,
-		discord:    discordSvc,
+		search:           searchSvc,
+		resolver:         resolverSvc,
+		storage:          storageSvc,
+		audioCache:       audioCacheMgr,
+		discord:          discordSvc,
+		playlistImporter: playlistImportSvc,
 	}
 }
 
@@ -398,6 +401,14 @@ func (a *App) ImportPlaylist(payload string) (*backend.Playlist, error) {
 	}
 
 	return pl, nil
+}
+
+// ImportExternalPlaylist fetches an external playlist from YouTube or Spotify embed and returns its tracklist.
+func (a *App) ImportExternalPlaylist(rawURL string) (*backend.ImportedPlaylistResult, error) {
+	if a.playlistImporter == nil {
+		return nil, fmt.Errorf("layanan impor playlist tidak tersedia")
+	}
+	return a.playlistImporter.Import(rawURL)
 }
 
 // GetHomeData returns personalized recommendations and frequently played tracks with 2-hour cache.

@@ -126,3 +126,7 @@ export function ClearDiscordActivity() {
   return window['go']['main']['App']['ClearDiscordActivity']();
 }
 
+export function ImportExternalPlaylist(arg1) {
+  return window['go']['main']['App']['ImportExternalPlaylist'](arg1);
+}
+
