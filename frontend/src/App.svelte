@@ -51,6 +51,7 @@
   import NetworkBanner from "./lib/components/NetworkBanner.svelte";
   import { networkStore } from "./lib/stores/networkStore";
   import { activePlaylistId } from "./lib/stores/playlistStore";
+  import { mediaSessionService } from "./lib/services/mediaSessionService";
 
   let activeTab: NavigationTab = "search";
   let searchQuery = "";
@@ -65,6 +66,9 @@
   let handleScrollActivity: (e: Event) => void;
 
   onMount(async () => {
+    // 0. Initialize hardware media keys and OS SMTC
+    mediaSessionService.init();
+
     // 1. Load user favorites & history from backend JSON storage
     await userDataStore.load();
 
