@@ -622,6 +622,58 @@ function createPlayerStore() {
     }
   }
 
+  function pause() {
+    initAudio()
+    if (audio && !audio.paused) {
+      audio.pause()
+      update(st => ({ ...st, isPlaying: false }))
+    }
+  }
+
+  let activeFadeInterval: any = null
+
+  function fadeVolumeToZero(durationMs: number = 5000, onComplete?: () => void) {
+    if (activeFadeInterval) {
+      clearInterval(activeFadeInterval)
+      activeFadeInterval = null
+    }
+    if (!audio) {
+      if (onComplete) onComplete()
+      return
+    }
+    const startVol = audio.volume
+    const steps = 25
+    const stepInterval = Math.max(20, Math.floor(durationMs / steps))
+    let currentStep = 0
+
+    activeFadeInterval = setInterval(() => {
+      currentStep++
+      const progress = currentStep / steps
+      const newVol = Math.max(0, startVol * (1 - progress))
+      if (audio) {
+        audio.volume = newVol
+      }
+      if (currentStep >= steps) {
+        clearInterval(activeFadeInterval)
+        activeFadeInterval = null
+        if (onComplete) onComplete()
+        if (audio) {
+          audio.volume = startVol
+        }
+      }
+    }, stepInterval)
+  }
+
+  function cancelVolumeFade() {
+    if (activeFadeInterval) {
+      clearInterval(activeFadeInterval)
+      activeFadeInterval = null
+      if (audio) {
+        audio.volume = lastNonZeroVolume
+      }
+    }
+  }
+
   function seek(time: number) {
     initAudio()
     if (audio) {
@@ -819,6 +871,9 @@ function createPlayerStore() {
     bindVideo,
     playTrack,
     togglePlay,
+    pause,
+    fadeVolumeToZero,
+    cancelVolumeFade,
     seek,
     setVolume,
     adjustVolume,

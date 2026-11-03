@@ -6,6 +6,7 @@
   import { t } from '../stores/i18nStore'
   import { equalizerStore } from '../stores/equalizerStore'
   import EqualizerDrawer from './EqualizerDrawer.svelte'
+  import { openSleepTimerModal, sleepTimerRemaining } from '../stores/sleepTimerStore'
 
   let isEqualizerOpen = false
 
@@ -400,6 +401,21 @@
           <line x1="9" y1="8" x2="15" y2="8"></line>
           <line x1="17" y1="16" x2="23" y2="16"></line>
         </svg>
+      </button>
+
+      <!-- Sleep Timer Quick Button -->
+      <button
+        type="button"
+        class="p-2 rounded-xl transition cursor-pointer flex items-center justify-center relative {$sleepTimerRemaining !== null ? 'text-purple-400 bg-purple-500/15 border border-purple-500/30 shadow-[0_0_8px_rgba(168,85,247,0.3)]' : 'text-zinc-400 hover:text-white hover:bg-white/[0.08] border border-transparent'}"
+        on:click={openSleepTimerModal}
+        title={$sleepTimerRemaining !== null ? `Sleep Timer aktif: ${Math.ceil($sleepTimerRemaining / 60)} mnt tersisa` : 'Sleep Timer'}
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        {#if $sleepTimerRemaining !== null}
+          <span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-purple-500 ring-2 ring-[#0F111A]"></span>
+        {/if}
       </button>
 
       <!-- Quick Switch to Mini Player -->

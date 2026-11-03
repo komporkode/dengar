@@ -54,6 +54,7 @@
   import PlaylistShareModal from "./lib/components/PlaylistShareModal.svelte";
   import WhatsNewModal from "./lib/components/WhatsNewModal.svelte";
   import CloseConfirmModal from "./lib/components/CloseConfirmModal.svelte";
+  import SleepTimerModal from "./lib/components/SleepTimerModal.svelte";
   import NetworkBanner from "./lib/components/NetworkBanner.svelte";
   import { networkStore } from "./lib/stores/networkStore";
   import { activePlaylistId } from "./lib/stores/playlistStore";
@@ -501,6 +502,7 @@
   <PlaylistModal />
   <AddToPlaylistModal />
   <PlaylistShareModal />
+  <SleepTimerModal />
 
   <!-- Toast Notification -->
   {#if $toastMessage}
