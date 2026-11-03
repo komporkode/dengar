@@ -636,6 +636,37 @@
                 <span>{$t("quality_notice")}</span>
               </div>
 
+              <!-- Web Audio Crossfade Transition Card -->
+              <div class="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">Transisi Lagu (Crossfade)</h4>
+                    <p class="text-[10px] text-zinc-400 mt-0.5">
+                      Peralihan halus antara dua lagu agar tidak ada jeda hening mendadak.
+                    </p>
+                  </div>
+                  <span class="text-xs font-mono font-bold text-crimson-400 bg-crimson-500/15 border border-crimson-500/25 px-2 py-0.5 rounded-md">
+                    {$crossfadeDurationStore > 0 ? `${$crossfadeDurationStore} detik` : 'Nonaktif (0s)'}
+                  </span>
+                </div>
+                <div class="flex items-center gap-3 pt-1">
+                  <span class="text-[10px] text-zinc-500 font-mono">0s</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="10"
+                    step="1"
+                    value={$crossfadeDurationStore}
+                    on:input={(e) => {
+                      const val = Number((e.target as HTMLInputElement).value);
+                      crossfadeDurationStore.set(val);
+                    }}
+                    class="w-full accent-crimson-500 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
+                  />
+                  <span class="text-[10px] text-zinc-500 font-mono">10s</span>
+                </div>
+              </div>
+
               <!-- Smart Audio Disk Cache Card -->
               <div
                 class="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-3"

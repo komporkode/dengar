@@ -3,7 +3,7 @@ import type { SearchResultItem, StreamResult, PlayMode } from '../types'
 import { GetStream, RecordPlay, Search, PurgeTrackCache } from '../../../wailsjs/go/main/App'
 import { userDataStore } from './userDataStore'
 import { queueStore, isAutoplayEnabled } from './queueStore'
-import { audioQualityStore, showToast } from './settingsStore'
+import { audioQualityStore, crossfadeDurationStore, showToast } from './settingsStore'
 import { equalizerStore } from './equalizerStore'
 import { networkStore } from './networkStore'
 
@@ -250,10 +250,53 @@ function createPlayerStore() {
     equalizerStore.resumeContext()
     if (autoPlay) {
       startLoadWatchdog()
-      audio.play().catch(e => {
+      audio.play().then(() => {
+        applyCrossfadeIn()
+      }).catch(e => {
         console.warn('Audio play error, attempting recovery:', e)
         handleMediaError()
       })
+    }
+  }
+
+  function applyCrossfadeIn() {
+    const crossfadeSec = get(crossfadeDurationStore)
+    if (!audio || crossfadeSec <= 0) return
+
+    const targetVol = audio.volume
+    audio.volume = 0
+    const durationMs = crossfadeSec * 1000
+    const steps = 20
+    const stepInterval = Math.max(20, Math.floor(durationMs / steps))
+    let currentStep = 0
+
+    const fadeTimer = setInterval(() => {
+      currentStep++
+      const progress = currentStep / steps
+      if (audio) {
+        audio.volume = Math.min(targetVol, targetVol * progress)
+      }
+      if (currentStep >= steps) {
+        clearInterval(fadeTimer)
+        if (audio) {
+          audio.volume = targetVol
+        }
+      }
+    }, stepInterval)
+  }
+
+  let prefetchedTrackId: string | null = null
+
+  function checkAndPrefetchNextTrack() {
+    const q = get(queueStore)
+    const nextIdx = q.currentIndex + 1
+    if (nextIdx < q.items.length) {
+      const nextTrack = q.items[nextIdx]
+      if (nextTrack && nextTrack.id !== prefetchedTrackId) {
+        prefetchedTrackId = nextTrack.id
+        const currentQuality = get(audioQualityStore)
+        GetStream(nextTrack.id, false, currentQuality).catch(() => {})
+      }
     }
   }
 
@@ -741,6 +784,11 @@ function createPlayerStore() {
         hasRecordedPlay = true
         RecordPlay(s.currentTrack).catch(console.error)
       }
+    }
+
+    // Zero-latency pre-fetch: when <= 15s remaining, resolve next track's stream into disk cache
+    if (duration > 20 && duration - currentTime <= 15) {
+      checkAndPrefetchNextTrack()
     }
 
     update(st => ({
