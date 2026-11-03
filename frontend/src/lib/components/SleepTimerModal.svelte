@@ -10,6 +10,7 @@
     setEndOfTrackTimer,
     cancelSleepTimer,
   } from '../stores/sleepTimerStore'
+  import { t } from '../stores/i18nStore'
 
   let customMinutes = 20
 
@@ -67,12 +68,12 @@
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
           </div>
-          <h3 class="text-base font-bold text-white">Sleep Timer</h3>
+          <h3 class="text-base font-bold text-white">{$t('sleep_timer_title')}</h3>
         </div>
         <button
           class="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-white/[0.06] transition cursor-pointer"
           on:click={closeSleepTimerModal}
-          aria-label="Tutup"
+          aria-label={$t('close')}
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -85,7 +86,7 @@
       {#if $sleepTimerRemaining !== null}
         <div class="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex flex-col items-center gap-2">
           <span class="text-[10px] uppercase font-bold tracking-wider text-purple-400">
-            {$sleepTimerMode === 'end_of_track' ? 'Berhenti di Akhir Lagu' : 'Waktu Tersisa'}
+            {$sleepTimerMode === 'end_of_track' ? $t('sleep_timer_end_of_track') : $t('sleep_timer_time_left')}
           </span>
           <div class="text-3xl font-mono font-extrabold text-white tracking-wider">
             {formatCountdown($sleepTimerRemaining)}
@@ -94,38 +95,38 @@
             class="mt-1 px-4 py-1.5 rounded-xl bg-crimson-500/20 hover:bg-crimson-500/30 text-crimson-400 text-xs font-semibold transition cursor-pointer"
             on:click={handleCancelTimer}
           >
-            Matikan Timer
+            {$t('sleep_timer_turn_off')}
           </button>
         </div>
       {/if}
 
       <!-- Presets Grid -->
       <div class="space-y-2">
-        <span class="text-xs font-semibold text-zinc-400">Pilih Durasi Cepat:</span>
+        <span class="text-xs font-semibold text-zinc-400">{$t('sleep_timer_quick_duration')}</span>
         <div class="grid grid-cols-2 gap-2">
           <button
             class="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold text-zinc-200 transition cursor-pointer border border-white/[0.06] text-center"
             on:click={() => handleSelectPreset(15)}
           >
-            15 Menit
+            15 {$t('sleep_timer_minutes')}
           </button>
           <button
             class="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold text-zinc-200 transition cursor-pointer border border-white/[0.06] text-center"
             on:click={() => handleSelectPreset(30)}
           >
-            30 Menit
+            30 {$t('sleep_timer_minutes')}
           </button>
           <button
             class="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold text-zinc-200 transition cursor-pointer border border-white/[0.06] text-center"
             on:click={() => handleSelectPreset(45)}
           >
-            45 Menit
+            45 {$t('sleep_timer_minutes')}
           </button>
           <button
             class="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold text-zinc-200 transition cursor-pointer border border-white/[0.06] text-center"
             on:click={() => handleSelectPreset(60)}
           >
-            60 Menit
+            60 {$t('sleep_timer_minutes')}
           </button>
         </div>
 
@@ -137,13 +138,13 @@
             <polygon points="5 4 15 12 5 20 5 4"></polygon>
             <line x1="19" y1="5" x2="19" y2="19"></line>
           </svg>
-          <span>Berhenti di Akhir Lagu Ini</span>
+          <span>{$t('sleep_timer_end_of_track')}</span>
         </button>
       </div>
 
       <!-- Custom Minutes Input -->
       <div class="space-y-1.5 border-t border-white/[0.08] pt-3">
-        <label for="custom-sleep-timer" class="text-xs font-semibold text-zinc-400">Atur Waktu Kustom (menit):</label>
+        <label for="custom-sleep-timer" class="text-xs font-semibold text-zinc-400">{$t('sleep_timer_custom_label')}</label>
         <div class="flex items-center gap-2">
           <input
             id="custom-sleep-timer"
@@ -157,13 +158,13 @@
             class="flex-1 py-2 px-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-xs font-semibold text-white transition cursor-pointer"
             on:click={handleCustomStart}
           >
-            Mulai Timer
+            {$t('sleep_timer_start_btn')}
           </button>
         </div>
       </div>
 
       <p class="text-[11px] text-zinc-400 text-center leading-relaxed">
-        Audio akan meredup perlahan (smooth fade-out 5 detik) sebelum berhenti agar tidur Anda tetap nyaman.
+        {$t('sleep_timer_fade_note')}
       </p>
     </div>
   </div>

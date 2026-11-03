@@ -371,7 +371,7 @@
             .uploaderName}</span
         >
       {:else}
-        <span class="text-zinc-500">Master Audio Streaming Engine</span>
+        <span class="text-zinc-500">{$t('master_audio_engine')}</span>
       {/if}
     </div>
 
@@ -383,7 +383,7 @@
       <button
         class="h-full px-3.5 hover:text-zinc-100 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center justify-center"
         on:click={handleWindowMinimise}
-        title="Minimalisir"
+        title={$t('window_minimize')}
       >
         <svg
           class="w-3.5 h-3.5"
@@ -396,7 +396,7 @@
       <button
         class="h-full px-3.5 hover:text-zinc-100 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center justify-center"
         on:click={handleWindowToggleMaximise}
-        title="Maksimalkan"
+        title={$t('window_maximize')}
       >
         <svg
           class="w-3.5 h-3.5"
@@ -410,7 +410,7 @@
       <button
         class="h-full px-4 hover:text-white hover:bg-crimson-600 transition-colors cursor-pointer flex items-center justify-center"
         on:click={handleWindowClose}
-        title="Tutup"
+        title={$t('window_close')}
       >
         <svg
           class="w-3.5 h-3.5"
@@ -614,16 +614,22 @@
             <button
               class="flex-1 py-1.5 px-3 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-semibold transition cursor-pointer text-xs flex items-center justify-center gap-1.5 shadow-md shadow-crimson-600/30"
               on:click={installAndRestartUpdate}
-              title="Pasang pembaruan dan mulai ulang aplikasi"
+              title={$t('btn_install_restart')}
             >
-              <span>⚡ Pasang & Mulai Ulang</span>
+              <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+              <span>{$t('btn_install_restart')}</span>
             </button>
             <button
-              class="py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-200 font-semibold transition cursor-pointer text-xs flex items-center justify-center gap-1 shadow-sm shrink-0"
+              class="py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-200 font-semibold transition cursor-pointer text-xs flex items-center justify-center gap-1.5 shadow-sm shrink-0"
               on:click={revealDownloadedFile}
-              title="Buka folder Downloads"
+              title={$t('btn_open_folder')}
             >
-              <span>Buka Folder</span>
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+              </svg>
+              <span>{$t('btn_open_folder')}</span>
             </button>
           {:else if $isDownloadingUpdate}
             <div

@@ -40,7 +40,7 @@
           <button
             class="w-10 h-10 rounded-xl bg-gradient-to-tr from-crimson-600 via-crimson-500 to-rose-400 flex items-center justify-center shadow-lg shadow-crimson-500/25 shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-all"
             on:click={toggleSidebar}
-            aria-label={$isSidebarCollapsed ? 'Perluas Sidebar' : 'Ciutkan Sidebar'}
+            aria-label={$isSidebarCollapsed ? $t('sidebar_expand') : $t('sidebar_collapse')}
           >
             <svg class="w-5 h-5 text-white" viewBox="0 0 269.22 267.55" fill="none">
               <path fill="currentColor" d="M135.71 0c26.85,0 50.37,5.44 70.57,16.33 20.2,10.89 35.74,26 46.62,45.35 10.88,19.35 16.33,41.36 16.33,66.03 0,24.43 -5.44,46.44 -16.33,66.03 -10.88,19.59 -26.42,35.01 -46.62,46.26 -20.2,11.25 -43.72,16.87 -70.57,16.87l-26.48 0 -8.81 0c-10.22,6.75 -22.47,10.68 -35.64,10.68 -35.78,0 -64.78,-29 -64.78,-64.78 0,-22.41 11.38,-42.16 28.68,-53.79l0 -130.95c0,-9.91 8.11,-18.02 18.02,-18.02l43.87 0 18.66 0 26.48 0zm-107.03 209.99l0 -0.01c5.01,20.39 27.57,32.83 51.03,27.89 24.62,-5.18 38.29,-31.72 34.99,-52.84l13.75 0c18.14,0 32.53,-4.96 43.18,-14.88 10.64,-9.92 15.96,-24.07 15.96,-42.45 0,-18.38 -5.32,-32.53 -15.96,-42.45 -10.64,-9.92 -25.03,-14.87 -43.18,-14.87l-19.23 0 0 97.01c-16.53,-25.13 -72.69,-15.5 -80.54,25.92l0 -0c-0.07,0.3 -0.14,0.59 -0.2,0.89l-0 0.01 -0.01 0.04c-0.06,0.29 -0.12,0.59 -0.18,0.88l-0.01 0.03 -0.01 0.04c-0.17,0.93 -0.31,1.87 -0.41,2.82l-0 0.03 -0 0.03c-0.03,0.31 -0.06,0.63 -0.08,0.94l-0 0.03c-0.02,0.31 -0.04,0.62 -0.06,0.94l-0 0.01 -0 0.02c-0.02,0.32 -0.03,0.63 -0.03,0.95l-0 0.02c-0.01,0.32 -0.01,0.64 -0.01,0.96l0 0.02c0,0.32 0.01,0.64 0.02,0.96l0 0 0 0.02c0.01,0.32 0.03,0.64 0.05,0.97l0 0.01c0.02,0.32 0.05,0.64 0.08,0.95l0 0.02 0 0.01c0.03,0.32 0.07,0.65 0.11,0.98l0 0.01c0.04,0.32 0.08,0.63 0.13,0.95l0 0.03 0 0.01 0 0.02c0.05,0.31 0.1,0.63 0.16,0.94l0 0.01 0 0 0 0.01c0.06,0.32 0.12,0.65 0.19,0.97l0 0.02 0 0.02c0.06,0.3 0.13,0.6 0.2,0.9l0 0.02 0 0.02 0 0.01 0 0.01 0 0.02 0 0 0.03 0.14z"/>
@@ -50,7 +50,7 @@
           {#if $isSidebarCollapsed}
             <!-- Floating Tooltip for Logo -->
             <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[60] px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center">
-              <span>Perluas Sidebar</span>
+              <span>{$t('sidebar_expand')}</span>
               <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#161824]/95"></span>
             </div>
           {/if}
@@ -71,8 +71,8 @@
         <button
           class="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.08] transition active:scale-90 cursor-pointer shrink-0"
           on:click={toggleSidebar}
-          title="Ciutkan Sidebar"
-          aria-label="Ciutkan Sidebar"
+          title={$t('sidebar_collapse')}
+          aria-label={$t('sidebar_collapse')}
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect width="18" height="18" x="3" y="3" rx="2"/>
@@ -254,7 +254,7 @@
         <button
           class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-colors duration-200 cursor-pointer relative px-2.5 {activeTab === 'offline' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'}"
           on:click={() => setTab('offline')}
-          aria-label="Tersimpan / Offline"
+          aria-label={$t('nav_offline')}
         >
           <div class="relative w-5 h-5 flex items-center justify-center shrink-0">
             <svg class="w-4 h-4 {activeTab === 'offline' ? 'text-crimson-400' : 'text-zinc-400 group-hover:text-zinc-200'} transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -265,7 +265,7 @@
           </div>
 
           <div class="flex items-center flex-1 min-w-0 sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
-            <span class="truncate">Offline</span>
+            <span class="truncate">{$t('nav_offline')}</span>
             {#if activeTab === 'offline'}
               <span class="ml-auto text-[10px] bg-crimson-500/20 text-crimson-400 font-semibold px-1.5 py-0.5 rounded shrink-0">{$t('nav_active')}</span>
             {/if}
@@ -274,7 +274,7 @@
 
         {#if $isSidebarCollapsed}
           <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[60] px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center gap-2">
-            <span>Tersimpan / Offline</span>
+            <span>{$t('nav_offline')}</span>
             {#if activeTab === 'offline'}
               <span class="w-1.5 h-1.5 rounded-full bg-crimson-500 shadow-xs"></span>
             {/if}

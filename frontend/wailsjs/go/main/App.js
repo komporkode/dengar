@@ -22,6 +22,10 @@ export function ClearAudioCache() {
   return window['go']['main']['App']['ClearAudioCache']();
 }
 
+export function ClearDiscordActivity() {
+  return window['go']['main']['App']['ClearDiscordActivity']();
+}
+
 export function CreatePlaylist(arg1, arg2) {
   return window['go']['main']['App']['CreatePlaylist'](arg1, arg2);
 }
@@ -46,6 +50,10 @@ export function GetHomeData() {
   return window['go']['main']['App']['GetHomeData']();
 }
 
+export function GetOfflineTracks() {
+  return window['go']['main']['App']['GetOfflineTracks']();
+}
+
 export function GetPrimaryServerProvider() {
   return window['go']['main']['App']['GetPrimaryServerProvider']();
 }
@@ -58,8 +66,20 @@ export function GetUserData() {
   return window['go']['main']['App']['GetUserData']();
 }
 
+export function HideAppWindow() {
+  return window['go']['main']['App']['HideAppWindow']();
+}
+
+export function ImportExternalPlaylist(arg1) {
+  return window['go']['main']['App']['ImportExternalPlaylist'](arg1);
+}
+
 export function ImportPlaylist(arg1) {
   return window['go']['main']['App']['ImportPlaylist'](arg1);
+}
+
+export function IsTrackOffline(arg1) {
+  return window['go']['main']['App']['IsTrackOffline'](arg1);
 }
 
 export function OpenInFolder(arg1) {
@@ -82,8 +102,16 @@ export function RefreshHomeData() {
   return window['go']['main']['App']['RefreshHomeData']();
 }
 
+export function RemoveOfflineTrack(arg1) {
+  return window['go']['main']['App']['RemoveOfflineTrack'](arg1);
+}
+
 export function RemoveTrackFromPlaylist(arg1, arg2) {
   return window['go']['main']['App']['RemoveTrackFromPlaylist'](arg1, arg2);
+}
+
+export function SaveTrackOffline(arg1) {
+  return window['go']['main']['App']['SaveTrackOffline'](arg1);
 }
 
 export function Search(arg1, arg2) {
@@ -98,52 +126,22 @@ export function SetAudioCacheLimit(arg1) {
   return window['go']['main']['App']['SetAudioCacheLimit'](arg1);
 }
 
-export function ToggleFavorite(arg1) {
-  return window['go']['main']['App']['ToggleFavorite'](arg1);
-}
-
-export function UpdatePlaylist(arg1, arg2, arg3) {
-  return window['go']['main']['App']['UpdatePlaylist'](arg1, arg2, arg3);
+export function SetDiscordRPCEnabled(arg1) {
+  return window['go']['main']['App']['SetDiscordRPCEnabled'](arg1);
 }
 
 export function ShowAppWindow() {
   return window['go']['main']['App']['ShowAppWindow']();
 }
 
-export function HideAppWindow() {
-  return window['go']['main']['App']['HideAppWindow']();
-}
-
-export function SetDiscordRPCEnabled(arg1) {
-  return window['go']['main']['App']['SetDiscordRPCEnabled'](arg1);
+export function ToggleFavorite(arg1) {
+  return window['go']['main']['App']['ToggleFavorite'](arg1);
 }
 
 export function UpdateDiscordActivity(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['main']['App']['UpdateDiscordActivity'](arg1, arg2, arg3, arg4, arg5);
 }
 
-export function ClearDiscordActivity() {
-  return window['go']['main']['App']['ClearDiscordActivity']();
+export function UpdatePlaylist(arg1, arg2, arg3) {
+  return window['go']['main']['App']['UpdatePlaylist'](arg1, arg2, arg3);
 }
-
-export function ImportExternalPlaylist(arg1) {
-  return window['go']['main']['App']['ImportExternalPlaylist'](arg1);
-}
-
-export function GetOfflineTracks() {
-  return window['go']['main']['App']['GetOfflineTracks']();
-}
-
-export function SaveTrackOffline(arg1) {
-  return window['go']['main']['App']['SaveTrackOffline'](arg1);
-}
-
-export function RemoveOfflineTrack(arg1) {
-  return window['go']['main']['App']['RemoveOfflineTrack'](arg1);
-}
-
-export function IsTrackOffline(arg1) {
-  return window['go']['main']['App']['IsTrackOffline'](arg1);
-}
-
-

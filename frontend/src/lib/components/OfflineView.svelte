@@ -6,6 +6,7 @@
   import { playerStore } from '../stores/playerStore'
   import { queueStore } from '../stores/queueStore'
   import { showToast } from '../stores/settingsStore'
+  import { t } from '../stores/i18nStore'
 
   let tracks: SearchResultItem[] = []
   let isLoading = true
@@ -45,8 +46,8 @@
     if (totalSec <= 0) return ''
     const hrs = Math.floor(totalSec / 3600)
     const mins = Math.floor((totalSec % 3600) / 60)
-    if (hrs > 0) return `~${hrs} jam ${mins} mnt`
-    return `~${mins} mnt`
+    if (hrs > 0) return `~${hrs}h ${mins}m`
+    return `~${mins}m`
   }
 
   $: isCurrentListPlaying = tracks.length > 0 &&
@@ -77,13 +78,13 @@
     try {
       await RemoveOfflineTrack(track.id)
       tracks = tracks.filter(t => t.id !== track.id)
-      showToast(`Lagu "${track.title}" dihapus dari penyimpanan offline`)
+      showToast(`"${track.title}" ${$t('offline_delete_toast')}`)
       const stats = await GetAudioCacheStats()
       if (stats) {
         totalBytes = stats.totalBytes
       }
     } catch (e) {
-      showToast('Gagal menghapus lagu offline')
+      showToast($t('offline_delete_fail'))
     }
   }
 </script>
@@ -107,26 +108,28 @@
       <div class="flex flex-col gap-2 min-w-0 text-center sm:text-left flex-1">
         <div class="flex items-center justify-center sm:justify-start gap-2">
           <span class="text-[10px] font-bold uppercase tracking-widest text-crimson-400 bg-crimson-500/15 border border-crimson-500/25 px-2 py-0.5 rounded-md">
-            Penyimpanan Lokal
+            {$t('offline_local_storage')}
           </span>
-          <span class="text-xs text-zinc-400">Bebas Kuota & Zero Buffer</span>
+          <span class="text-xs text-zinc-400">{$t('offline_quota_free')}</span>
         </div>
 
         <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight truncate">
-          Tersimpan / Offline
+          {$t('offline_heading')}
         </h1>
 
         <p class="text-xs sm:text-sm text-zinc-400 max-w-xl">
-          Daftar lagu yang telah di-cache ke hard drive perangkat Anda. Dapat diputar kapan saja tanpa koneksi internet.
+          {$t('offline_subheading')}
         </p>
 
         <!-- Stats Meta -->
         <div class="flex items-center justify-center sm:justify-start gap-3 mt-1 text-xs text-zinc-400">
-          <span class="font-semibold text-white">{tracks.length} lagu</span>
+          <span class="font-semibold text-white">{tracks.length} {$t('offline_songs_count')}</span>
+          {#if formatTotalDuration(tracks)}
+            <span>•</span>
+            <span>{formatTotalDuration(tracks)}</span>
+          {/if}
           <span>•</span>
-          <span>{formatTotalDuration(tracks)}</span>
-          <span>•</span>
-          <span class="font-mono text-zinc-300 bg-white/[0.06] px-2 py-0.5 rounded-md">{formatBytes(totalBytes)} terpakai</span>
+          <span class="font-mono text-zinc-300 bg-white/[0.06] px-2 py-0.5 rounded-md">{formatBytes(totalBytes)} {$t('offline_used')}</span>
         </div>
       </div>
     </div>
@@ -143,12 +146,12 @@
             <rect x="6" y="4" width="4" height="16" rx="1"></rect>
             <rect x="14" y="4" width="4" height="16" rx="1"></rect>
           </svg>
-          <span>Jeda</span>
+          <span>{$t('offline_pause')}</span>
         {:else}
           <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
           </svg>
-          <span>Putar Semua</span>
+          <span>{$t('offline_play_all')}</span>
         {/if}
       </button>
 
@@ -164,18 +167,18 @@
           <line x1="15" y1="15" x2="21" y2="21"></line>
           <line x1="4" y1="4" x2="9" y2="9"></line>
         </svg>
-        <span>Acak</span>
+        <span>{$t('offline_shuffle')}</span>
       </button>
 
       <button
         class="h-11 px-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition cursor-pointer border border-white/[0.06] ml-auto flex items-center gap-1.5 text-xs"
         on:click={loadOfflineTracks}
-        title="Segarkan daftar offline"
+        title="{$t('offline_refresh')}"
       >
         <svg class="w-3.5 h-3.5 {isLoading ? 'animate-spin' : ''}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
         </svg>
-        <span>Segarkan</span>
+        <span>{$t('offline_refresh')}</span>
       </button>
     </div>
   </section>
@@ -195,9 +198,9 @@
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
         </div>
-        <h3 class="text-base font-bold text-white mb-1">Belum Ada Lagu Tersimpan</h3>
+        <h3 class="text-base font-bold text-white mb-1">{$t('offline_empty_title')}</h3>
         <p class="text-xs text-zinc-400 leading-relaxed mb-4">
-          Lagu yang Anda putar otomatis tersimpan ke cache lokal, atau Anda dapat menekan tombol Simpan Offline pada lagu favorit.
+          {$t('offline_empty_desc')}
         </p>
       </div>
     {:else}
@@ -210,8 +213,8 @@
             <button
               class="p-2 text-zinc-500 hover:text-crimson-400 rounded-lg hover:bg-white/[0.06] transition opacity-0 group-hover:opacity-100 cursor-pointer shrink-0"
               on:click={() => handleRemoveTrack(track)}
-              title="Hapus dari penyimpanan offline"
-              aria-label="Hapus offline"
+              title="{$t('offline_delete_title')}"
+              aria-label="{$t('offline_delete_title')}"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <polyline points="3 6 5 6 21 6"></polyline>

@@ -14,6 +14,8 @@ export function CheckForUpdates():Promise<main.UpdateInfo>;
 
 export function ClearAudioCache():Promise<void>;
 
+export function ClearDiscordActivity():Promise<void>;
+
 export function CreatePlaylist(arg1:string,arg2:string):Promise<backend.Playlist>;
 
 export function DeletePlaylist(arg1:string):Promise<void>;
@@ -26,13 +28,21 @@ export function GetAudioCacheStats():Promise<backend.AudioCacheStats>;
 
 export function GetHomeData():Promise<main.HomeData>;
 
+export function GetOfflineTracks():Promise<Array<backend.SearchResultItem>>;
+
 export function GetPrimaryServerProvider():Promise<string>;
 
 export function GetStream(arg1:string,arg2:boolean,arg3:string):Promise<backend.StreamResult>;
 
 export function GetUserData():Promise<backend.UserData>;
 
+export function HideAppWindow():Promise<void>;
+
+export function ImportExternalPlaylist(arg1:string):Promise<backend.ImportedPlaylistResult>;
+
 export function ImportPlaylist(arg1:string):Promise<backend.Playlist>;
+
+export function IsTrackOffline(arg1:string):Promise<boolean>;
 
 export function OpenInFolder(arg1:string):Promise<void>;
 
@@ -44,7 +54,11 @@ export function RecordPlay(arg1:backend.SearchResultItem):Promise<void>;
 
 export function RefreshHomeData():Promise<main.HomeData>;
 
+export function RemoveOfflineTrack(arg1:string):Promise<void>;
+
 export function RemoveTrackFromPlaylist(arg1:string,arg2:string):Promise<void>;
+
+export function SaveTrackOffline(arg1:backend.SearchResultItem):Promise<void>;
 
 export function Search(arg1:string,arg2:string):Promise<backend.SearchResponse>;
 
@@ -52,26 +66,12 @@ export function SearchMore(arg1:string):Promise<backend.SearchResponse>;
 
 export function SetAudioCacheLimit(arg1:number):Promise<void>;
 
-export function ToggleFavorite(arg1:backend.SearchResultItem):Promise<boolean>;
-
-export function UpdatePlaylist(arg1:string,arg2:string,arg3:string):Promise<backend.Playlist>;
+export function SetDiscordRPCEnabled(arg1:boolean):Promise<void>;
 
 export function ShowAppWindow():Promise<void>;
 
-export function HideAppWindow():Promise<void>;
-
-export function SetDiscordRPCEnabled(arg1:boolean):Promise<void>;
+export function ToggleFavorite(arg1:backend.SearchResultItem):Promise<boolean>;
 
 export function UpdateDiscordActivity(arg1:string,arg2:string,arg3:number,arg4:number,arg5:boolean):Promise<void>;
 
-export function ClearDiscordActivity():Promise<void>;
-
-export function ImportExternalPlaylist(arg1:string):Promise<backend.ImportedPlaylistResult>;
-
-export function GetOfflineTracks():Promise<Array<backend.SearchResultItem>>;
-
-export function SaveTrackOffline(arg1:backend.SearchResultItem):Promise<void>;
-
-export function RemoveOfflineTrack(arg1:string):Promise<void>;
-
-export function IsTrackOffline(arg1:string):Promise<boolean>;
+export function UpdatePlaylist(arg1:string,arg2:string,arg3:string):Promise<backend.Playlist>;

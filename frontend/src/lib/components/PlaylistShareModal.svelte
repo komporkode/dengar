@@ -192,12 +192,12 @@
               </button>
             </div>
             <p class="text-[11px] text-zinc-400 mt-1.5">
-              Bagikan kode ini kepada teman Anda untuk diimpor langsung ke aplikasi Dengerin mereka.
+              {$t('share_code_note')}
             </p>
           </div>
 
           <div class="border-t border-white/[0.08] pt-3 flex items-center justify-between">
-            <span class="text-xs text-zinc-400">Atau simpan sebagai berkas cadangan:</span>
+            <span class="text-xs text-zinc-400">{$t('share_backup_note')}</span>
             <button
               class="px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-zinc-200 transition cursor-pointer flex items-center gap-2"
               on:click={handleDownloadJSON}
@@ -221,12 +221,12 @@
             <textarea
               id="import-payload"
               bind:value={importPayload}
-              placeholder="Tempel tautan YouTube/Spotify, kode Base64, atau JSON playlist di sini..."
+              placeholder={$t('import_placeholder')}
               rows="4"
               class="w-full bg-[#181A24] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus:border-crimson-500/60 focus:ring-1 focus:ring-crimson-500/60 transition resize-none"
             ></textarea>
             <p class="text-[11px] text-zinc-400 mt-1.5">
-              Mendukung URL playlist YouTube & Spotify, berkas JSON, atau kode Dengerin.
+              {$t('import_supported_hint')}
             </p>
           </div>
 
@@ -237,7 +237,7 @@
                 <polyline points="17 8 12 3 7 8"></polyline>
                 <line x1="12" y1="3" x2="12" y2="15"></line>
               </svg>
-              <span>Pilih File .JSON</span>
+              <span>{$t('choose_json_file')}</span>
               <input type="file" accept=".json" on:change={handleFileSelect} class="hidden" />
             </label>
 

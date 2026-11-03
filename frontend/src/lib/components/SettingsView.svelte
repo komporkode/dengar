@@ -76,7 +76,7 @@
     try {
       await ClearAudioCache();
       await loadCacheStats();
-      showToast("Seluruh berkas cache audio offline berhasil dibersihkan!");
+      showToast($t("toast_cleared_cache"));
     } catch (e) {
       console.warn("Clear cache error:", e);
       showToast("Gagal membersihkan cache");
@@ -93,8 +93,8 @@
       await loadCacheStats();
       showToast(
         limitMb > 0
-          ? `Batas kuota cache diatur ke ${limitMb >= 1024 ? limitMb / 1024 + " GB" : limitMb + " MB"}`
-          : "Batas kuota cache dinonaktifkan (Tanpa Batas)",
+          ? `${$t("toast_cache_limit")} ${limitMb >= 1024 ? limitMb / 1024 + " GB" : limitMb + " MB"}`
+          : $t("toast_cache_unlimited"),
       );
     } catch (e) {
       console.warn("Set limit error:", e);
@@ -132,7 +132,7 @@
       <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-crimson-600 to-rose-500 flex items-center justify-center shadow-lg shadow-crimson-500/25 shrink-0">
         <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
       </div>
       <div>
@@ -141,7 +141,7 @@
           <span class="text-xs px-2 py-0.5 rounded-full bg-crimson-500/20 text-crimson-300 border border-crimson-500/30 font-mono font-medium">v1.2.0</span>
         </h1>
         <p class="text-xs text-zinc-400 mt-0.5">
-          Kelola preferensi antarmuka, audio engine, kapasitas cache disk, dan info aplikasi.
+          {$t("settings_subtitle")}
         </p>
       </div>
     </div>
@@ -150,12 +150,12 @@
     <button
       class="px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-zinc-200 hover:text-white transition cursor-pointer flex items-center gap-2 shadow-xs shrink-0 active:scale-95 self-start sm:self-center"
       on:click={closeSettings}
-      title="Kembali ke tampilan musik (Esc)"
+      title="{$t('btn_back_to_music')} (Esc)"
     >
       <svg class="w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M19 12H5M12 19l-7-7 7-7"/>
       </svg>
-      <span>Kembali ke Musik</span>
+      <span>{$t("btn_back_to_music")}</span>
       <kbd class="px-1.5 py-0.5 rounded bg-black/40 text-[10px] text-zinc-400 font-mono border border-white/10">Esc</kbd>
     </button>
   </div>
@@ -173,7 +173,7 @@
         <line x1="2" y1="12" x2="22" y2="12"></line>
         <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
       </svg>
-      <span>{$t("tab_general")} & Antarmuka</span>
+      <span>{$t("tab_general_ui")}</span>
     </button>
 
     <button
@@ -186,7 +186,7 @@
         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
         <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
       </svg>
-      <span>{$t("tab_audio")} & Cache Disk</span>
+      <span>{$t("tab_audio_cache")}</span>
     </button>
 
     <button
@@ -200,7 +200,7 @@
         <line x1="12" y1="16" x2="12" y2="12"></line>
         <line x1="12" y1="8" x2="12.01" y2="8"></line>
       </svg>
-      <span>{$t("tab_about")} & Pembaruan</span>
+      <span>{$t("tab_about_updates")}</span>
     </button>
   </div>
 
@@ -211,8 +211,8 @@
       <!-- Language Selection Card -->
       <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-4">
         <div>
-          <h3 class="text-sm font-bold text-white">Bahasa Antarmuka (Language)</h3>
-          <p class="text-xs text-zinc-400 mt-0.5">Pilih bahasa pengantar untuk navigasi dan deskripsi fitur aplikasi.</p>
+          <h3 class="text-sm font-bold text-white">{$t("lang_title")}</h3>
+          <p class="text-xs text-zinc-400 mt-0.5">{$t("lang_desc")}</p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <button
@@ -225,7 +225,7 @@
               <span class="w-8 h-8 rounded-xl bg-white/[0.08] flex items-center justify-center font-bold text-xs font-mono">ID</span>
               <div class="text-left">
                 <p class="text-xs font-bold">{$t("lang_id")}</p>
-                <p class="text-[11px] text-zinc-400">Bahasa Baku Indonesia</p>
+                <p class="text-[11px] text-zinc-400">{$t("lang_id_sub")}</p>
               </div>
             </div>
             {#if $currentLocale === "id"}
@@ -247,7 +247,7 @@
               <span class="w-8 h-8 rounded-xl bg-white/[0.08] flex items-center justify-center font-bold text-xs font-mono">EN</span>
               <div class="text-left">
                 <p class="text-xs font-bold">{$t("lang_en")}</p>
-                <p class="text-[11px] text-zinc-400">International English</p>
+                <p class="text-[11px] text-zinc-400">{$t("lang_en_sub")}</p>
               </div>
             </div>
             {#if $currentLocale === "en"}
@@ -264,8 +264,8 @@
       <!-- Close Action Behavior Card -->
       <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-4">
         <div>
-          <h3 class="text-sm font-bold text-white">Tindakan Tombol Tutup ('X')</h3>
-          <p class="text-xs text-zinc-400 mt-0.5">Tentukan perilaku aplikasi saat tombol silang (Close) pada title bar jendela ditekan.</p>
+          <h3 class="text-sm font-bold text-white">{$t("close_action_title")}</h3>
+          <p class="text-xs text-zinc-400 mt-0.5">{$t("close_action_desc")}</p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
@@ -274,11 +274,11 @@
               : 'bg-white/[0.02] border-white/10 text-zinc-300 hover:bg-white/[0.05]'}"
             on:click={() => {
               closeActionStore.set('ask');
-              showToast('Tombol Tutup: Tanya Setiap Kali');
+              showToast($t('close_action_toast_ask'));
             }}
           >
-            <div class="text-xs font-bold">Tanya Selalu</div>
-            <p class="text-[11px] text-zinc-400 mt-1">Tampilkan dialog konfirmasi pilihan saat tombol 'X' ditekan.</p>
+            <div class="text-xs font-bold">{$t("close_action_ask")}</div>
+            <p class="text-[11px] text-zinc-400 mt-1">{$t("close_action_ask_desc")}</p>
           </button>
 
           <button
@@ -287,11 +287,11 @@
               : 'bg-white/[0.02] border-white/10 text-zinc-300 hover:bg-white/[0.05]'}"
             on:click={() => {
               closeActionStore.set('tray');
-              showToast('Tombol Tutup: Sembunyi ke Background');
+              showToast($t('close_action_toast_tray'));
             }}
           >
-            <div class="text-xs font-bold">System Tray</div>
-            <p class="text-[11px] text-zinc-400 mt-1">Sembunyikan jendela ke tray bar dan lagu tetap berputar di latar.</p>
+            <div class="text-xs font-bold">{$t("close_action_tray")}</div>
+            <p class="text-[11px] text-zinc-400 mt-1">{$t("close_action_tray_desc")}</p>
           </button>
 
           <button
@@ -300,11 +300,11 @@
               : 'bg-white/[0.02] border-white/10 text-zinc-300 hover:bg-white/[0.05]'}"
             on:click={() => {
               closeActionStore.set('quit');
-              showToast('Tombol Tutup: Langsung Keluar');
+              showToast($t('close_action_toast_quit'));
             }}
           >
-            <div class="text-xs font-bold">Keluar Sepenuhnya</div>
-            <p class="text-[11px] text-zinc-400 mt-1">Hentikan proses aplikasi Dengerin dan keluar secara tuntas.</p>
+            <div class="text-xs font-bold">{$t("close_action_quit")}</div>
+            <p class="text-[11px] text-zinc-400 mt-1">{$t("close_action_quit_desc")}</p>
           </button>
         </div>
       </div>
@@ -312,12 +312,14 @@
       <!-- Discord RPC Card -->
       <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between gap-4">
         <div class="flex items-center gap-3.5">
-          <div class="w-10 h-10 rounded-2xl bg-[#5865F2]/20 text-[#5865F2] flex items-center justify-center font-bold text-lg shrink-0">
-            🎮
+          <div class="w-10 h-10 rounded-2xl bg-[#5865F2]/20 text-[#5865F2] flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+            </svg>
           </div>
           <div>
-            <h3 class="text-sm font-bold text-white">Discord Rich Presence (RPC)</h3>
-            <p class="text-xs text-zinc-400 mt-0.5">Tampilkan status lagu, judul, artis, dan durasi yang sedang diputar di profil akun Discord Anda.</p>
+            <h3 class="text-sm font-bold text-white">{$t("discord_rpc_title")}</h3>
+            <p class="text-xs text-zinc-400 mt-0.5">{$t("discord_rpc_desc")}</p>
           </div>
         </div>
         <button
@@ -325,7 +327,7 @@
           on:click={() => {
             const next = !$isDiscordRpcEnabled;
             isDiscordRpcEnabled.set(next);
-            showToast(next ? 'Discord Rich Presence Diaktifkan' : 'Discord Rich Presence Dinonaktifkan');
+            showToast(next ? $t('discord_rpc_enabled') : $t('discord_rpc_disabled'));
           }}
           class="w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 {$isDiscordRpcEnabled ? 'bg-crimson-600' : 'bg-white/10'}"
           aria-label="Toggle Discord RPC"
@@ -343,31 +345,31 @@
             <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
             <path d="M6 8h.001M10 8h.001M14 8h.001M18 8h.001M6 12h.001M18 12h.001M8 16h8"></path>
           </svg>
-          <span>Pintasan Keyboard Global (Desktop Shortcuts)</span>
+          <span>{$t("shortcuts_title")}</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
           <div class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-            <span class="text-zinc-400">Putar / Jeda Lagu</span>
-            <kbd class="px-2 py-0.5 rounded bg-white/10 text-zinc-200 font-mono text-[11px]">Spasi</kbd>
+            <span class="text-zinc-400">{$t("shortcut_play_pause")}</span>
+            <kbd class="px-2 py-0.5 rounded bg-white/10 text-zinc-200 font-mono text-[11px]">{$t("space_key")}</kbd>
           </div>
           <div class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-            <span class="text-zinc-400">Naikkan / Turunkan Volume</span>
+            <span class="text-zinc-400">{$t("shortcut_volume")}</span>
             <kbd class="px-2 py-0.5 rounded bg-white/10 text-zinc-200 font-mono text-[11px]">↑ / ↓</kbd>
           </div>
           <div class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-            <span class="text-zinc-400">Maju / Mundur 5 Detik</span>
+            <span class="text-zinc-400">{$t("shortcut_seek")}</span>
             <kbd class="px-2 py-0.5 rounded bg-white/10 text-zinc-200 font-mono text-[11px]">← / →</kbd>
           </div>
           <div class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-            <span class="text-zinc-400">Lagu Sebelum / Sesudah</span>
+            <span class="text-zinc-400">{$t("shortcut_prev_next")}</span>
             <kbd class="px-2 py-0.5 rounded bg-white/10 text-zinc-200 font-mono text-[11px]">J / L</kbd>
           </div>
           <div class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-            <span class="text-zinc-400">Bisukan Suara (Mute)</span>
+            <span class="text-zinc-400">{$t("shortcut_mute")}</span>
             <kbd class="px-2 py-0.5 rounded bg-white/10 text-zinc-200 font-mono text-[11px]">M</kbd>
           </div>
           <div class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-            <span class="text-zinc-400">Kembali ke Musik</span>
+            <span class="text-zinc-400">{$t("shortcut_back")}</span>
             <kbd class="px-2 py-0.5 rounded bg-white/10 text-zinc-200 font-mono text-[11px]">Esc</kbd>
           </div>
         </div>
@@ -380,7 +382,7 @@
       <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-4">
         <div>
           <h3 class="text-sm font-bold text-white">{$t("quality_setting")}</h3>
-          <p class="text-xs text-zinc-400 mt-0.5">Pilih resolusi format kompresi audio yang diambil dari server YouTube.</p>
+          <p class="text-xs text-zinc-400 mt-0.5">{$t("quality_desc")}</p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <button
@@ -389,14 +391,14 @@
               : 'bg-white/[0.02] border-white/10 text-zinc-300 hover:bg-white/[0.05]'}"
             on:click={() => {
               audioQualityStore.set("high");
-              showToast("Kualitas audio diatur ke Kualitas Tertinggi (Opus 160kbps / AAC)");
+              showToast($t("quality_high"));
             }}
           >
             <div class="flex items-center gap-3">
               <span class="px-2 py-1 rounded-xl bg-amber-500/20 text-amber-300 font-mono text-xs font-bold border border-amber-500/30">HQ</span>
               <div>
                 <div class="font-bold text-xs leading-tight">{$t("quality_high")}</div>
-                <div class="text-[11px] text-zinc-400 mt-0.5">Opus 160kbps / AAC • Resolusi Master Hi-Fi</div>
+                <div class="text-[11px] text-zinc-400 mt-0.5">{$t("quality_high_sub")}</div>
               </div>
             </div>
             {#if $audioQualityStore === "high"}
@@ -414,14 +416,14 @@
               : 'bg-white/[0.02] border-white/10 text-zinc-300 hover:bg-white/[0.05]'}"
             on:click={() => {
               audioQualityStore.set("saver");
-              showToast("Kualitas audio diatur ke Hemat Kuota (ECO ~70-128kbps)");
+              showToast($t("quality_saver"));
             }}
           >
             <div class="flex items-center gap-3">
               <span class="px-2 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 font-mono text-xs font-bold border border-emerald-500/30">ECO</span>
               <div>
                 <div class="font-bold text-xs leading-tight">{$t("quality_saver")}</div>
-                <div class="text-[11px] text-zinc-400 mt-0.5">Hemat Kuota & Buffer Cepat (~70-128kbps)</div>
+                <div class="text-[11px] text-zinc-400 mt-0.5">{$t("quality_saver_sub")}</div>
               </div>
             </div>
             {#if $audioQualityStore === "saver"}
@@ -439,11 +441,11 @@
       <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-4">
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="text-sm font-bold text-white">Transisi Lagu (Crossfade Audio)</h3>
-            <p class="text-xs text-zinc-400 mt-0.5">Peralihan lembut volume antara lagu aktif dengan lagu berikutnya agar tidak hening mendadak.</p>
+            <h3 class="text-sm font-bold text-white">{$t("crossfade_title")}</h3>
+            <p class="text-xs text-zinc-400 mt-0.5">{$t("crossfade_desc")}</p>
           </div>
           <span class="text-xs font-mono font-bold text-crimson-400 bg-crimson-500/15 border border-crimson-500/25 px-2.5 py-1 rounded-lg">
-            {$crossfadeDurationStore > 0 ? `${$crossfadeDurationStore} detik` : 'Nonaktif (0s)'}
+            {$crossfadeDurationStore > 0 ? `${$crossfadeDurationStore} ${$t('crossfade_seconds')}` : $t('crossfade_disabled')}
           </span>
         </div>
         <div class="flex items-center gap-4 pt-1">
@@ -469,13 +471,13 @@
         <div class="flex items-center justify-between gap-4">
           <div>
             <div class="flex items-center gap-2.5">
-              <h3 class="text-sm font-bold text-white">Smart Disk Cache & Mode Offline</h3>
+              <h3 class="text-sm font-bold text-white">{$t("smart_cache_title")}</h3>
               <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">
                 {formatBytes(cacheStats?.totalBytes || 0)}
               </span>
             </div>
             <p class="text-xs text-zinc-400 mt-1">
-              Lagu yang Anda putar otomatis tersimpan ke penyimpanan lokal ({cacheStats?.totalFiles || 0} lagu siap putar offline tanpa kuota internet).
+              {$t("smart_cache_desc_prefix")}{cacheStats?.totalFiles || 0} {$t("smart_cache_desc_suffix")}
             </p>
           </div>
 
@@ -483,33 +485,33 @@
             class="px-4 py-2 rounded-xl bg-crimson-600/20 hover:bg-crimson-600 border border-crimson-500/30 text-xs font-semibold text-crimson-200 hover:text-white transition cursor-pointer flex items-center gap-2 shrink-0 active:scale-95 disabled:opacity-50"
             on:click={handleClearCache}
             disabled={isClearingCache || !cacheStats?.totalFiles}
-            title="Bersihkan semua cache audio dari disk"
+            title="{$t('btn_clear_cache')}"
           >
             {#if isClearingCache}
               <svg class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
                 <path d="M12 2a10 10 0 0 1 10 10" />
               </svg>
-              <span>Membersihkan...</span>
+              <span>{$t("clearing_cache")}</span>
             {:else}
               <svg class="w-3.5 h-3.5 text-crimson-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
               </svg>
-              <span>Bersihkan Cache</span>
+              <span>{$t("btn_clear_cache")}</span>
             {/if}
           </button>
         </div>
 
         <div class="pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <span class="text-zinc-400">Batas Kuota Kapasitas Disk (LRU Automatic Eviction):</span>
+          <span class="text-zinc-400">{$t("cache_limit_label")}</span>
           <div class="flex items-center gap-2">
             {#each [500, 1024, 2048, 0] as limit}
               <button
                 class="px-3 py-1 rounded-xl text-xs font-mono transition cursor-pointer {selectedLimitMb === limit ? 'bg-crimson-500 text-white font-bold shadow-xs' : 'text-zinc-400 hover:text-zinc-200 bg-white/[0.04]'}"
                 on:click={() => handleLimitChange(limit)}
               >
-                {limit === 0 ? 'Unlimited' : limit >= 1024 ? (limit/1024) + ' GB' : limit + ' MB'}
+                {limit === 0 ? $t('cache_unlimited') : limit >= 1024 ? (limit/1024) + ' GB' : limit + ' MB'}
               </button>
             {/each}
           </div>
@@ -534,17 +536,17 @@
             <h2 class="text-base font-extrabold text-white">Dengerin Desktop</h2>
             <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 font-mono">v1.2.0</span>
             <span class="text-[10px] font-medium px-2 py-0.5 rounded-full {$updateState?.isInstalled ? 'bg-sky-500/20 border-sky-500/30 text-sky-400' : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'} border font-mono">
-              {$updateState?.isInstalled ? '📦 Terpasang (Setup.exe)' : '🧰 Portabel (.zip)'}
+              {$updateState?.isInstalled ? $t('package_installed') : $t('package_portable')}
             </span>
           </div>
           <p class="text-xs text-zinc-300 leading-relaxed mt-1.5">
             {$t("about_desc")}
           </p>
           <div class="flex items-center gap-2 mt-2 text-[10px] font-medium text-zinc-300 flex-wrap">
-            <span class="px-2 py-0.5 rounded bg-white/[0.06] border border-white/10">🚫 Zero Ads</span>
-            <span class="px-2 py-0.5 rounded bg-white/[0.06] border border-white/10">💰 100% Free / Rp0</span>
-            <span class="px-2 py-0.5 rounded bg-white/[0.06] border border-white/10">🪶 Ultra Low RAM</span>
-            <span class="px-2 py-0.5 rounded bg-white/[0.06] border border-white/10">⚖️ GNU GPLv3</span>
+            <span class="px-2 py-0.5 rounded bg-white/[0.06] border border-white/10">{$t('zero_ads')}</span>
+            <span class="px-2 py-0.5 rounded bg-white/[0.06] border border-white/10">{$t('free_rp0')}</span>
+            <span class="px-2 py-0.5 rounded bg-white/[0.06] border border-white/10">{$t('low_ram')}</span>
+            <span class="px-2 py-0.5 rounded bg-white/[0.06] border border-white/10">GNU GPLv3</span>
           </div>
           <div class="mt-3.5">
             <button
@@ -552,7 +554,10 @@
               class="px-3 py-1.5 rounded-xl bg-crimson-500/15 hover:bg-crimson-500/25 border border-crimson-500/30 text-xs font-semibold text-crimson-300 hover:text-white transition cursor-pointer flex items-center gap-1.5"
               on:click={() => isWhatsNewOpen.set(true)}
             >
-              <span>✨ Apa yang Baru di v1.2.0</span>
+              <svg class="w-3.5 h-3.5 text-crimson-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+              </svg>
+              <span>{$t('whats_new_btn')}</span>
             </button>
           </div>
         </div>
@@ -568,17 +573,17 @@
               </svg>
             </div>
             <div>
-              <h4 class="text-sm font-bold text-white">GitHub & Komporkode</h4>
-              <p class="text-xs text-zinc-400 font-mono">GNU GPLv3 Open Source Repository</p>
+              <h4 class="text-sm font-bold text-white">{$t("github_repo_title")}</h4>
+              <p class="text-xs text-zinc-400 font-mono">{$t("github_repo_sub")}</p>
             </div>
           </div>
 
           <button
             class="px-3.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-zinc-200 transition cursor-pointer flex items-center gap-2"
             on:click={openGithub}
-            title="Buka Repositori di GitHub"
+            title="{$t('btn_visit_repo')}"
           >
-            <span>Kunjungi Repositori</span>
+            <span>{$t("btn_visit_repo")}</span>
             <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
               <polyline points="15 3 21 3 21 9"></polyline>
@@ -592,14 +597,14 @@
           {#if $isCheckingUpdate}
             <div class="flex items-center gap-2 py-1">
               <div class="w-4 h-4 border-2 border-white/20 border-t-crimson-500 rounded-full animate-spin"></div>
-              <span class="text-zinc-400 text-xs">Memeriksa pembaruan di server GitHub...</span>
+              <span class="text-zinc-400 text-xs">{$t("checking_updates")}</span>
             </div>
           {:else if $updateState?.hasUpdate}
             <div class="p-4 rounded-xl bg-crimson-500/10 border border-crimson-500/25 space-y-3">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="w-2.5 h-2.5 rounded-full bg-crimson-400 shadow-[0_0_8px_#E61E38] animate-pulse"></span>
-                  <span class="text-crimson-300 font-bold text-xs">Pembaruan Tersedia:</span>
+                  <span class="text-crimson-300 font-bold text-xs">{$t("update_available")}</span>
                   <span class="px-2 py-0.5 rounded bg-crimson-500/25 text-white font-mono font-bold text-xs">
                     {$updateState.latestVersion}
                   </span>
@@ -611,11 +616,11 @@
 
               <p class="text-xs text-zinc-300 leading-relaxed">
                 {#if $downloadedFilePath}
-                  Berkas telah siap di folder Downloads. Klik tombol di bawah untuk memasang dan me-restart aplikasi.
+                  {$t("update_download_ready")}
                 {:else if $isDownloadingUpdate}
-                  Sedang mengunduh berkas biner pembaruan resmi dari GitHub...
+                  {$t("downloading_update_binary")}
                 {:else}
-                  Versi {$updateState.latestVersion} siap diunduh otomatis untuk perangkat Anda.
+                  {$updateState.latestVersion} {$t("update_ready_to_download")}
                 {/if}
               </p>
 
@@ -628,7 +633,7 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                     </svg>
-                    <span>⚡ Pasang & Mulai Ulang Aplikasi</span>
+                    <span>{$t("btn_install_restart")}</span>
                   </button>
                   <button
                     class="py-2 px-4 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-zinc-300 hover:text-white font-semibold text-xs transition cursor-pointer shadow-sm flex items-center gap-1.5 shrink-0"
@@ -637,12 +642,12 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                       <path d="M5 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5z"></path>
                     </svg>
-                    <span>Buka Folder</span>
+                    <span>{$t("btn_open_folder")}</span>
                   </button>
                 {:else if $isDownloadingUpdate}
                   <div class="flex items-center gap-2.5 text-zinc-300 text-xs py-1">
                     <div class="w-4 h-4 border-2 border-white/20 border-t-crimson-500 rounded-full animate-spin"></div>
-                    <span>Mengunduh berkas pembaruan...</span>
+                    <span>{$t("downloading_update_binary")}</span>
                   </div>
                 {:else}
                   <button
@@ -652,7 +657,7 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                       <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
                     </svg>
-                    <span>Unduh Pembaruan ({$updateState.isInstalled ? 'Installer' : 'Portabel'})</span>
+                    <span>{$t("btn_download_update")} ({$updateState.isInstalled ? 'Installer' : 'Portabel'})</span>
                   </button>
                 {/if}
               </div>
@@ -662,7 +667,7 @@
               <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399]"></span>
                 <span class="text-emerald-400 text-xs font-semibold">
-                  Aplikasi sudah versi terbaru ({$updateState?.currentVersion || 'v1.2.0'})
+                  {$t("app_up_to_date")} ({$updateState?.currentVersion || 'v1.2.0'})
                 </span>
               </div>
               <button
@@ -670,7 +675,7 @@
                 on:click={checkForUpdatesManual}
                 disabled={$isCheckingUpdate}
               >
-                Cek Pembaruan
+                {$t("btn_check_update")}
               </button>
             </div>
           {/if}

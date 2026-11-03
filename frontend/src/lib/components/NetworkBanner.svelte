@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { networkStore } from '../stores/networkStore'
   import { audioQualityStore, showToast } from '../stores/settingsStore'
+  import { t } from '../stores/i18nStore'
 
   let showReconnectedPill = false
   let reconnectedTimer: any = null
@@ -26,7 +27,7 @@
   function handleEnableSaverMode() {
     audioQualityStore.set('saver')
     dismissedWeak = true
-    showToast('Mode Hemat Data diaktifkan (~70-128kbps) untuk koneksi lambat')
+    showToast('Mode Hemat Data diaktifkan (~70-128kbps)')
   }
 </script>
 
@@ -48,20 +49,20 @@
         <line x1="12" y1="20" x2="12.01" y2="20" />
       </svg>
       <div class="truncate">
-        <span class="font-bold text-crimson-200">Perangkat Offline:</span>
-        <span class="text-zinc-300 ml-1">Koneksi internet terputus. Pemutaran akan dilanjutkan otomatis saat jaringan kembali.</span>
+        <span class="font-bold text-crimson-200">{$t('network_offline_title')}</span>
+        <span class="text-zinc-300 ml-1">{$t('network_offline_desc')}</span>
       </div>
     </div>
     <div class="flex items-center gap-2 shrink-0">
       <button
         class="px-2.5 py-1 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-semibold transition active:scale-95 cursor-pointer shadow-sm text-[11px] flex items-center gap-1"
         on:click={handleCheckNow}
-        title="Periksa ulang koneksi jaringan"
+        title="{$t('btn_check_network')}"
       >
         <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
-        Coba Hubungkan
+        {$t('btn_check_network')}
       </button>
     </div>
   </aside>
@@ -75,13 +76,13 @@
       <svg class="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M5 13l4 4L19 7" />
       </svg>
-      <span class="font-semibold text-emerald-300">Koneksi Pulih:</span>
-      <span class="text-emerald-100/90 truncate">Perangkat kembali terhubung ke internet {$networkStore.latencyMs ? `(~${$networkStore.latencyMs}ms)` : ''}.</span>
+      <span class="font-semibold text-emerald-300">{$t('network_reconnected')}</span>
+      <span class="text-emerald-100/90 truncate">{$t('network_reconnected_desc')} {$networkStore.latencyMs ? `(~${$networkStore.latencyMs}ms)` : ''}</span>
     </div>
     <button
-      class="text-emerald-400 hover:text-white transition p-1"
+      class="text-emerald-400 hover:text-white transition p-1 cursor-pointer"
       on:click={() => showReconnectedPill = false}
-      title="Tutup"
+      title="{$t('close')}"
     >
       <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </button>
@@ -96,23 +97,23 @@
       <svg class="w-4 h-4 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
-      <span class="font-semibold text-amber-300">Jaringan Lemah:</span>
-      <span class="text-amber-100/80 truncate">Latensi jaringan tinggi {$networkStore.latencyMs ? `(~${$networkStore.latencyMs}ms)` : ''}. Buffering mungkin melambat.</span>
+      <span class="font-semibold text-amber-300">{$t('network_weak_title')}</span>
+      <span class="text-amber-100/80 truncate">{$t('network_weak_desc')} {$networkStore.latencyMs ? `(~${$networkStore.latencyMs}ms)` : ''}</span>
     </div>
     <div class="flex items-center gap-2 shrink-0">
       {#if $audioQualityStore !== 'saver'}
         <button
           class="px-2 py-0.5 rounded bg-amber-600/80 hover:bg-amber-500 text-white font-medium text-[11px] transition cursor-pointer"
           on:click={handleEnableSaverMode}
-          title="Beralih ke format audio yang lebih hemat kuota"
+          title="{$t('btn_enable_saver')}"
         >
-          Mode Hemat
+          {$t('btn_enable_saver')}
         </button>
       {/if}
       <button
-        class="text-amber-400 hover:text-white transition p-1"
+        class="text-amber-400 hover:text-white transition p-1 cursor-pointer"
         on:click={() => dismissedWeak = true}
-        title="Tutup peringatan"
+        title="{$t('close')}"
       >
         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>

@@ -22,7 +22,7 @@ export const CHANGELOG_DATA: ChangelogRelease[] = [
     sections: [
       {
         title: 'Integrasi OS & Ekosistem Desktop',
-        icon: '🖥️',
+        icon: 'desktop',
         color: 'text-indigo-400',
         items: [
           'Windows SMTC & Media Keys: Kontrol putar, jeda, lagu berikutnya, dan scrubber langsung via keyboard hardware dan taskbar thumbnail.',
@@ -32,7 +32,7 @@ export const CHANGELOG_DATA: ChangelogRelease[] = [
       },
       {
         title: 'Ekosistem Playlist & Mode Offline',
-        icon: '💾',
+        icon: 'database',
         color: 'text-crimson-400',
         items: [
           'Impor Playlist YouTube & Spotify: Masukkan tautan playlist publik YouTube atau Spotify embed untuk langsung disimpan ke pustaka Dengerin Anda.',
@@ -42,7 +42,7 @@ export const CHANGELOG_DATA: ChangelogRelease[] = [
       },
       {
         title: 'Audio Polish & Algoritma FYP',
-        icon: '✨',
+        icon: 'sparkles',
         color: 'text-emerald-400',
         items: [
           'Perombakan Total Algoritma FYP: Rekomendasi kini menggabungkan hingga 6 artis teratas dengan batas maksimal 2 lagu per artis, discovery mix, dan pengacakan segar.',
@@ -61,7 +61,7 @@ export const CHANGELOG_DATA: ChangelogRelease[] = [
     sections: [
       {
         title: 'Fitur Baru Audio',
-        icon: '🎛️',
+        icon: 'sliders',
         color: 'text-crimson-400',
         items: [
           'Equalizer Studio 5-Band: Pengaturan frekuensi manual 60Hz, 230Hz, 910Hz, 3.6kHz, 14kHz (-12dB hingga +12dB).',
@@ -71,7 +71,7 @@ export const CHANGELOG_DATA: ChangelogRelease[] = [
       },
       {
         title: 'Pembaruan Tampilan & UI/UX',
-        icon: '✨',
+        icon: 'sparkles',
         color: 'text-amber-400',
         items: [
           'Cinematic Full-Bleed Hero Banner: Tampilan utama halaman Untuk Anda yang menyatu mulus ke latar gelap dengan tipografi tebal dan cover artistik.',
@@ -81,7 +81,7 @@ export const CHANGELOG_DATA: ChangelogRelease[] = [
       },
       {
         title: 'Keandalan & Perbaikan Bug',
-        icon: '🛡️',
+        icon: 'shield',
         color: 'text-emerald-400',
         items: [
           'Pencegahan Gagal Putar: Perbaikan validasi domain stream YouTube/Googlevideo dan rotasi instance otomatis.',
@@ -100,7 +100,7 @@ export const CHANGELOG_DATA: ChangelogRelease[] = [
     sections: [
       {
         title: 'Perubahan Utama',
-        icon: '🚀',
+        icon: 'rocket',
         color: 'text-sky-400',
         items: [
           'Branding baru Dengerin Desktop dengan lisensi sumber terbuka.',
