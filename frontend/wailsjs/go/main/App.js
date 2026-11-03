@@ -105,3 +105,24 @@ export function ToggleFavorite(arg1) {
 export function UpdatePlaylist(arg1, arg2, arg3) {
   return window['go']['main']['App']['UpdatePlaylist'](arg1, arg2, arg3);
 }
+
+export function ShowAppWindow() {
+  return window['go']['main']['App']['ShowAppWindow']();
+}
+
+export function HideAppWindow() {
+  return window['go']['main']['App']['HideAppWindow']();
+}
+
+export function SetDiscordRPCEnabled(arg1) {
+  return window['go']['main']['App']['SetDiscordRPCEnabled'](arg1);
+}
+
+export function UpdateDiscordActivity(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['UpdateDiscordActivity'](arg1, arg2, arg3, arg4, arg5);
+}
+
+export function ClearDiscordActivity() {
+  return window['go']['main']['App']['ClearDiscordActivity']();
+}
+

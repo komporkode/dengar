@@ -1,78 +1,77 @@
 import { playerStore } from '../stores/playerStore'
+import { isDiscordRpcEnabled } from '../stores/settingsStore'
+import { UpdateDiscordActivity, ClearDiscordActivity } from '../../../wailsjs/go/main/App'
+import { get } from 'svelte/store'
 import type { SearchResultItem } from '../types'
 
 /**
- * Service to integrate Hardware Media Keys and Windows System Media Transport Controls (SMTC)
- * via standard Web MediaSession API in WebView2.
+ * Service to integrate Hardware Media Keys, Windows SMTC, and Discord Rich Presence
  */
 class MediaSessionService {
   private isInitialized = false
   private lastTrackId: string | null = null
+  private lastPlaying: boolean | null = null
 
   public init() {
-    if (this.isInitialized || typeof navigator === 'undefined' || !('mediaSession' in navigator)) {
-      return
-    }
+    if (this.isInitialized) return
 
     this.setupActionHandlers()
     this.subscribeToPlayer()
+    this.subscribeToDiscordToggle()
     this.isInitialized = true
   }
 
+  private subscribeToDiscordToggle() {
+    isDiscordRpcEnabled.subscribe((enabled) => {
+      if (!enabled) {
+        ClearDiscordActivity().catch(() => {})
+      } else {
+        const state = this.getCurrentState()
+        if (state && state.currentTrack) {
+          UpdateDiscordActivity(
+            state.currentTrack.title,
+            state.currentTrack.uploaderName || 'Dengerin',
+            state.duration || state.currentTrack.duration || 0,
+            Math.round(state.currentTime),
+            state.isPlaying
+          ).catch(() => {})
+        }
+      }
+    })
+  }
+
   private setupActionHandlers() {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return
     const ms = navigator.mediaSession
 
     const safeSetHandler = (action: MediaSessionAction, handler: MediaSessionActionHandler) => {
       try {
         ms.setActionHandler(action, handler)
       } catch (err) {
-        // Some browser engines / webview versions might not support specific optional actions
         console.warn(`[MediaSession] Action handler '${action}' not supported:`, err)
       }
     }
 
-    safeSetHandler('play', () => {
-      playerStore.togglePlay()
-    })
-
-    safeSetHandler('pause', () => {
-      playerStore.togglePlay()
-    })
-
-    safeSetHandler('nexttrack', () => {
-      playerStore.playNext()
-    })
-
-    safeSetHandler('previoustrack', () => {
-      playerStore.playPrev()
-    })
-
+    safeSetHandler('play', () => playerStore.togglePlay())
+    safeSetHandler('pause', () => playerStore.togglePlay())
+    safeSetHandler('nexttrack', () => playerStore.playNext())
+    safeSetHandler('previoustrack', () => playerStore.playPrev())
     safeSetHandler('seekbackward', (details) => {
       const skipTime = details.seekOffset || 10
-      // We will adjust via store
       const state = this.getCurrentState()
-      if (state) {
-        playerStore.seek(Math.max(0, state.currentTime - skipTime))
-      }
+      if (state) playerStore.seek(Math.max(0, state.currentTime - skipTime))
     })
-
     safeSetHandler('seekforward', (details) => {
       const skipTime = details.seekOffset || 10
       const state = this.getCurrentState()
-      if (state) {
-        playerStore.seek(Math.min(state.duration, state.currentTime + skipTime))
-      }
+      if (state) playerStore.seek(Math.min(state.duration, state.currentTime + skipTime))
     })
-
     safeSetHandler('seekto', (details) => {
       if (details.seekTime !== undefined && details.seekTime !== null) {
         playerStore.seek(details.seekTime)
       }
     })
-
-    safeSetHandler('stop', () => {
-      playerStore.togglePlay()
-    })
+    safeSetHandler('stop', () => playerStore.togglePlay())
   }
 
   private getCurrentState() {
@@ -86,33 +85,51 @@ class MediaSessionService {
 
   private subscribeToPlayer() {
     playerStore.subscribe((state) => {
-      if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return
+      const hasMediaSession = typeof navigator !== 'undefined' && 'mediaSession' in navigator
 
-      const ms = navigator.mediaSession
+      // 1. MediaSession state sync
+      if (hasMediaSession) {
+        const ms = navigator.mediaSession
+        ms.playbackState = state.isPlaying ? 'playing' : (state.currentTrack ? 'paused' : 'none')
 
-      // 1. Update Playback State
-      ms.playbackState = state.isPlaying ? 'playing' : (state.currentTrack ? 'paused' : 'none')
+        if (state.currentTrack && state.currentTrack.id !== this.lastTrackId) {
+          this.updateMetadata(state.currentTrack)
+        } else if (!state.currentTrack && this.lastTrackId !== null) {
+          ms.metadata = null
+        }
 
-      // 2. Update Track Metadata on Track Change
-      if (state.currentTrack && state.currentTrack.id !== this.lastTrackId) {
-        this.lastTrackId = state.currentTrack.id
-        this.updateMetadata(state.currentTrack)
-      } else if (!state.currentTrack && this.lastTrackId !== null) {
-        this.lastTrackId = null
-        ms.metadata = null
+        if (state.duration > 0 && typeof ms.setPositionState === 'function') {
+          try {
+            const pos = Math.max(0, Math.min(state.currentTime, state.duration))
+            ms.setPositionState({
+              duration: state.duration,
+              playbackRate: 1.0,
+              position: pos,
+            })
+          } catch (_) {}
+        }
       }
 
-      // 3. Update Position State if duration is valid and positive
-      if (state.duration > 0 && typeof ms.setPositionState === 'function') {
-        try {
-          const pos = Math.max(0, Math.min(state.currentTime, state.duration))
-          ms.setPositionState({
-            duration: state.duration,
-            playbackRate: 1.0,
-            position: pos,
-          })
-        } catch (e) {
-          // Ignored if out of range or precision issues
+      // 2. Discord RPC sync on track or play state change
+      const trackChanged = state.currentTrack?.id !== this.lastTrackId
+      const playChanged = state.isPlaying !== this.lastPlaying
+
+      if (trackChanged || playChanged) {
+        this.lastTrackId = state.currentTrack?.id || null
+        this.lastPlaying = state.isPlaying
+
+        if (get(isDiscordRpcEnabled)) {
+          if (state.currentTrack) {
+            UpdateDiscordActivity(
+              state.currentTrack.title,
+              state.currentTrack.uploaderName || 'Dengerin',
+              state.duration || state.currentTrack.duration || 0,
+              Math.round(state.currentTime),
+              state.isPlaying
+            ).catch(() => {})
+          } else {
+            ClearDiscordActivity().catch(() => {})
+          }
         }
       }
     })

@@ -31,6 +31,7 @@ type App struct {
 	resolver      *backend.StreamResolver
 	storage       *backend.StorageService
 	audioCache    *backend.AudioCacheManager
+	discord       *backend.DiscordService
 	recCacheMutex sync.Mutex
 	cachedRec     []backend.SearchResultItem
 	lastRecFetch  time.Time
@@ -86,12 +87,14 @@ func NewApp() *App {
 	if audioCacheMgr != nil && storageSvc != nil {
 		audioCacheMgr.SetPinnedFunc(storageSvc.GetPinnedTrackIDs)
 	}
+	discordSvc := backend.NewDiscordService("")
 
 	return &App{
 		search:     searchSvc,
 		resolver:   resolverSvc,
 		storage:    storageSvc,
 		audioCache: audioCacheMgr,
+		discord:    discordSvc,
 	}
 }
 
@@ -214,6 +217,31 @@ func (a *App) ShowAppWindow() {
 func (a *App) HideAppWindow() {
 	if a.ctx != nil {
 		wailsRuntime.WindowHide(a.ctx)
+	}
+}
+
+// SetDiscordRPCEnabled updates the Discord Rich Presence toggle setting.
+func (a *App) SetDiscordRPCEnabled(enabled bool) {
+	if a.discord != nil {
+		a.discord.SetEnabled(enabled)
+	}
+}
+
+// UpdateDiscordActivity broadcasts current song playback status to Discord.
+func (a *App) UpdateDiscordActivity(title, artist string, duration, elapsed int64, isPlaying bool) {
+	if a.discord != nil {
+		go func() {
+			_ = a.discord.UpdateActivity(title, artist, duration, elapsed, isPlaying)
+		}()
+	}
+}
+
+// ClearDiscordActivity clears current Discord presence status.
+func (a *App) ClearDiscordActivity() {
+	if a.discord != nil {
+		go func() {
+			_ = a.discord.ClearActivity()
+		}()
 	}
 }
 

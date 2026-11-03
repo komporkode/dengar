@@ -55,3 +55,13 @@ export function SetAudioCacheLimit(arg1:number):Promise<void>;
 export function ToggleFavorite(arg1:backend.SearchResultItem):Promise<boolean>;
 
 export function UpdatePlaylist(arg1:string,arg2:string,arg3:string):Promise<backend.Playlist>;
+
+export function ShowAppWindow():Promise<void>;
+
+export function HideAppWindow():Promise<void>;
+
+export function SetDiscordRPCEnabled(arg1:boolean):Promise<void>;
+
+export function UpdateDiscordActivity(arg1:string,arg2:string,arg3:number,arg4:number,arg5:boolean):Promise<void>;
+
+export function ClearDiscordActivity():Promise<void>;
