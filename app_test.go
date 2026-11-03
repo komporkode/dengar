@@ -112,7 +112,7 @@ func TestRecommendedMultiArtistDiversity(t *testing.T) {
 
 	mockSearch := func(query, filterType string) (*backend.SearchResponse, error) {
 		for a, items := range mockCatalog {
-			if a == query || query == a+" mix" {
+			if a == query || query == a+" lagu" || query == a+" mix" {
 				return &backend.SearchResponse{Items: items}, nil
 			}
 		}

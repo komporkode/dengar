@@ -14,6 +14,26 @@ export interface ChangelogRelease {
 
 export const CHANGELOG_DATA: ChangelogRelease[] = [
   {
+    version: 'v1.3.1',
+    title: 'Pembersihan Konten Non-Musik & Integrasi YouTube Music',
+    date: '3 November 2026',
+    badge: 'Pembaruan',
+    summary: 'Rilis v1.3.1 menghadirkan pencarian utama langsung dari katalog resmi YouTube Music, penyaringan otomatis konten non-musik (podcast, gameplay, vlog, tutorial), dan penyempurnaan rekomendasi lagu.',
+    sections: [
+      {
+        title: 'Katalog Murni YouTube Music',
+        icon: 'sparkles',
+        color: 'text-crimson-400',
+        items: [
+          'Pencarian Utama YouTube Music: Menghubungkan langsung ke katalog resmi YouTube Music (WEB_REMIX) untuk hasil lagu yang bersih dan akurat.',
+          'Penyaringan Konten Non-Musik Cerdas: Menyaring otomatis konten non-musik seperti podcast, wawancara, tutorial, gameplay, vlog, dan trailer film.',
+          'Dukungan Video Kompilasi Musik: Tetap mempertahankan dan mengizinkan video kompilasi musik resmi (Best of, Kumpulan Lagu, Full Album).',
+          'Perbaikan Format Durasi Regional: Parsing durasi akurat untuk format bertanda titik maupun titik dua.',
+        ],
+      },
+    ],
+  },
+  {
     version: 'v1.3.0',
     title: 'Kustomisasi Lokasi Cache, Installer Fleksibel & Peningkatan Upgrade',
     date: '3 November 2026',

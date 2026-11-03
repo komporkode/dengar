@@ -785,13 +785,13 @@ func buildRecommendedTracks(
 		artist := topArtists[i]
 		query := artist
 		if i%2 == 1 {
-			query = artist + " mix"
+			query = artist + " lagu"
 		}
 		resp, err := searchFn(query, "music")
 		if err == nil && resp != nil && len(resp.Items) > 0 {
 			var valid []backend.SearchResultItem
 			for _, item := range resp.Items {
-				if !seenIDs[item.ID] {
+				if !seenIDs[item.ID] && backend.IsMusicTrack(item.Title, item.UploaderName, item.Duration, "") {
 					valid = append(valid, item)
 					if len(valid) >= 4 {
 						break
@@ -812,7 +812,7 @@ func buildRecommendedTracks(
 			if err == nil && resp != nil && len(resp.Items) > 0 {
 				var valid []backend.SearchResultItem
 				for _, item := range resp.Items {
-					if !seenIDs[item.ID] {
+					if !seenIDs[item.ID] && backend.IsMusicTrack(item.Title, item.UploaderName, item.Duration, "") {
 						valid = append(valid, item)
 						if len(valid) >= 3 {
 							break
@@ -927,7 +927,7 @@ func isVersionNewer(candidate, current string) bool {
 
 // CheckForUpdates checks GitHub releases API for newer version of Dengerin.
 func (a *App) CheckForUpdates() (*UpdateInfo, error) {
-	const currentVersion = "v1.3.0"
+	const currentVersion = "v1.3.1"
 	client := &http.Client{Timeout: 6 * time.Second}
 	req, err := http.NewRequest("GET", "https://api.github.com/repos/komporkode/dengar/releases/latest", nil)
 	if err != nil {
