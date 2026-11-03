@@ -301,7 +301,7 @@
         <div class="pt-3 border-t border-white/[0.06] hidden md:block">
           <p class="text-[10px] text-zinc-400 font-medium">Dengerin Desktop</p>
           <p class="text-[10px] text-zinc-500 font-mono">
-            v1.3.0 • Open Source
+            v1.3.2 • Open Source
           </p>
         </div>
       </div>
@@ -1093,7 +1093,7 @@
                           class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34D399]"
                         ></span>
                         <span class="text-emerald-400 text-[11px] font-medium"
-                          >Aplikasi sudah versi terbaru ({$updateState?.currentVersion || 'v1.3.0'})</span
+                          >Aplikasi sudah versi terbaru ({$updateState?.currentVersion || 'v1.3.2'})</span
                         >
                       </div>
                       <button

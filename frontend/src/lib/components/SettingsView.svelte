@@ -11,6 +11,7 @@
     type CloseAction,
   } from "../stores/settingsStore";
   import { currentLocale, t } from "../stores/i18nStore";
+  import { CURRENT_APP_VERSION } from "../data/changelogs";
   import { offlineStore } from "../stores/offlineStore";
   import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime.js";
   import {
@@ -186,15 +187,15 @@
   <!-- Top Banner / Navigation Header (Omnitik Fullscreen Tab Header) -->
   <div class="flex items-center gap-3.5 pb-6 border-b border-white/[0.08]">
     <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-crimson-600 to-rose-500 flex items-center justify-center shadow-lg shadow-crimson-500/25 shrink-0">
-      <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="3"></circle>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+        <circle cx="12" cy="12" r="3"/>
       </svg>
     </div>
     <div>
       <h1 class="text-xl font-bold text-white tracking-tight flex items-center gap-2">
         <span>{$t("settings_title")}</span>
-        <span class="text-xs px-2 py-0.5 rounded-full bg-crimson-500/20 text-crimson-300 border border-crimson-500/30 font-mono font-medium">v1.3.0</span>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-crimson-500/20 text-crimson-300 border border-crimson-500/30 font-mono font-medium">{CURRENT_APP_VERSION}</span>
       </h1>
       <p class="text-xs text-zinc-400 mt-0.5">
         {$t("settings_subtitle")}
@@ -629,7 +630,7 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2.5 flex-wrap">
             <h2 class="text-base font-extrabold text-white">Dengerin Desktop</h2>
-            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 font-mono">v1.3.0</span>
+            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 font-mono">{CURRENT_APP_VERSION}</span>
             <span class="text-[10px] font-medium px-2 py-0.5 rounded-full {$updateState?.isInstalled ? 'bg-sky-500/20 border-sky-500/30 text-sky-400' : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'} border font-mono">
               {$updateState?.isInstalled ? $t('package_installed') : $t('package_portable')}
             </span>
@@ -762,7 +763,7 @@
               <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399]"></span>
                 <span class="text-emerald-400 text-xs font-semibold">
-                  {$t("app_up_to_date")} ({$updateState?.currentVersion || 'v1.3.0'})
+                  {$t("app_up_to_date")} ({$updateState?.currentVersion || CURRENT_APP_VERSION})
                 </span>
               </div>
               <button

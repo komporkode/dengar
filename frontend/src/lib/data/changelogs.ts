@@ -12,6 +12,8 @@ export interface ChangelogRelease {
   }[]
 }
 
+export const CURRENT_APP_VERSION = 'v1.3.2'
+
 export const CHANGELOG_DATA: ChangelogRelease[] = [
   {
     version: 'v1.3.2',
