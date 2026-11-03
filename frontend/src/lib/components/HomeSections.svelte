@@ -6,24 +6,35 @@
   import { queueStore } from '../stores/queueStore'
   import { openAddToPlaylistModal } from '../stores/playlistStore'
   import { t } from '../stores/i18nStore'
+  import { handleCoverError } from '../stores/offlineStore'
+  import HeroBanner from './HeroBanner.svelte'
 
   let topPlayed: SearchResultItem[] = []
   let recommended: SearchResultItem[] = []
   let isLoading = true
   let isRefreshing = false
+  let loadError: string | null = null
+
+  $: trending = recommended[0] || topPlayed[0]
 
   onMount(async () => {
     await loadHomeData()
   })
 
+  export async function reload() {
+    await loadHomeData()
+  }
+
   async function loadHomeData() {
     isLoading = true
+    loadError = null
     try {
       const data = await GetHomeData()
-      topPlayed = data.topPlayed || []
-      recommended = data.recommended || []
-    } catch (e) {
+      topPlayed = data?.topPlayed || []
+      recommended = data?.recommended || []
+    } catch (e: any) {
       console.warn('Failed to load home data:', e)
+      loadError = e?.message || 'Gagal memuat rekomendasi'
     } finally {
       isLoading = false
     }
@@ -34,8 +45,8 @@
     isRefreshing = true
     try {
       const data = await RefreshHomeData()
-      topPlayed = data.topPlayed || []
-      recommended = data.recommended || []
+      topPlayed = data?.topPlayed || []
+      recommended = data?.recommended || []
     } catch (e) {
       console.warn('Failed to refresh recommendations:', e)
     } finally {
@@ -49,8 +60,91 @@
   }
 </script>
 
-{#if !isLoading && (topPlayed.length > 0 || recommended.length > 0)}
-  <div class="px-4 sm:px-8 pt-4 pb-2 space-y-6 select-none">
+{#if isLoading}
+  <div class="px-4 sm:px-8 pt-6 pb-2 space-y-6 select-none animate-pulse">
+    <!-- Hero Banner Skeleton (Startup Shimmer) -->
+    <div
+      class="relative overflow-hidden rounded-3xl h-[250px] sm:h-[265px] md:h-[275px] bg-[#0A0B14] border border-white/[0.06] p-6 sm:p-7 md:p-8 flex flex-col justify-between shadow-2xl"
+    >
+      <div class="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none"></div>
+
+      <div class="space-y-3 max-w-md">
+        <!-- Tag skeleton -->
+        <div class="h-3 w-32 bg-white/10 rounded-full"></div>
+        <!-- Title skeleton -->
+        <div class="h-8 w-80 max-w-full bg-white/15 rounded-xl"></div>
+        <div class="h-5 w-52 max-w-full bg-white/10 rounded-lg"></div>
+        <!-- Subtitle skeleton -->
+        <div class="h-3.5 w-64 max-w-full bg-white/5 rounded-md pt-0.5"></div>
+      </div>
+
+      <!-- Controls skeleton -->
+      <div class="flex items-center gap-3 pt-2">
+        <div class="h-11 w-36 bg-crimson-600/30 rounded-full"></div>
+        <div class="h-11 w-11 bg-white/[0.08] rounded-full"></div>
+        <div class="h-11 w-11 bg-white/[0.08] rounded-full"></div>
+      </div>
+    </div>
+
+    <!-- Quick Carousel Skeleton -->
+    <div class="space-y-3">
+      <div class="h-4 w-36 bg-white/10 rounded-full"></div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {#each Array(4) as _}
+          <div class="h-20 bg-white/[0.03] border border-white/[0.04] rounded-2xl p-2.5 flex items-center gap-3">
+            <div class="w-14 h-14 rounded-xl bg-white/10 shrink-0"></div>
+            <div class="flex-1 space-y-2">
+              <div class="h-3.5 w-3/4 bg-white/10 rounded"></div>
+              <div class="h-2.5 w-1/2 bg-white/5 rounded"></div>
+            </div>
+          </div>
+        {/each}
+      </div>
+    </div>
+  </div>
+{:else if topPlayed.length > 0 || recommended.length > 0}
+  <div class="px-4 sm:px-8 pt-6 pb-2 space-y-6 select-none">
+    <!-- Cinematic Trending Hero Banner -->
+    {#if trending}
+      <HeroBanner
+        tag="TRENDING NEW HITS • DISCOVER"
+        title={trending.title}
+        subtitle={`${trending.uploaderName} • Eksplorasi musik terpopuler minggu ini`}
+        imageUrl={trending.thumbnailUrl || ''}
+        trackId={trending.id}
+        playLabel={$playerStore.isPlaying && $playerStore.currentTrack?.id === trending.id ? $t('pause_all') : 'Putar Sekarang'}
+        isPlaying={$playerStore.isPlaying && $playerStore.currentTrack?.id === trending.id}
+        showPlay={true}
+        showShuffle={recommended.length > 0}
+        on:play={() => handlePlayTrack(trending, recommended.length > 0 ? recommended : topPlayed)}
+        on:shuffle={() => {
+          const pool = recommended.length > 0 ? recommended : topPlayed
+          queueStore.enableShuffle()
+          queueStore.setQueue(pool, 0)
+          const cur = queueStore.getCurrent()
+          if (cur) playerStore.playTrack(cur)
+        }}
+      >
+        <button
+          type="button"
+          class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 hover:border-white/20 text-zinc-200 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50 shrink-0"
+          on:click={handleRefreshRecommendations}
+          disabled={isRefreshing}
+          title={$t('offline_refresh')}
+        >
+          <svg
+            class="w-4 h-4 {isRefreshing ? 'animate-spin text-crimson-400' : 'text-zinc-200'} shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+          </svg>
+        </button>
+      </HeroBanner>
+    {/if}
+
     <!-- Section 1: Sering Kamu Putar -->
     {#if topPlayed.length > 0}
       <div>
@@ -77,7 +171,13 @@
             >
               <div class="relative w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-black/40 shadow-xs">
                 {#if track.thumbnailUrl}
-                  <img src={track.thumbnailUrl} alt={track.title} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                  <img
+                    src={track.thumbnailUrl}
+                    alt={track.title}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                    on:error={(e) => handleCoverError(e, track.id)}
+                  />
                 {:else}
                   <div class="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-500">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
@@ -162,7 +262,13 @@
             >
               <div class="relative w-full aspect-square rounded-xl overflow-hidden bg-black/40 shadow-sm mb-2.5">
                 {#if track.thumbnailUrl}
-                  <img src={track.thumbnailUrl} alt={track.title} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                  <img
+                    src={track.thumbnailUrl}
+                    alt={track.title}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                    on:error={(e) => handleCoverError(e, track.id)}
+                  />
                 {:else}
                   <div class="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-500">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
@@ -208,5 +314,32 @@
         </div>
       </div>
     {/if}
+  </div>
+{:else if loadError}
+  <!-- Home Section Error Card with Retry Button -->
+  <div class="px-4 sm:px-8 pt-6 pb-2 select-none">
+    <div class="rounded-3xl border border-white/[0.08] bg-[#0A0B14] p-8 text-center flex flex-col items-center justify-center space-y-4">
+      <div class="w-12 h-12 rounded-full bg-crimson-500/10 border border-crimson-500/20 text-crimson-400 flex items-center justify-center">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="space-y-1">
+        <h3 class="text-base font-bold text-white">{$t('instance_connect_error')}</h3>
+        <p class="text-xs text-zinc-400 max-w-md">{$t('instance_connect_error_desc')}</p>
+      </div>
+      <button
+        type="button"
+        class="h-10 px-5 rounded-full bg-crimson-600 hover:bg-crimson-500 text-white font-semibold text-xs inline-flex items-center gap-2 shadow-lg shadow-crimson-600/30 transition-all cursor-pointer"
+        on:click={loadHomeData}
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+        </svg>
+        <span>{$t('retry_action')}</span>
+      </button>
+    </div>
   </div>
 {/if}

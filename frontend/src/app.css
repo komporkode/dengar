@@ -18,8 +18,13 @@
 }
 
 /* ==========================================================================
-   Ultra-Refined Custom Autohide Scrollbars
+   Ultra-Refined Custom Autohide Scrollbars & Zero Layout Shift
    ========================================================================== */
+
+/* Reserves space for the scrollbar gutter on main content view so layout never shifts or jumps */
+main {
+  scrollbar-gutter: stable;
+}
 
 /* Modern Firefox / Standards */
 * {

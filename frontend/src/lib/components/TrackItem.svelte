@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, onDestroy } from "svelte";
   import type { SearchResultItem } from "../types";
   import { playerStore } from "../stores/playerStore";
   import { queueStore } from "../stores/queueStore";
@@ -6,19 +7,56 @@
   import { openAddToPlaylistModal } from "../stores/playlistStore";
   import { showToast, audioQualityStore } from "../stores/settingsStore";
   import { t } from "../stores/i18nStore";
-  import { SaveTrackOffline } from "../../../wailsjs/go/main/App";
+  import { offlineStore, handleCoverError } from "../stores/offlineStore";
 
   export let track: SearchResultItem;
   export let index: number;
   export let tracksContext: SearchResultItem[] = [];
   export let onRemove: (() => void) | null = null;
+  export let removeTitle = "";
+  export let isOffline = false;
 
   $: isCurrent = $playerStore.currentTrack?.id === track.id;
   $: isPlaying = isCurrent && $playerStore.isPlaying;
   $: isLoading = isCurrent && $playerStore.isLoading;
   $: isFav = $userDataStore.favorites.some((f) => f.id === track.id);
+  $: isTrackOffline = isOffline || $offlineStore.trackIds.has(track.id);
+
+  let showMenu = false;
+  let menuX = 0;
+  let menuY = 0;
+
+  function closeMenu() {
+    showMenu = false;
+  }
+
+  function handleOpenMenu(x: number, y: number) {
+    window.dispatchEvent(new CustomEvent("dengar-close-all-menus"));
+    const menuWidth = 220;
+    const menuHeight = 250;
+    menuX = Math.max(12, Math.min(x, window.innerWidth - menuWidth - 16));
+    menuY = Math.max(12, Math.min(y, window.innerHeight - menuHeight - 16));
+    showMenu = true;
+  }
+
+  function handleMoreClick(e: MouseEvent) {
+    e.stopPropagation();
+    if (showMenu) {
+      showMenu = false;
+      return;
+    }
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    handleOpenMenu(rect.left - 180, rect.bottom + 6);
+  }
+
+  function handleContextMenu(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    handleOpenMenu(e.clientX, e.clientY);
+  }
 
   function handlePlay() {
+    closeMenu();
     if (isCurrent) {
       playerStore.togglePlay();
     } else {
@@ -33,6 +71,7 @@
 
   function handleAddToQueue(e: MouseEvent) {
     e.stopPropagation();
+    closeMenu();
     queueStore.addToQueue(track);
     showToast($t("added_to_queue"));
   }
@@ -46,31 +85,81 @@
 
   function handleAddToPlaylist(e: MouseEvent) {
     e.stopPropagation();
+    closeMenu();
     openAddToPlaylistModal(track);
   }
 
   async function handleSaveOffline(e: MouseEvent) {
     e.stopPropagation();
+    closeMenu();
     try {
-      await SaveTrackOffline(track);
-      showToast(`Menyimpan "${track.title}" untuk offline...`);
+      showToast(`${$t("saving_offline")} "${track.title}"`);
+      await offlineStore.saveTrack(track);
     } catch (err: any) {
       showToast(err?.message || "Gagal menyimpan offline");
     }
   }
+
+  async function handleToggleOffline(e: MouseEvent) {
+    e.stopPropagation();
+    closeMenu();
+    if (isTrackOffline) {
+      try {
+        await offlineStore.removeTrack(track.id);
+        showToast(`"${track.title}" ${$t("offline_delete_toast")}`);
+      } catch {
+        showToast($t("offline_delete_fail"));
+      }
+    } else {
+      await handleSaveOffline(e);
+    }
+  }
+
+  async function handleCopyLink(e: MouseEvent) {
+    e.stopPropagation();
+    closeMenu();
+    try {
+      const url = `https://www.youtube.com/watch?v=${track.id}`;
+      await navigator.clipboard.writeText(url);
+      showToast($t("toast_link_copied"));
+    } catch {
+      showToast("Gagal menyalin tautan");
+    }
+  }
+
+  function onGlobalCloseMenus() {
+    showMenu = false;
+  }
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === "Escape" && showMenu) {
+      showMenu = false;
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener("dengar-close-all-menus", onGlobalCloseMenus);
+    window.addEventListener("keydown", handleKeyDown);
+  });
+
+  onDestroy(() => {
+    window.removeEventListener("dengar-close-all-menus", onGlobalCloseMenus);
+    window.removeEventListener("keydown", handleKeyDown);
+  });
 </script>
 
 <div
-  class="track-row group grid grid-cols-12 gap-2 sm:gap-4 px-2.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl items-center transition-all duration-150 cursor-pointer active:scale-[0.985] select-none {isCurrent
+  class="track-row group flex items-center gap-2.5 sm:gap-3.5 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-2xl transition-all duration-150 cursor-pointer active:scale-[0.99] select-none {isCurrent
     ? 'bg-crimson-500/[0.08] border border-crimson-500/25 hover:bg-crimson-500/[0.12]'
     : 'hover:bg-white/[0.04] border border-transparent'}"
   on:click={handlePlay}
+  on:contextmenu={handleContextMenu}
   role="button"
   tabindex="0"
   on:keydown={(e) => e.key === "Enter" && handlePlay()}
 >
-  <!-- Col 1: Index / Play Icon / Equalizer -->
-  <div class="col-span-1 flex items-center justify-center relative">
+  <!-- Col 1: Ramping & Rata Kiri (#) / Play Indicator (32px) -->
+  <div class="w-8 sm:w-9 shrink-0 flex items-center justify-center text-center relative">
     {#if isPlaying}
       <span
         class="track-index text-crimson-400 font-mono text-sm font-bold flex items-center gap-0.5"
@@ -86,6 +175,7 @@
         ></span>
       </span>
       <button
+        type="button"
         class="play-hover-btn absolute inset-0 m-auto w-7 h-7 rounded-full bg-crimson-500 text-white flex items-center justify-center opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-md cursor-pointer active:scale-90"
         on:click|stopPropagation={handlePlay}
         title="Jeda Lagu"
@@ -96,19 +186,18 @@
         </svg>
       </button>
     {:else if isLoading}
-      <span class="flex items-center justify-center text-crimson-400" title="Memuat stream...">
-        <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-      </span>
+      <div
+        class="w-4 h-4 border-2 border-crimson-500 border-t-transparent rounded-full animate-spin"
+      ></div>
     {:else}
       <span
-        class="track-index text-zinc-400 font-mono text-xs group-hover:opacity-0 group-hover:invisible transition-opacity"
-        >{index + 1}</span
+        class="track-index text-xs font-mono font-medium text-zinc-500 group-hover:invisible transition-all"
       >
+        {index + 1}
+      </span>
       <button
-        class="play-hover-btn absolute inset-0 m-auto w-7 h-7 rounded-full bg-crimson-500 text-white flex items-center justify-center opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-md hover:scale-105 cursor-pointer"
+        type="button"
+        class="play-hover-btn absolute inset-0 m-auto w-7 h-7 rounded-full bg-white/[0.12] hover:bg-crimson-500 text-white flex items-center justify-center opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-md cursor-pointer active:scale-90"
         on:click|stopPropagation={handlePlay}
         title="Putar Lagu"
       >
@@ -119,62 +208,71 @@
     {/if}
   </div>
 
-  <!-- Col 2: Title, Artist, Thumbnail -->
-  <div
-    class="col-span-6 sm:col-span-6 md:col-span-5 flex items-center gap-2.5 sm:gap-3.5 min-w-0"
-  >
+  <!-- Col 2: Thumbnail + Judul Lagu & Artis (Menempel langsung rapat ke kiri) -->
+  <div class="flex-1 min-w-0 flex items-center gap-2.5 sm:gap-3">
+    <!-- Album Artwork Thumbnail -->
     <div
-      class="relative shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden shadow-md border border-white/10 group-hover:scale-105 transition-transform duration-200 bg-surface-highlight flex items-center justify-center"
+      class="relative w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-xl overflow-hidden bg-black/40 shadow-xs group-hover:shadow-md transition-shadow"
     >
       {#if track.thumbnailUrl}
         <img
-          alt={track.title}
-          class="w-full h-full object-cover"
           src={track.thumbnailUrl}
+          alt={track.title}
+          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           loading="lazy"
+          on:error={(e) => handleCoverError(e, track.id)}
         />
       {:else}
-        <svg
-          class="w-5 h-5 text-zinc-500"
-          fill="currentColor"
-          viewBox="0 0 24 24"
+        <div
+          class="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-500"
         >
-          <path
-            d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
-          />
-        </svg>
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
+            />
+          </svg>
+        </div>
       {/if}
     </div>
-    <div class="min-w-0 flex flex-col">
-      <div class="flex items-center gap-1.5 sm:gap-2">
-        <span
-          class="text-xs sm:text-sm font-semibold truncate {isCurrent
-            ? 'text-crimson-400 font-bold'
-            : 'text-zinc-100 group-hover:text-crimson-400 transition'}"
-        >
-          {track.title}
-        </span>
-        {#if isPlaying}
+
+    <!-- Title & Artist Metadata -->
+    <div class="min-w-0 flex-1">
+      <p
+        class="text-xs sm:text-sm font-semibold truncate {isCurrent
+          ? 'text-crimson-400 font-bold'
+          : 'text-zinc-200 group-hover:text-white'}"
+        title={track.title}
+      >
+        {track.title}
+      </p>
+      <div class="flex items-center gap-1.5 text-[11px] text-zinc-400 truncate mt-0.5">
+        <span class="truncate">{track.uploaderName}</span>
+        {#if isTrackOffline}
           <span
-            class="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 sm:py-0.5 rounded bg-crimson-500/20 text-crimson-300 border border-crimson-500/30 shrink-0"
-            >{$t("playing")}</span
+            class="inline-flex items-center text-emerald-400 shrink-0"
+            title={$t("track_offline_saved")}
           >
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </span>
         {/if}
       </div>
-      <span class="text-[11px] sm:text-xs text-zinc-400 truncate"
-        >{track.uploaderName}</span
-      >
     </div>
   </div>
 
-  <!-- Col 3: Channel / Uploader -->
-  <div class="hidden md:block col-span-2 text-xs text-zinc-400 truncate pr-2">
-    {track.uploaderName}
+  <!-- Col 3: Channel / Artist (Optional di layar lebar) -->
+  <div
+    class="hidden lg:flex w-44 xl:w-56 shrink-0 items-center text-xs text-zinc-400 truncate pr-3"
+  >
+    <span class="truncate hover:text-zinc-200 transition-colors">
+      {track.uploaderName}
+    </span>
   </div>
 
-  <!-- Col 4: Quality & Duration -->
+  <!-- Col 4: Kualitas & Durasi -->
   <div
-    class="col-span-2 md:col-span-2 flex items-center justify-end gap-1.5 sm:gap-2 text-right shrink-0 whitespace-nowrap"
+    class="w-24 sm:w-28 shrink-0 flex items-center justify-end gap-1.5 text-right font-mono whitespace-nowrap"
   >
     <span
       class="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded {isCurrent
@@ -198,20 +296,21 @@
     </span>
   </div>
 
-  <!-- Col 5: Actions (Favorite, Add to Queue, Add to Playlist ⋮) -->
+  <!-- Col 5: Menu Aksi Minimalis (Hanya Love + Titik Tiga ⋮) -->
   <div
-    class="col-span-3 sm:col-span-3 md:col-span-2 flex items-center justify-end gap-1 sm:gap-1.5 text-zinc-400 shrink-0"
+    class="w-16 sm:w-20 shrink-0 flex items-center justify-end gap-1 text-zinc-400"
   >
-    <!-- Favorite button -->
+    <!-- Favorite Love Button -->
     <button
-      class="p-1 sm:p-1.5 hover:text-crimson-400 transition cursor-pointer"
+      type="button"
+      class="w-8 h-8 rounded-lg hover:bg-white/[0.08] flex items-center justify-center transition cursor-pointer"
       on:click={handleToggleFav}
       title={isFav ? $t("removed_from_favorites") : $t("added_to_favorites")}
     >
       <svg
-        class="w-3.5 h-3.5 sm:w-4 sm:h-4 {isFav
+        class="w-4 h-4 {isFav
           ? 'fill-crimson-500 text-crimson-500'
-          : 'text-zinc-400'}"
+          : 'text-zinc-400 hover:text-white'}"
         fill="none"
         stroke="currentColor"
         stroke-width="2"
@@ -223,80 +322,144 @@
       </svg>
     </button>
 
-    <!-- Add to Queue button -->
+    <!-- Context Menu Trigger Button (⋮) -->
     <button
-      class="p-1 sm:p-1.5 hover:text-white transition cursor-pointer"
-      on:click={handleAddToQueue}
-      title={$t("added_to_queue")}
+      type="button"
+      class="w-8 h-8 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-center transition cursor-pointer {showMenu
+        ? 'bg-white/[0.12] text-white'
+        : 'text-zinc-400'}"
+      on:click={handleMoreClick}
+      title="Menu Opsi Lagu"
     >
       <svg
-        class="w-3.5 h-3.5 sm:w-4 sm:h-4"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
+        class="w-4 h-4"
+        fill="currentColor"
         viewBox="0 0 24 24"
       >
+        <circle cx="12" cy="5" r="1.75"></circle>
+        <circle cx="12" cy="12" r="1.75"></circle>
+        <circle cx="12" cy="19" r="1.75"></circle>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- Floating Popover Context Menu -->
+{#if showMenu}
+  <!-- Backdrop click dismisser -->
+  <button
+    type="button"
+    class="fixed inset-0 z-40 bg-transparent border-0 cursor-default"
+    on:click|stopPropagation={closeMenu}
+    on:contextmenu|preventDefault|stopPropagation={closeMenu}
+    aria-label="Tutup menu"
+  ></button>
+
+  <!-- Popover Context Menu Window -->
+  <div
+    class="fixed z-50 w-56 rounded-2xl bg-[#121422]/95 backdrop-blur-2xl border border-white/10 shadow-2xl p-1.5 select-none animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-0.5 text-xs font-medium text-zinc-200"
+    style="left: {menuX}px; top: {menuY}px;"
+    on:click|stopPropagation
+    on:keydown|stopPropagation
+    role="menu"
+    tabindex="-1"
+  >
+    <!-- Track Title in Menu Header -->
+    <div class="px-2.5 py-2 border-b border-white/[0.08] mb-1">
+      <p class="font-bold text-white text-xs truncate">{track.title}</p>
+      <p class="text-[10px] text-zinc-400 truncate mt-0.5">{track.uploaderName}</p>
+    </div>
+
+    <!-- Play Now -->
+    <button
+      type="button"
+      class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-white/[0.08] hover:text-white transition cursor-pointer text-left"
+      on:click|stopPropagation={handlePlay}
+    >
+      <svg class="w-4 h-4 text-crimson-400 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+        {#if isPlaying}
+          <rect height="16" width="4" x="6" y="4"></rect>
+          <rect height="16" width="4" x="14" y="4"></rect>
+        {:else}
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        {/if}
+      </svg>
+      <span>{isPlaying ? "Jeda Pemutaran" : $t("play_now")}</span>
+    </button>
+
+    <!-- Add to Queue -->
+    <button
+      type="button"
+      class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-white/[0.08] hover:text-white transition cursor-pointer text-left"
+      on:click|stopPropagation={handleAddToQueue}
+    >
+      <svg class="w-4 h-4 text-zinc-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <line x1="12" y1="5" x2="12" y2="19"></line>
         <line x1="5" y1="12" x2="19" y2="12"></line>
       </svg>
+      <span>{$t("added_to_queue")}</span>
     </button>
 
-    <!-- Add to Playlist button -->
+    <!-- Add to Playlist -->
     <button
-      class="p-1 sm:p-1.5 hover:text-white transition cursor-pointer"
-      on:click={handleAddToPlaylist}
-      title={$t("add_to_playlist")}
+      type="button"
+      class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-white/[0.08] hover:text-white transition cursor-pointer text-left"
+      on:click|stopPropagation={handleAddToPlaylist}
     >
-      <svg
-        class="w-3.5 h-3.5 sm:w-4 sm:h-4"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-      >
-        <circle cx="12" cy="12" r="1.5"></circle>
-        <circle cx="12" cy="5" r="1.5"></circle>
-        <circle cx="12" cy="19" r="1.5"></circle>
+      <svg class="w-4 h-4 text-zinc-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
       </svg>
+      <span>{$t("add_to_playlist")}</span>
     </button>
 
-    <!-- Save Offline button -->
+    <!-- Save / Remove Offline -->
     <button
-      class="p-1 sm:p-1.5 hover:text-white transition cursor-pointer"
-      on:click={handleSaveOffline}
-      title="Simpan Offline"
+      type="button"
+      class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-white/[0.08] hover:text-white transition cursor-pointer text-left"
+      on:click|stopPropagation={handleToggleOffline}
     >
-      <svg
-        class="w-3.5 h-3.5 sm:w-4 sm:h-4"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-      >
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-        <polyline points="7 10 12 15 17 10"></polyline>
-        <line x1="12" y1="15" x2="12" y2="3"></line>
-      </svg>
-    </button>
-
-    {#if onRemove}
-      <!-- Remove from Playlist button -->
-      <button
-        class="p-1 sm:p-1.5 text-zinc-500 hover:text-red-400 transition cursor-pointer rounded-lg hover:bg-white/[0.08]"
-        on:click|stopPropagation={onRemove}
-        title="Hapus dari playlist"
-      >
-        <svg
-          class="w-3.5 h-3.5 sm:w-4 sm:h-4"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-        >
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
+      {#if isTrackOffline}
+        <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
+        <span class="text-emerald-400">{$t("remove_offline")}</span>
+      {:else}
+        <svg class="w-4 h-4 text-zinc-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>{$t("btn_save_offline")}</span>
+      {/if}
+    </button>
+
+    <!-- Copy Track Link -->
+    <button
+      type="button"
+      class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-white/[0.08] hover:text-white transition cursor-pointer text-left"
+      on:click|stopPropagation={handleCopyLink}
+    >
+      <svg class="w-4 h-4 text-zinc-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+      </svg>
+      <span>{$t("copy_link")}</span>
+    </button>
+
+    <!-- Delete / Remove if provided (e.g. from Playlist / History) -->
+    {#if onRemove}
+      <div class="h-[1px] bg-white/[0.08] my-1"></div>
+      <button
+        type="button"
+        class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-red-500/15 text-red-400 hover:text-red-300 transition cursor-pointer text-left"
+        on:click|stopPropagation={() => { closeMenu(); onRemove && onRemove(); }}
+      >
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>{removeTitle || "Hapus dari Daftar"}</span>
       </button>
     {/if}
   </div>
-</div>
+{/if}

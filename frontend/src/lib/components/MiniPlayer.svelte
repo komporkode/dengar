@@ -12,6 +12,7 @@
   } from '../stores/settingsStore'
   import { t } from '../stores/i18nStore'
   import { networkStore } from '../stores/networkStore'
+  import { handleCoverError } from '../stores/offlineStore'
 
   $: currentTrack = $playerStore.currentTrack
   $: isPlaying = $playerStore.isPlaying
@@ -138,7 +139,12 @@
     <div class="flex items-center gap-2.5 min-w-0 flex-1" style="--wails-draggable:no-drag">
       <div class="relative w-11 h-11 rounded-xl overflow-hidden shadow-lg shadow-black/80 border border-white/10 shrink-0 bg-[#161822] flex items-center justify-center">
         {#if currentTrack?.thumbnailUrl}
-          <img src={currentTrack.thumbnailUrl} alt={currentTrack.title} class="w-full h-full object-cover" />
+          <img
+            src={currentTrack.thumbnailUrl}
+            alt={currentTrack.title}
+            class="w-full h-full object-cover"
+            on:error={(e) => handleCoverError(e, currentTrack?.id)}
+          />
         {:else}
           <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/[0.04] to-transparent">
             <svg class="w-5 h-5 text-zinc-500" fill="currentColor" viewBox="0 0 24 24">

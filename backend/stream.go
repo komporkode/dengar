@@ -56,6 +56,15 @@ func (r *StreamResolver) SetPrimaryProvider(provider string) {
 	r.lastFailVideoID = ""
 }
 
+// ResetInstances forces failover rotation of stream instances and refreshes live instance registries.
+func (r *StreamResolver) ResetInstances() {
+	if r.pool != nil {
+		r.pool.RotatePiped()
+		r.pool.RotateInvidious()
+		r.pool.RefreshInvidiousInstances()
+	}
+}
+
 func (r *StreamResolver) recordSuccess(provider string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

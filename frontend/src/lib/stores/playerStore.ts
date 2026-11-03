@@ -87,6 +87,7 @@ function createPlayerStore() {
   let audio: HTMLAudioElement | null = null
   let currentRequestId = 0
   let hasRecordedPlay = false
+  let hasRecordedHistory = false
   let recordedTrackId = ''
 
   function getBufferedEnd(a: HTMLAudioElement): number {
@@ -365,6 +366,7 @@ function createPlayerStore() {
     cancelAutoRetry()
     const requestId = ++currentRequestId
     hasRecordedPlay = false
+    hasRecordedHistory = false
     recordedTrackId = track.id
     update(st => ({
       ...st,
@@ -378,12 +380,9 @@ function createPlayerStore() {
       bufferedTime: 0,
     }))
 
-    // Record to history
-    userDataStore.recordHistory(track)
-
     try {
       let stream: StreamResult
-      const currentQuality = get(audioQualityStore) || 'high'
+      const currentQuality = get(audioQualityStore) || 'saver'
       try {
         stream = await GetStream(track.id, false, currentQuality)
       } catch (firstErr) {
@@ -513,7 +512,7 @@ function createPlayerStore() {
     }))
 
     try {
-      const currentQuality = get(audioQualityStore) || 'high'
+      const currentQuality = get(audioQualityStore) || 'saver'
       console.log(`[Auto-Recovery] Rotating instance for track ${s.currentTrack.id} (attempt ${nextRetry}/3)...`)
       const freshStream = await GetStream(s.currentTrack.id, true, currentQuality)
       const streamUrl = freshStream.audioUrl || freshStream.videoUrl
@@ -553,11 +552,11 @@ function createPlayerStore() {
       return
     }
 
-    // Only purge disk cache if audio genuinely suffered a decoding or unsupported format error
+    // Only purge disk cache if audio genuinely suffered a decoding error (corrupt file data)
     if (s.currentTrack && audio?.error) {
       const code = audio.error.code
-      if (code === 3 /* MEDIA_ERR_DECODE */ || code === 4 /* MEDIA_ERR_SRC_NOT_SUPPORTED */) {
-        console.warn(`[Auto-Recovery] Decoding error (${code}) on ${s.currentTrack.id}, purging cache`)
+      if (code === 3 /* MEDIA_ERR_DECODE */) {
+        console.warn(`[Auto-Recovery] Decoding error (${code}) on ${s.currentTrack.id}, purging corrupt cache`)
         PurgeTrackCache(s.currentTrack.id).catch(() => {})
       }
     }
@@ -602,7 +601,7 @@ function createPlayerStore() {
       error: null,
     }))
     try {
-      const currentQuality = get(audioQualityStore) || 'high'
+      const currentQuality = get(audioQualityStore) || 'saver'
       const freshStream = await GetStream(s.currentTrack.id, true, currentQuality)
       const streamUrl = freshStream.audioUrl || freshStream.videoUrl
       if (!streamUrl) throw new Error('Tidak ada stream audio yang valid')
@@ -634,7 +633,7 @@ function createPlayerStore() {
     if (!track) return
     try {
       console.log(`[TokenRenewal] Refreshing streaming token for long track (${Math.round(currentTime / 60)}m)...`)
-      const currentQuality = get(audioQualityStore) || 'high'
+      const currentQuality = get(audioQualityStore) || 'saver'
       const fresh = await GetStream(track.id, false, currentQuality)
       const streamUrl = fresh.audioUrl || fresh.videoUrl
       if (streamUrl && audio && audio.src !== streamUrl) {
@@ -778,6 +777,14 @@ function createPlayerStore() {
   }
 
   function onTimeUpdate(currentTime: number, duration: number) {
+    if (!hasRecordedHistory && currentTime >= 5) {
+      const s = get({ subscribe })
+      if (s.currentTrack && s.currentTrack.id === recordedTrackId) {
+        hasRecordedHistory = true
+        userDataStore.recordHistory(s.currentTrack)
+      }
+    }
+
     if (!hasRecordedPlay && currentTime >= 20) {
       const s = get({ subscribe })
       if (s.currentTrack && s.currentTrack.id === recordedTrackId) {
@@ -801,6 +808,11 @@ function createPlayerStore() {
   function onTrackEnded() {
     const s = get({ subscribe })
     const q = get(queueStore)
+
+    if (!hasRecordedHistory && s.currentTrack && s.currentTrack.id === recordedTrackId) {
+      hasRecordedHistory = true
+      userDataStore.recordHistory(s.currentTrack)
+    }
 
     if (!hasRecordedPlay && s.currentTrack && s.currentTrack.id === recordedTrackId) {
       hasRecordedPlay = true

@@ -16,6 +16,8 @@ export function ClearAudioCache():Promise<void>;
 
 export function ClearDiscordActivity():Promise<void>;
 
+export function ClearHistory():Promise<void>;
+
 export function CreatePlaylist(arg1:string,arg2:string):Promise<backend.Playlist>;
 
 export function DeletePlaylist(arg1:string):Promise<void>;
@@ -23,6 +25,8 @@ export function DeletePlaylist(arg1:string):Promise<void>;
 export function DownloadUpdate(arg1:string,arg2:string):Promise<string>;
 
 export function ExportPlaylist(arg1:string):Promise<string>;
+
+export function GetAudioCacheDir():Promise<string>;
 
 export function GetAudioCacheStats():Promise<backend.AudioCacheStats>;
 
@@ -44,6 +48,8 @@ export function ImportPlaylist(arg1:string):Promise<backend.Playlist>;
 
 export function IsTrackOffline(arg1:string):Promise<boolean>;
 
+export function OpenAudioCacheFolder():Promise<void>;
+
 export function OpenInFolder(arg1:string):Promise<void>;
 
 export function ProxyHandler():Promise<http.Handler>;
@@ -54,15 +60,25 @@ export function RecordPlay(arg1:backend.SearchResultItem):Promise<void>;
 
 export function RefreshHomeData():Promise<main.HomeData>;
 
+export function ReloadInstances():Promise<void>;
+
+export function RemoveHistory(arg1:string):Promise<void>;
+
 export function RemoveOfflineTrack(arg1:string):Promise<void>;
 
 export function RemoveTrackFromPlaylist(arg1:string,arg2:string):Promise<void>;
+
+export function ResetAudioCacheFolder():Promise<string>;
 
 export function SaveTrackOffline(arg1:backend.SearchResultItem):Promise<void>;
 
 export function Search(arg1:string,arg2:string):Promise<backend.SearchResponse>;
 
 export function SearchMore(arg1:string):Promise<backend.SearchResponse>;
+
+export function SelectAudioCacheFolder():Promise<string>;
+
+export function SetAudioCacheFolder(arg1:string,arg2:boolean):Promise<void>;
 
 export function SetAudioCacheLimit(arg1:number):Promise<void>;
 
@@ -75,3 +91,5 @@ export function ToggleFavorite(arg1:backend.SearchResultItem):Promise<boolean>;
 export function UpdateDiscordActivity(arg1:string,arg2:string,arg3:number,arg4:number,arg5:boolean):Promise<void>;
 
 export function UpdatePlaylist(arg1:string,arg2:string,arg3:string):Promise<backend.Playlist>;
+
+export function UpdateTaskbarPlayState(arg1:boolean):Promise<void>;

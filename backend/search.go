@@ -43,6 +43,15 @@ func (s *SearchService) SetInnertubeURL(url string) {
 	s.innertubeURL = url
 }
 
+// ResetInstances forces failover rotation of primary instances and refreshes live instance pool.
+func (s *SearchService) ResetInstances() {
+	if s.pool != nil {
+		s.pool.RotatePiped()
+		s.pool.RotateInvidious()
+		s.pool.RefreshInvidiousInstances()
+	}
+}
+
 // pipedItem represents item structure from Piped search response.
 type pipedItem struct {
 	URL          string `json:"url"`

@@ -7,5 +7,10 @@ export default defineConfig({
   plugins: [tailwindcss(), svelte()],
   server: {
     allowedHosts: true,
+    proxy: {
+      '/api': {
+        bypass: () => false,
+      },
+    },
   }
 })

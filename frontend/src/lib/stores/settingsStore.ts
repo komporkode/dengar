@@ -16,7 +16,7 @@ export type AudioQuality = 'high' | 'saver'
 
 const savedQuality = (typeof localStorage !== 'undefined' ? localStorage.getItem('dengar_quality') : null) as AudioQuality | null
 
-export const audioQualityStore = writable<AudioQuality>(savedQuality === 'saver' ? 'saver' : 'high')
+export const audioQualityStore = writable<AudioQuality>(savedQuality === 'high' ? 'high' : 'saver')
 
 audioQualityStore.subscribe((val) => {
   if (typeof localStorage !== 'undefined') {

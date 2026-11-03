@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -407,5 +408,218 @@ func TestAudioCacheManager_CommitStream(t *testing.T) {
 		t.Errorf("Expected videoId commit_track, got %s", cachedList[0].VideoID)
 	}
 }
+
+func TestAudioCacheManager_ThumbnailCache(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "dengerin_thumb_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	mgr, err := NewAudioCacheManager(tempDir, 10*1024*1024)
+	if err != nil {
+		t.Fatalf("Failed to create AudioCacheManager: %v", err)
+	}
+
+	mockThumb := make([]byte, 1024)
+	mockThumb[0] = 0xFF
+	mockThumb[1] = 0xD8
+	mockThumb[2] = 0xFF
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(mockThumb)
+	}))
+	defer server.Close()
+
+	// 1. Initially thumbnail not found
+	if _, found := mgr.GetThumbnail("song_123"); found {
+		t.Errorf("Expected thumbnail not found initially")
+	}
+
+	// 2. Cache thumbnail
+	err = mgr.CacheThumbnail("song_123", server.URL)
+	if err != nil {
+		t.Fatalf("CacheThumbnail failed: %v", err)
+	}
+
+	// 3. Verify thumbnail found
+	thumbPath, found := mgr.GetThumbnail("song_123")
+	if !found {
+		t.Fatalf("Expected thumbnail to be found after caching")
+	}
+	info, err := os.Stat(thumbPath)
+	if err != nil || info.Size() != int64(len(mockThumb)) {
+		t.Errorf("Thumbnail file size mismatch: %v", err)
+	}
+
+	// 4. Test Purge cleans up thumbnail
+	mgr.Purge("song_123")
+	if _, found := mgr.GetThumbnail("song_123"); found {
+		t.Errorf("Expected thumbnail to be removed after Purge")
+	}
+}
+
+func TestCoverProxyHandler_ServeCached(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "dengerin_cover_proxy_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	mgr, err := NewAudioCacheManager(tempDir, 10*1024*1024)
+	if err != nil {
+		t.Fatalf("Failed to create AudioCacheManager: %v", err)
+	}
+
+	mockThumb := make([]byte, 512)
+	mockThumb[0] = 0xFF
+	mockThumb[1] = 0xD8
+	mockThumb[2] = 0xFF
+	thumbPath := filepath.Join(tempDir, "cached_vid.thumb")
+	_ = os.WriteFile(thumbPath, mockThumb, 0644)
+
+	handler := NewCoverProxyHandlerWithCache(mgr)
+
+	// 1. Request cached thumbnail
+	req := httptest.NewRequest("GET", "/api/cover-proxy?cache_id=cached_vid", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", rr.Code)
+	}
+	if rr.Header().Get("Content-Type") != "image/jpeg" {
+		t.Errorf("Expected Content-Type image/jpeg, got %s", rr.Header().Get("Content-Type"))
+	}
+	if rr.Body.Len() != len(mockThumb) {
+		t.Errorf("Expected body length %d, got %d", len(mockThumb), rr.Body.Len())
+	}
+
+	// 2. Request nonexistent thumbnail with invalid upstream URL - should serve fallback SVG
+	reqFallback := httptest.NewRequest("GET", "/api/cover-proxy?cache_id=nonexistent&url=http://invalid.local.test/404", nil)
+	rrFallback := httptest.NewRecorder()
+	handler.ServeHTTP(rrFallback, reqFallback)
+
+	if rrFallback.Code != http.StatusOK {
+		t.Errorf("Expected status 200 for fallback, got %d", rrFallback.Code)
+	}
+	if rrFallback.Header().Get("Content-Type") != "image/svg+xml" {
+		t.Errorf("Expected Content-Type image/svg+xml for fallback, got %s", rrFallback.Header().Get("Content-Type"))
+	}
+	if !strings.Contains(rrFallback.Body.String(), "<svg") {
+		t.Errorf("Expected fallback body to contain svg, got: %s", rrFallback.Body.String())
+	}
+}
+
+func TestAudioCacheManager_ConfigPersistence(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "dengerin_cache_cfg_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// 1. Initial creation with default 10MB
+	mgr1, err := NewAudioCacheManager(tempDir, 10*1024*1024)
+	if err != nil {
+		t.Fatalf("Failed to create AudioCacheManager: %v", err)
+	}
+	if mgr1.GetStats().MaxBytes != 10*1024*1024 {
+		t.Errorf("Expected initial maxBytes %d, got %d", 10*1024*1024, mgr1.GetStats().MaxBytes)
+	}
+
+	// 2. Change limit to 2GB (2048 MB)
+	targetLimit := int64(2048) * 1024 * 1024
+	mgr1.SetLimit(targetLimit)
+	if mgr1.GetStats().MaxBytes != targetLimit {
+		t.Errorf("Expected updated maxBytes %d, got %d", targetLimit, mgr1.GetStats().MaxBytes)
+	}
+
+	// 3. Re-instantiate AudioCacheManager on the same dir (simulating app restart)
+	mgr2, err := NewAudioCacheManager(tempDir, 1024*1024*1024)
+	if err != nil {
+		t.Fatalf("Failed to re-instantiate AudioCacheManager: %v", err)
+	}
+	if mgr2.GetStats().MaxBytes != targetLimit {
+		t.Errorf("Expected persistent restored maxBytes %d, got %d", targetLimit, mgr2.GetStats().MaxBytes)
+	}
+
+	// 4. Test setting to 0 (Unlimited)
+	mgr2.SetLimit(0)
+	if mgr2.GetStats().MaxBytes != 0 {
+		t.Errorf("Expected maxBytes 0, got %d", mgr2.GetStats().MaxBytes)
+	}
+
+	// 5. Re-instantiate again and confirm 0 is restored
+	mgr3, err := NewAudioCacheManager(tempDir, 1024*1024*1024)
+	if err != nil {
+		t.Fatalf("Failed to re-instantiate AudioCacheManager for unlimited: %v", err)
+	}
+	if mgr3.GetStats().MaxBytes != 0 {
+		t.Errorf("Expected restored maxBytes 0, got %d", mgr3.GetStats().MaxBytes)
+	}
+}
+
+func TestAudioCacheManager_SetCacheDir_Migration(t *testing.T) {
+	dir1, err := os.MkdirTemp("", "dengerin_cachedir1_*")
+	if err != nil {
+		t.Fatalf("Failed to create dir1: %v", err)
+	}
+	defer os.RemoveAll(dir1)
+
+	dir2, err := os.MkdirTemp("", "dengerin_cachedir2_*")
+	if err != nil {
+		t.Fatalf("Failed to create dir2: %v", err)
+	}
+	defer os.RemoveAll(dir2)
+
+	mgr, err := NewAudioCacheManager(dir1, 50*1024*1024)
+	if err != nil {
+		t.Fatalf("Failed to create AudioCacheManager: %v", err)
+	}
+
+	if mgr.GetDir() != dir1 {
+		t.Errorf("Expected active dir %s, got %s", dir1, mgr.GetDir())
+	}
+
+	// Create dummy .cache and .meta files in dir1
+	dummyAudio := make([]byte, 150*1024)
+	_ = os.WriteFile(filepath.Join(dir1, "song123.cache"), dummyAudio, 0644)
+	_ = os.WriteFile(filepath.Join(dir1, "song123.meta"), []byte(`{"videoId":"song123","title":"Song 123"}`), 0644)
+
+	// Move to dir2 with moveFiles = true
+	if err := mgr.SetCacheDir(dir2, true); err != nil {
+		t.Fatalf("SetCacheDir failed: %v", err)
+	}
+
+	if mgr.GetDir() != dir2 {
+		t.Errorf("Expected active dir %s, got %s", dir2, mgr.GetDir())
+	}
+
+	// Verify files moved to dir2
+	if _, err := os.Stat(filepath.Join(dir2, "song123.cache")); err != nil {
+		t.Errorf("song123.cache should exist in dir2: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir2, "song123.meta")); err != nil {
+		t.Errorf("song123.meta should exist in dir2: %v", err)
+	}
+
+	// Verify old files no longer in dir1
+	if _, err := os.Stat(filepath.Join(dir1, "song123.cache")); !os.IsNotExist(err) {
+		t.Errorf("song123.cache should have been removed from dir1")
+	}
+
+	// Stats should reflect moved file
+	stats := mgr.GetStats()
+	if stats.TotalFiles != 1 {
+		t.Errorf("Expected 1 file in stats, got %d", stats.TotalFiles)
+	}
+	if stats.CacheDir != dir2 {
+		t.Errorf("Expected stats.CacheDir %s, got %s", dir2, stats.CacheDir)
+	}
+}
+
+
 
 

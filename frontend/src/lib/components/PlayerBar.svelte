@@ -7,6 +7,7 @@
   import { equalizerStore } from '../stores/equalizerStore'
   import EqualizerDrawer from './EqualizerDrawer.svelte'
   import { openSleepTimerModal, sleepTimerRemaining } from '../stores/sleepTimerStore'
+  import { handleCoverError } from '../stores/offlineStore'
 
   let isEqualizerOpen = false
 
@@ -159,7 +160,12 @@
     <div class="flex items-center gap-2.5 sm:gap-3.5 min-w-0 max-w-[130px] sm:max-w-[220px] md:max-w-[280px] shrink-0">
       <div class="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-md shadow-black/80 border border-white/10 shrink-0 bg-surface-highlight flex items-center justify-center">
         {#if currentTrack?.thumbnailUrl}
-          <img alt={currentTrack.title} class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" src={currentTrack.thumbnailUrl} />
+          <img
+            alt={currentTrack.title}
+            class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            src={currentTrack.thumbnailUrl}
+            on:error={(e) => handleCoverError(e, currentTrack?.id)}
+          />
         {:else}
           <svg class="w-5 h-5 sm:w-6 sm:h-6 text-zinc-500" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>

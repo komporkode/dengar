@@ -14,6 +14,45 @@ export interface ChangelogRelease {
 
 export const CHANGELOG_DATA: ChangelogRelease[] = [
   {
+    version: 'v1.3.0',
+    title: 'Kustomisasi Lokasi Cache, Installer Fleksibel & Peningkatan Upgrade',
+    date: '3 November 2026',
+    badge: 'Fitur Baru',
+    summary: 'Rilis v1.3.0 menghadirkan pemilihan folder penyimpanan cache kustom ke drive lain dengan migrasi otomatis, installer Windows yang fleksibel dengan deteksi upgrade otomatis, mode kualitas Eco default, dan peningkatan performa.',
+    sections: [
+      {
+        title: 'Manajemen Penyimpanan & Cache Kustom',
+        icon: 'database',
+        color: 'text-crimson-400',
+        items: [
+          'Kustomisasi Folder Cache: Pilih folder penyimpanan cache audio di mana saja (termasuk drive D:, E:, atau eksternal) langsung dari Pengaturan.',
+          'Migrasi Otomatis: File audio yang sudah di-cache otomatis dipindahkan ke direktori baru tanpa kehilangan lagu offline.',
+          'Buka & Reset Cepat: Tombol cepat untuk membuka folder cache di File Explorer atau mereset ke folder default OS.',
+        ],
+      },
+      {
+        title: 'Installer Windows & Smart Upgrade',
+        icon: 'desktop',
+        color: 'text-indigo-400',
+        items: [
+          'Pemilihan Direktori Instalasi: Bebas menentukan folder tujuan saat menginstal aplikasi.',
+          'Deteksi Upgrade Cerdas: Installer otomatis mengingat lokasi instalasi sebelumnya saat melakukan pembaruan versi.',
+          'Penutupan Aman: Proses aplikasi lama ditutup secara otomatis sebelum file baru diekstrak untuk mencegah kendala "file in use".',
+        ],
+      },
+      {
+        title: 'Pengaturan & UI Polish',
+        icon: 'sparkles',
+        color: 'text-emerald-400',
+        items: [
+          'Default Eco Mode: Kualitas streaming audio otomatis disetel ke Saver/Eco yang hemat kuota dan responsif.',
+          'Batas Kuota Cache Persisten: Pengaturan limit LRU cache tersimpan permanen di file konfigurasi lokal.',
+          'Badge Sidebar Rapi: Indikator titik merah pada tombol favorit & riwayat diposisikan tepat tanpa menghalangi ikon.',
+        ],
+      },
+    ],
+  },
+  {
     version: 'v1.2.0',
     title: 'Integrasi OS Desktop, Tab Offline & Perombakan Algoritma FYP',
     date: '3 November 2026',

@@ -7,6 +7,7 @@
   import { userDataStore } from "../stores/userDataStore";
   import { t } from "../stores/i18nStore";
   import TrackList from "./TrackList.svelte";
+  import HeroBanner from "./HeroBanner.svelte";
 
   let topPlayed: SearchResultItem[] = [];
   let recommended: SearchResultItem[] = [];
@@ -27,10 +28,12 @@
     (item, idx, arr) => arr.findIndex((t) => t.id === item.id) === idx,
   );
 
-  // Top 4 artwork thumbnails for the vinyl/mosaic cover showcase
+  // Top featured tracks for banner and showcase
   $: sampleArtworks = (mixTracks.length > 0 ? mixTracks : topPlayed)
     .filter((t) => !!t.thumbnailUrl)
-    .slice(0, 4);
+    .slice(0, 8);
+
+  $: featuredTrack = sampleArtworks[0] || mixTracks[0] || topPlayed[0] || recommended[0];
 
   $: isMixPlaying =
     $playerStore.isPlaying &&
@@ -99,303 +102,38 @@
 </script>
 
 <div class="px-4 sm:px-8 py-6 space-y-9 select-none">
-  <!-- Cinematic Full-Bleed Music Hero: Studio Quality (Inspired by Modern Streaming Heroes) -->
-  <div
-    class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0C0E1A] via-[#111324] to-[#080910] border border-white/[0.08] p-6 sm:p-10 md:p-12 shadow-2xl transition-all"
+  <!-- Cinematic Full-Bleed Music Hero: Studio Quality -->
+  <HeroBanner
+    tag={`PERSONAL MIX • ${getGreeting()}`}
+    title={featuredTrack ? featuredTrack.title : $t("nav_foryou")}
+    subtitle={featuredTrack ? `${featuredTrack.uploaderName} • ${mixTracks.length > 0 ? `${mixTracks.length} Trek Pilihan Khusus Untukmu` : $t("foryou_hero_desc")}` : $t("foryou_hero_desc")}
+    imageUrl={featuredTrack?.thumbnailUrl || ""}
+    trackId={featuredTrack?.id}
+    playLabel={isMixPlaying ? $t("pause_all") : $t("foryou_play_now")}
+    isPlaying={isMixPlaying}
+    showPlay={mixTracks.length > 0}
+    showShuffle={mixTracks.length > 0}
+    on:play={() => handlePlayMix(false)}
+    on:shuffle={() => handlePlayMix(true)}
   >
-    <!-- Top-edge luminous accent highlight -->
-    <div
-      class="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-crimson-400/50 to-transparent pointer-events-none"
-    ></div>
-
-    <!-- Radiant Ambient Light Orbs -->
-    <div
-      class="absolute -right-16 -top-16 w-96 h-96 bg-crimson-600/25 rounded-full blur-[120px] pointer-events-none"
-    ></div>
-    <div
-      class="absolute -left-16 -bottom-16 w-80 h-80 bg-indigo-600/20 rounded-full blur-[110px] pointer-events-none"
-    ></div>
-    <div
-      class="absolute right-1/3 bottom-0 w-64 h-64 bg-violet-600/15 rounded-full blur-[100px] pointer-events-none"
-    ></div>
-
-    <!-- Right Side Atmospheric Featured Visual with Feathered Fade-Out Mask -->
-    {#if sampleArtworks.length > 0}
-      <div
-        class="absolute right-0 top-0 bottom-0 w-full sm:w-3/5 lg:w-1/2 pointer-events-none select-none overflow-hidden hidden sm:block"
-      >
-        <img
-          src={sampleArtworks[0].thumbnailUrl}
-          alt=""
-          class="w-full h-full object-cover object-center opacity-40 lg:opacity-55 scale-105 filter blur-[0.5px] transition-opacity duration-700"
-          loading="lazy"
-        />
-        <!-- Multi-direction smooth dark gradient masks dissolving into background -->
-        <div
-          class="absolute inset-0 bg-gradient-to-r from-[#0C0E1A] via-[#111324]/80 to-transparent"
-        ></div>
-        <div
-          class="absolute inset-0 bg-gradient-to-t from-[#080910] via-transparent to-[#0C0E1A]/40"
-        ></div>
-        <div
-          class="absolute inset-0 bg-gradient-to-b from-[#0C0E1A]/60 via-transparent to-[#080910]"
-        ></div>
-      </div>
-    {/if}
-
-    <div
-      class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8"
+    <button
+      type="button"
+      class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 hover:border-white/20 text-zinc-200 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50 shrink-0"
+      on:click={handleRefresh}
+      disabled={isRefreshing}
+      title={$t("foryou_refresh_mix")}
     >
-      <!-- Left Column: Curation Info & Action Suite -->
-      <div class="flex-1 max-w-2xl space-y-4 sm:space-y-5">
-        <!-- Equalizer & Badge Pill -->
-        <div
-          class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-crimson-500/15 border border-crimson-500/30 backdrop-blur-md shadow-xs"
-        >
-          <!-- Animated mini equalizer wave -->
-          <div class="flex items-end gap-[3px] h-3.5 w-3.5" aria-hidden="true">
-            <span class="w-[2.5px] bg-crimson-400 rounded-full sound-bar-1 h-2"
-            ></span>
-            <span
-              class="w-[2.5px] bg-crimson-400 rounded-full sound-bar-2 h-3.5"
-            ></span>
-            <span
-              class="w-[2.5px] bg-crimson-400 rounded-full sound-bar-3 h-1.5"
-            ></span>
-            <span class="w-[2.5px] bg-crimson-400 rounded-full sound-bar-4 h-3"
-            ></span>
-          </div>
-          <span
-            class="text-[11px] font-extrabold tracking-[0.2em] text-crimson-400 uppercase font-mono"
-            >Personal Mix</span
-          >
-          <span class="text-white/20 text-xs">•</span>
-          <span
-            class="text-[10px] font-semibold text-zinc-300 tracking-wider uppercase"
-            >{$t("designed_for_you")}</span
-          >
-        </div>
-
-        <!-- Headline & Dynamic Greeting -->
-        <div>
-          <div
-            class="flex items-center gap-2 text-zinc-400 text-xs sm:text-sm font-medium mb-1"
-          >
-            <span>{getGreeting()}</span>
-            <span class="text-zinc-600">•</span>
-            <span class="text-zinc-400">{$t("smart_music_choice")}</span>
-          </div>
-          <h1
-            class="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-none drop-shadow-md"
-          >
-            {$t("nav_foryou")}
-          </h1>
-          <p
-            class="text-xs sm:text-sm text-zinc-300/90 mt-3 leading-relaxed max-w-xl"
-          >
-            {$t("foryou_hero_desc")}
-          </p>
-        </div>
-
-        <!-- Controls Suite: Putar Mix, Putar Acak, Segarkan (Uniform Heights & Non-wrapping) -->
-        <div class="flex flex-wrap items-center gap-3 pt-2">
-          <button
-            class="h-11 sm:h-12 px-6 sm:px-7 rounded-full bg-gradient-to-r from-crimson-600 via-crimson-500 to-rose-500 hover:from-crimson-500 hover:to-rose-400 border border-transparent text-white font-bold text-xs sm:text-sm inline-flex items-center gap-2.5 shadow-xl shadow-crimson-500/35 hover:shadow-crimson-500/50 hover:scale-[1.03] active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
-            on:click={() => handlePlayMix(false)}
-            title="Putar semua rekomendasi untuk Anda"
-          >
-            {#if isMixPlaying}
-              <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
-                <rect height="14" width="3.5" x="6" y="5"></rect>
-                <rect height="14" width="3.5" x="14.5" y="5"></rect>
-              </svg>
-              <span class="whitespace-nowrap">{$t("pause_all")}</span>
-            {:else}
-              <svg
-                class="w-4 h-4 fill-current shrink-0 ml-0.5"
-                viewBox="0 0 24 24"
-              >
-                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-              </svg>
-              <span class="whitespace-nowrap">{$t("foryou_play_now")}</span>
-            {/if}
-          </button>
-
-          <button
-            class="h-11 sm:h-12 px-5 sm:px-6 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 hover:border-white/20 text-zinc-100 hover:text-white font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
-            on:click={() => handlePlayMix(true)}
-            title={$t("shuffle")}
-          >
-            <svg
-              class="w-4 h-4 text-zinc-300 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <polyline points="16 3 21 3 21 8"></polyline>
-              <line x1="4" y1="20" x2="21" y2="3"></line>
-              <polyline points="21 16 21 21 16 21"></polyline>
-              <line x1="15" y1="15" x2="21" y2="21"></line>
-              <line x1="4" y1="4" x2="9" y2="9"></line>
-            </svg>
-            <span class="whitespace-nowrap">{$t("shuffle")}</span>
-          </button>
-
-          <button
-            class="h-11 sm:h-12 px-4 sm:px-5 rounded-full bg-white/[0.04] hover:bg-white/[0.09] border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white font-medium text-xs sm:text-sm inline-flex items-center gap-2 transition-all active:scale-95 cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
-            on:click={handleRefresh}
-            disabled={isRefreshing}
-            title={$t("foryou_refresh_mix")}
-          >
-            <svg
-              class="w-3.5 h-3.5 {isRefreshing
-                ? 'animate-spin text-crimson-400'
-                : 'text-zinc-400'} shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"
-              />
-            </svg>
-            <span class="whitespace-nowrap"
-              >{isRefreshing ? "..." : $t("offline_refresh")}</span
-            >
-          </button>
-        </div>
-
-        <!-- Meta Info Pills -->
-        <div
-          class="flex items-center gap-4 pt-1 text-[11px] text-zinc-400 font-medium flex-wrap"
-        >
-          <span class="inline-flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span
-              >{mixTracks.length > 0
-                ? `${mixTracks.length} Trek Pilihan`
-                : "Kurasi Otomatis"}</span
-            >
-          </span>
-          <span class="text-zinc-600">•</span>
-          <span class="inline-flex items-center gap-1.5">
-            <svg
-              class="w-3.5 h-3.5 text-crimson-400"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              ><path
-                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-              /></svg
-            >
-            <span>Lossless Hi-Fi</span>
-          </span>
-          <span class="text-zinc-600">•</span>
-          <span class="text-zinc-500">Bebas Iklan Selamanya</span>
-        </div>
-      </div>
-
-      <!-- Right Column: Visual Artwork Mosaic / Vinyl Cover Stage -->
-      <div class="shrink-0 flex items-center justify-center lg:justify-end">
-        <div
-          class="relative group cursor-pointer"
-          on:click={() => handlePlayMix(false)}
-          role="button"
-          tabindex="0"
-          on:keydown={(e) => e.key === "Enter" && handlePlayMix(false)}
-        >
-          <!-- Outer Ambient Glow behind cover -->
-          <div
-            class="absolute -inset-3 bg-gradient-to-tr from-crimson-600/50 via-rose-600/30 to-transparent rounded-3xl blur-2xl opacity-75 group-hover:opacity-100 transition-opacity duration-500"
-          ></div>
-
-          <!-- Mosaic Card Shell -->
-          <div
-            class="relative w-44 h-44 sm:w-52 sm:h-52 rounded-2xl sm:rounded-3xl overflow-hidden bg-black/60 border border-white/15 shadow-2xl p-1.5 group-hover:scale-[1.03] transition-transform duration-300"
-          >
-            {#if sampleArtworks.length >= 4}
-              <!-- 2x2 Album Mosaic Grid -->
-              <div
-                class="w-full h-full grid grid-cols-2 grid-rows-2 gap-1 rounded-xl sm:rounded-2xl overflow-hidden bg-zinc-900"
-              >
-                {#each sampleArtworks.slice(0, 4) as item}
-                  <img
-                    src={item.thumbnailUrl}
-                    alt={item.title}
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                  />
-                {/each}
-              </div>
-            {:else if sampleArtworks.length > 0}
-              <!-- Single/Dual Artwork with vinyl disc peek -->
-              <div
-                class="w-full h-full relative rounded-xl sm:rounded-2xl overflow-hidden bg-zinc-900"
-              >
-                <img
-                  src={sampleArtworks[0].thumbnailUrl}
-                  alt={sampleArtworks[0].title}
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  loading="lazy"
-                />
-              </div>
-            {:else}
-              <!-- Vinyl Graphic Placeholder with Sleek Grooves -->
-              <div
-                class="w-full h-full rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-900 via-black to-zinc-950 flex items-center justify-center relative overflow-hidden"
-              >
-                <div
-                  class="absolute inset-4 rounded-full border border-white/5"
-                ></div>
-                <div
-                  class="absolute inset-8 rounded-full border border-white/5"
-                ></div>
-                <div
-                  class="absolute inset-12 rounded-full border border-white/5"
-                ></div>
-                <div
-                  class="w-14 h-14 rounded-full bg-gradient-to-tr from-crimson-600 to-crimson-400 flex items-center justify-center shadow-lg shadow-crimson-500/40"
-                >
-                  <svg
-                    class="w-6 h-6 text-white ml-0.5 fill-current"
-                    viewBox="0 0 24 24"
-                    ><polygon points="5 3 19 12 5 21 5 3" /></svg
-                  >
-                </div>
-              </div>
-            {/if}
-
-            <!-- Center Hover / Play Button Overlay -->
-            <div
-              class="absolute inset-0 flex items-center justify-center bg-black/35 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl sm:rounded-3xl"
-            >
-              <div
-                class="w-12 h-12 rounded-full bg-crimson-500 text-white flex items-center justify-center shadow-xl shadow-crimson-500/50 transform group-hover:scale-110 transition-transform"
-              >
-                {#if isMixPlaying}
-                  <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"
-                    ><rect x="6" y="4" width="4" height="16" /><rect
-                      x="14"
-                      y="4"
-                      width="4"
-                      height="16"
-                    /></svg
-                  >
-                {:else}
-                  <svg class="w-5 h-5 fill-current ml-0.5" viewBox="0 0 24 24"
-                    ><polygon points="5 3 19 12 5 21 5 3" /></svg
-                  >
-                {/if}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+      <svg
+        class="w-4 h-4 {isRefreshing ? 'animate-spin text-crimson-400' : 'text-zinc-200'} shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+      </svg>
+    </button>
+  </HeroBanner>
 
   <!-- Horizontal Carousel: Koleksi Populer (Inspired by Flume Popular Albums Carousel) -->
   {#if sampleArtworks.length > 0}
@@ -607,33 +345,9 @@
         title="Rekomendasi Spesial"
         tracks={recommended}
         {isLoading}
+        flush={true}
         emptyMessage="Mulai putar beberapa lagu favoritmu untuk melatih rekomendasi cerdas di tab Untuk Anda ini!"
       />
     </div>
   {/if}
 </div>
-
-<style>
-  @keyframes soundwave {
-    0%,
-    100% {
-      height: 4px;
-    }
-    50% {
-      height: 14px;
-    }
-  }
-
-  .sound-bar-1 {
-    animation: soundwave 1.1s ease-in-out infinite;
-  }
-  .sound-bar-2 {
-    animation: soundwave 0.8s ease-in-out infinite 0.2s;
-  }
-  .sound-bar-3 {
-    animation: soundwave 1.4s ease-in-out infinite 0.4s;
-  }
-  .sound-bar-4 {
-    animation: soundwave 0.95s ease-in-out infinite 0.1s;
-  }
-</style>

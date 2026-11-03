@@ -18,6 +18,7 @@ type AudioCacheMeta struct {
 	VideoID        string `json:"videoId"`
 	Title          string `json:"title"`
 	Artist         string `json:"artist"`
+	ThumbnailURL   string `json:"thumbnailUrl,omitempty"`
 	Duration       int64  `json:"duration"`
 	Format         string `json:"format"`
 	MimeType       string `json:"mimeType"`
@@ -38,6 +39,7 @@ type AudioCacheStats struct {
 type AudioCacheManager struct {
 	dir         string
 	maxBytes    int64
+	isolated    bool
 	mu          sync.RWMutex
 	inFlight    sync.Map
 	pendingMeta sync.Map
@@ -61,16 +63,44 @@ func DefaultCacheDir() string {
 const MinValidAudioFileSize int64 = 128 * 1024
 
 // NewAudioCacheManager creates a new AudioCacheManager.
-// If customDir is empty, DefaultCacheDir() is used.
+// If customDir is empty, persistent config or DefaultCacheDir() is used.
 // If maxBytes <= 0, default 1 GB (1024*1024*1024) is used.
 func NewAudioCacheManager(customDir string, maxBytes int64) (*AudioCacheManager, error) {
 	dir := customDir
+	isolated := customDir != ""
+	var savedCustomDir string
+
+	// 1. In production (customDir == ""), read persistent global config
+	if !isolated {
+		cfgPath := globalConfigPath()
+		if data, err := os.ReadFile(cfgPath); err == nil {
+			var cfg audioCacheConfig
+			if err := json.Unmarshal(data, &cfg); err == nil {
+				if cfg.CustomCacheDir != "" {
+					savedCustomDir = cfg.CustomCacheDir
+				}
+				if cfg.MaxBytes > 0 && maxBytes <= 0 {
+					maxBytes = cfg.MaxBytes
+				}
+			}
+		}
+	}
+
 	if dir == "" {
-		dir = DefaultCacheDir()
+		if savedCustomDir != "" {
+			dir = savedCustomDir
+		} else {
+			dir = DefaultCacheDir()
+		}
 	}
 
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, fmt.Errorf("gagal membuat folder cache audio di %s: %w", dir, err)
+		// Fallback to default if custom directory cannot be created (e.g. missing external drive)
+		fallback := DefaultCacheDir()
+		if errFallback := os.MkdirAll(fallback, 0755); errFallback != nil {
+			return nil, fmt.Errorf("gagal membuat folder cache audio di %s maupun %s: %w", dir, fallback, errFallback)
+		}
+		dir = fallback
 	}
 
 	if maxBytes <= 0 {
@@ -80,13 +110,17 @@ func NewAudioCacheManager(customDir string, maxBytes int64) (*AudioCacheManager,
 	mgr := &AudioCacheManager{
 		dir:      dir,
 		maxBytes: maxBytes,
+		isolated: isolated,
 		client: &http.Client{
 			Timeout: 45 * time.Second,
 		},
 	}
 
+	// Restore persistent user cache limit if previously configured
+	mgr.loadConfigLocked()
+
 	// Self-healing: sweep and purge any leftover .tmp or corrupted < 128KB files from older versions
-	go mgr.sanitizeCacheDir()
+	mgr.sanitizeCacheDir()
 
 	return mgr, nil
 }
@@ -243,11 +277,18 @@ func (m *AudioCacheManager) CommitStream(videoID string, tmpPath string, written
 			meta.Artist = pm.Artist
 			meta.Duration = pm.Duration
 			meta.Format = pm.Format
+			meta.ThumbnailURL = pm.ThumbnailURL
 		}
 	}
 
 	if metaJSON, err := json.Marshal(meta); err == nil {
 		_ = os.WriteFile(metaPath, metaJSON, 0644)
+	}
+
+	if meta.ThumbnailURL != "" {
+		go func() {
+			_ = m.CacheThumbnail(vid, meta.ThumbnailURL)
+		}()
 	}
 
 	m.enforceLimitLocked()
@@ -314,6 +355,9 @@ func (m *AudioCacheManager) GetCachedTracks() []AudioCacheMeta {
 				if loaded.Artist != "" {
 					meta.Artist = loaded.Artist
 				}
+				if loaded.ThumbnailURL != "" {
+					meta.ThumbnailURL = loaded.ThumbnailURL
+				}
 				if loaded.Duration > 0 {
 					meta.Duration = loaded.Duration
 				}
@@ -332,8 +376,24 @@ func (m *AudioCacheManager) GetCachedTracks() []AudioCacheMeta {
 
 // QueueBackgroundCache initiates an atomic background download for a stream if not already cached.
 func (m *AudioCacheManager) QueueBackgroundCache(videoID string, streamURL string, title string, artist string, duration int64, format string) {
+	m.QueueBackgroundCacheWithThumb(videoID, streamURL, title, artist, duration, format, "")
+}
+
+// QueueBackgroundCacheWithThumb initiates background download for both audio stream and cover image.
+func (m *AudioCacheManager) QueueBackgroundCacheWithThumb(videoID string, streamURL string, title string, artist string, duration int64, format string, thumbURL string) {
 	vid := sanitizeVideoID(videoID)
-	if vid == "" || streamURL == "" {
+	if vid == "" {
+		return
+	}
+
+	// Pre-emptively cache thumbnail in background
+	if thumbURL != "" || vid != "" {
+		go func() {
+			_ = m.CacheThumbnail(vid, thumbURL)
+		}()
+	}
+
+	if streamURL == "" {
 		return
 	}
 
@@ -354,11 +414,11 @@ func (m *AudioCacheManager) QueueBackgroundCache(videoID string, streamURL strin
 
 	go func() {
 		defer m.inFlight.Delete(vid)
-		m.downloadAndCommit(vid, streamURL, title, artist, duration, format)
+		m.downloadAndCommit(vid, streamURL, title, artist, duration, format, thumbURL)
 	}()
 }
 
-func (m *AudioCacheManager) downloadAndCommit(vid string, streamURL string, title string, artist string, duration int64, format string) {
+func (m *AudioCacheManager) downloadAndCommit(vid string, streamURL string, title string, artist string, duration int64, format string, thumbURL string) {
 	tmpPath := filepath.Join(m.dir, vid+".tmp")
 	cachePath := filepath.Join(m.dir, vid+".cache")
 	metaPath := filepath.Join(m.dir, vid+".meta")
@@ -440,6 +500,11 @@ func (m *AudioCacheManager) downloadAndCommit(vid string, streamURL string, titl
 	if metaJSON, err := json.Marshal(meta); err == nil {
 		_ = os.WriteFile(metaPath, metaJSON, 0644)
 	}
+
+	// Ensure thumbnail is cached
+	go func() {
+		_ = m.CacheThumbnail(vid, thumbURL)
+	}()
 
 	// 6. Enforce storage limit (LRU eviction)
 	m.enforceLimitLocked()
@@ -557,18 +622,186 @@ func (m *AudioCacheManager) Clear() error {
 
 	for _, entry := range entries {
 		name := entry.Name()
-		if strings.HasSuffix(name, ".cache") || strings.HasSuffix(name, ".meta") || strings.HasSuffix(name, ".tmp") {
+		if strings.HasSuffix(name, ".cache") || strings.HasSuffix(name, ".meta") || strings.HasSuffix(name, ".tmp") || strings.HasSuffix(name, ".thumb") {
 			_ = os.Remove(filepath.Join(m.dir, name))
 		}
 	}
 	return nil
 }
 
-// SetLimit updates the maximum allowed storage bytes and triggers eviction if needed.
+type audioCacheConfig struct {
+	MaxBytes       int64  `json:"maxBytes"`
+	CustomCacheDir string `json:"customCacheDir,omitempty"`
+}
+
+func globalConfigDir() string {
+	baseDir, err := os.UserConfigDir()
+	if err != nil {
+		baseDir, err = os.UserCacheDir()
+		if err != nil {
+			baseDir = "."
+		}
+	}
+	return filepath.Join(baseDir, "dengerin")
+}
+
+func globalConfigPath() string {
+	return filepath.Join(globalConfigDir(), "cache_config.json")
+}
+
+func (m *AudioCacheManager) configPath() string {
+	if m.isolated {
+		return filepath.Join(m.dir, "cache_config.json")
+	}
+	return globalConfigPath()
+}
+
+func (m *AudioCacheManager) loadConfigLocked() {
+	if m.isolated {
+		data, err := os.ReadFile(filepath.Join(m.dir, "cache_config.json"))
+		if err != nil {
+			return
+		}
+		var cfg audioCacheConfig
+		if err := json.Unmarshal(data, &cfg); err == nil {
+			m.maxBytes = cfg.MaxBytes
+		}
+		return
+	}
+
+	// Try global config first
+	data, err := os.ReadFile(globalConfigPath())
+	if err != nil {
+		// Fallback to legacy local config inside cache dir
+		data, err = os.ReadFile(filepath.Join(m.dir, "cache_config.json"))
+		if err != nil {
+			return
+		}
+	}
+	var cfg audioCacheConfig
+	if err := json.Unmarshal(data, &cfg); err == nil {
+		m.maxBytes = cfg.MaxBytes
+	}
+}
+
+func (m *AudioCacheManager) saveConfigLocked() {
+	if m.isolated {
+		cfg := audioCacheConfig{MaxBytes: m.maxBytes}
+		data, err := json.Marshal(cfg)
+		if err == nil {
+			_ = os.WriteFile(filepath.Join(m.dir, "cache_config.json"), data, 0644)
+		}
+		return
+	}
+
+	cfgDir := globalConfigDir()
+	_ = os.MkdirAll(cfgDir, 0755)
+
+	var customDir string
+	if filepath.Clean(m.dir) != filepath.Clean(DefaultCacheDir()) {
+		customDir = m.dir
+	}
+
+	cfg := audioCacheConfig{
+		MaxBytes:       m.maxBytes,
+		CustomCacheDir: customDir,
+	}
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err == nil {
+		_ = os.WriteFile(globalConfigPath(), data, 0644)
+		// Also save in m.dir for local portability
+		_ = os.WriteFile(filepath.Join(m.dir, "cache_config.json"), data, 0644)
+	}
+}
+
+// GetDir returns the currently active audio cache directory.
+func (m *AudioCacheManager) GetDir() string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.dir
+}
+
+// SetCacheDir switches the cache directory to newDir, optionally migrating existing .cache and .meta files.
+func (m *AudioCacheManager) SetCacheDir(newDir string, moveFiles bool) error {
+	cleanNewDir := filepath.Clean(strings.TrimSpace(newDir))
+	if cleanNewDir == "" || cleanNewDir == "." {
+		return fmt.Errorf("path direktori cache baru tidak valid")
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	cleanOldDir := filepath.Clean(m.dir)
+	if cleanNewDir == cleanOldDir {
+		return nil
+	}
+
+	if err := os.MkdirAll(cleanNewDir, 0755); err != nil {
+		return fmt.Errorf("gagal membuat direktori cache baru: %w", err)
+	}
+
+	if moveFiles {
+		entries, err := os.ReadDir(cleanOldDir)
+		if err == nil {
+			for _, entry := range entries {
+				if entry.IsDir() {
+					continue
+				}
+				name := entry.Name()
+				if strings.HasSuffix(name, ".cache") || strings.HasSuffix(name, ".meta") || strings.HasSuffix(name, ".thumb") {
+					src := filepath.Join(cleanOldDir, name)
+					dst := filepath.Join(cleanNewDir, name)
+					_ = moveOrCopyFile(src, dst)
+				}
+			}
+		}
+	}
+
+	m.dir = cleanNewDir
+	m.saveConfigLocked()
+	return nil
+}
+
+// ResetCacheDir restores the cache directory to the system default cache folder.
+func (m *AudioCacheManager) ResetCacheDir(moveFiles bool) error {
+	return m.SetCacheDir(DefaultCacheDir(), moveFiles)
+}
+
+func moveOrCopyFile(src, dst string) error {
+	// Try fast rename first (works within same filesystem volume)
+	err := os.Rename(src, dst)
+	if err == nil {
+		return nil
+	}
+
+	// Fallback to copy + delete for cross-volume moves
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, in); err != nil {
+		return err
+	}
+	in.Close()
+	out.Close()
+	_ = os.Remove(src)
+	return nil
+}
+
+// SetLimit updates the maximum allowed storage bytes, persists it to disk, and triggers eviction if needed.
 func (m *AudioCacheManager) SetLimit(maxBytes int64) {
 	m.mu.Lock()
 	m.maxBytes = maxBytes
 	m.enforceLimitLocked()
+	m.saveConfigLocked()
 	m.mu.Unlock()
 }
 
@@ -603,6 +836,7 @@ func (m *AudioCacheManager) sanitizeCacheDir() {
 				_ = os.Remove(fullPath)
 				vid := strings.TrimSuffix(name, ".cache")
 				_ = os.Remove(filepath.Join(m.dir, vid+".meta"))
+				_ = os.Remove(filepath.Join(m.dir, vid+".thumb"))
 			}
 		}
 	}
@@ -619,4 +853,122 @@ func (m *AudioCacheManager) Purge(videoID string) {
 	_ = os.Remove(filepath.Join(m.dir, vid+".cache"))
 	_ = os.Remove(filepath.Join(m.dir, vid+".meta"))
 	_ = os.Remove(filepath.Join(m.dir, vid+".tmp"))
+	_ = os.Remove(filepath.Join(m.dir, vid+".thumb"))
+	_ = os.Remove(filepath.Join(m.dir, vid+".thumb.tmp"))
+}
+
+// GetThumbnail returns the local path to the cached thumbnail if available.
+func (m *AudioCacheManager) GetThumbnail(videoID string) (filePath string, found bool) {
+	vid := sanitizeVideoID(videoID)
+	if vid == "" {
+		return "", false
+	}
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	thumbPath := filepath.Join(m.dir, vid+".thumb")
+	info, err := os.Stat(thumbPath)
+	if err != nil || info.Size() < 100 {
+		return "", false
+	}
+	return thumbPath, true
+}
+
+// CacheThumbnail downloads and stores a track's cover image locally on disk for offline display.
+func (m *AudioCacheManager) CacheThumbnail(videoID string, thumbURL string) error {
+	vid := sanitizeVideoID(videoID)
+	if vid == "" {
+		return nil
+	}
+
+	thumbPath := filepath.Join(m.dir, vid+".thumb")
+	if info, err := os.Stat(thumbPath); err == nil && info.Size() >= 100 {
+		return nil // Already cached
+	}
+
+	targetURL := strings.TrimSpace(thumbURL)
+	if targetURL == "" || strings.HasPrefix(targetURL, "/api/") {
+		targetURL = fmt.Sprintf("https://i.ytimg.com/vi/%s/hqdefault.jpg", vid)
+	}
+
+	req, err := http.NewRequest("GET", targetURL, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+	resp, err := m.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("gagal mengunduh cover (status %d)", resp.StatusCode)
+	}
+
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 5*1024*1024))
+	if err != nil || len(data) < 100 {
+		return fmt.Errorf("cover kosong atau korup")
+	}
+
+	tmpPath := filepath.Join(m.dir, vid+".thumb.tmp")
+	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+		return err
+	}
+
+	m.mu.Lock()
+	err = os.Rename(tmpPath, thumbPath)
+	m.mu.Unlock()
+
+	if err != nil {
+		_ = os.Remove(tmpPath)
+		return err
+	}
+
+	// Also update .meta if it exists so metadata keeps thumbnail reference
+	metaPath := filepath.Join(m.dir, vid+".meta")
+	if metaBytes, err := os.ReadFile(metaPath); err == nil {
+		var meta AudioCacheMeta
+		if json.Unmarshal(metaBytes, &meta) == nil && meta.ThumbnailURL == "" {
+			meta.ThumbnailURL = targetURL
+			if updatedBytes, err := json.Marshal(meta); err == nil {
+				_ = os.WriteFile(metaPath, updatedBytes, 0644)
+			}
+		}
+	}
+
+	return nil
+}
+
+// SyncThumbnails scans all cached tracks and downloads missing thumbnails in the background.
+func (m *AudioCacheManager) SyncThumbnails(fallbackMeta map[string]string) {
+	entries, err := os.ReadDir(m.dir)
+	if err != nil {
+		return
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".cache") {
+			continue
+		}
+		vid := strings.TrimSuffix(entry.Name(), ".cache")
+		thumbPath := filepath.Join(m.dir, vid+".thumb")
+		if info, err := os.Stat(thumbPath); err == nil && info.Size() >= 100 {
+			continue // Already cached
+		}
+
+		thumbURL := ""
+		if fallbackMeta != nil {
+			thumbURL = fallbackMeta[vid]
+		}
+		if thumbURL == "" {
+			meta := m.GetMeta(vid)
+			thumbURL = meta.ThumbnailURL
+		}
+		_ = m.CacheThumbnail(vid, thumbURL)
+		// Small delay to prevent network congestion
+		time.Sleep(100 * time.Millisecond)
+	}
 }

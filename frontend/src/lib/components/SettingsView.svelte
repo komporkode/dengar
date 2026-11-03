@@ -11,11 +11,17 @@
     type CloseAction,
   } from "../stores/settingsStore";
   import { currentLocale, t } from "../stores/i18nStore";
+  import { offlineStore } from "../stores/offlineStore";
   import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime.js";
   import {
     GetAudioCacheStats,
     ClearAudioCache,
     SetAudioCacheLimit,
+    SelectAudioCacheFolder,
+    SetAudioCacheFolder,
+    ResetAudioCacheFolder,
+    GetAudioCacheDir,
+    OpenAudioCacheFolder,
   } from "../../../wailsjs/go/main/App";
   import type { backend } from "../../../wailsjs/go/models";
   import {
@@ -36,7 +42,8 @@
 
   let cacheStats: backend.AudioCacheStats | null = null;
   let isClearingCache = false;
-  let selectedLimitMb: number = 1024;
+  const savedLimitMb = typeof localStorage !== 'undefined' ? localStorage.getItem('dengar_cache_limit_mb') : null;
+  let selectedLimitMb: number = savedLimitMb !== null && !isNaN(Number(savedLimitMb)) ? Number(savedLimitMb) : 1024;
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
@@ -54,8 +61,11 @@
       const stats = await GetAudioCacheStats();
       if (stats) {
         cacheStats = stats;
-        selectedLimitMb =
-          stats.maxBytes > 0 ? Math.round(stats.maxBytes / (1024 * 1024)) : 0;
+        const mb = stats.maxBytes > 0 ? Math.round(stats.maxBytes / (1024 * 1024)) : 0;
+        selectedLimitMb = mb;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('dengar_cache_limit_mb', String(mb));
+        }
       }
     } catch (e) {
       console.warn("Failed to load cache stats:", e);
@@ -76,6 +86,7 @@
     try {
       await ClearAudioCache();
       await loadCacheStats();
+      await offlineStore.load();
       showToast($t("toast_cleared_cache"));
     } catch (e) {
       console.warn("Clear cache error:", e);
@@ -87,6 +98,9 @@
 
   async function handleLimitChange(limitMb: number) {
     selectedLimitMb = limitMb;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('dengar_cache_limit_mb', String(limitMb));
+    }
     const bytes = limitMb > 0 ? limitMb * 1024 * 1024 : 0;
     try {
       await SetAudioCacheLimit(bytes);
@@ -98,6 +112,49 @@
       );
     } catch (e) {
       console.warn("Set limit error:", e);
+    }
+  }
+
+  let isChangingCacheDir = false;
+
+  async function handleChangeCacheDir() {
+    if (isChangingCacheDir) return;
+    try {
+      const selected = await SelectAudioCacheFolder();
+      if (!selected) return;
+      isChangingCacheDir = true;
+      await SetAudioCacheFolder(selected, true);
+      await loadCacheStats();
+      await offlineStore.load();
+      showToast($t("toast_cache_dir_changed"));
+    } catch (e: any) {
+      console.warn("Change cache dir failed:", e);
+      showToast($t("toast_cache_dir_failed"));
+    } finally {
+      isChangingCacheDir = false;
+    }
+  }
+
+  async function handleResetCacheDir() {
+    if (isChangingCacheDir) return;
+    try {
+      isChangingCacheDir = true;
+      await ResetAudioCacheFolder();
+      await loadCacheStats();
+      await offlineStore.load();
+      showToast($t("toast_cache_dir_reset"));
+    } catch (e: any) {
+      console.warn("Reset cache dir failed:", e);
+    } finally {
+      isChangingCacheDir = false;
+    }
+  }
+
+  async function handleOpenCacheFolder() {
+    try {
+      await OpenAudioCacheFolder();
+    } catch (e) {
+      console.warn("Open cache folder failed:", e);
     }
   }
 
@@ -125,39 +182,24 @@
   });
 </script>
 
-<div class="flex-1 w-full flex flex-col overflow-y-auto px-6 lg:px-12 py-8 max-w-5xl mx-auto space-y-6">
+<div class="w-full flex-1 px-4 sm:px-8 py-6 space-y-6 max-w-6xl mx-auto select-none">
   <!-- Top Banner / Navigation Header (Omnitik Fullscreen Tab Header) -->
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
-    <div class="flex items-center gap-3.5">
-      <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-crimson-600 to-rose-500 flex items-center justify-center shadow-lg shadow-crimson-500/25 shrink-0">
-        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-        </svg>
-      </div>
-      <div>
-        <h1 class="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-          <span>{$t("settings_title")}</span>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-crimson-500/20 text-crimson-300 border border-crimson-500/30 font-mono font-medium">v1.2.0</span>
-        </h1>
-        <p class="text-xs text-zinc-400 mt-0.5">
-          {$t("settings_subtitle")}
-        </p>
-      </div>
-    </div>
-
-    <!-- Return to Music Button -->
-    <button
-      class="px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-zinc-200 hover:text-white transition cursor-pointer flex items-center gap-2 shadow-xs shrink-0 active:scale-95 self-start sm:self-center"
-      on:click={closeSettings}
-      title="{$t('btn_back_to_music')} (Esc)"
-    >
-      <svg class="w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M19 12H5M12 19l-7-7 7-7"/>
+  <div class="flex items-center gap-3.5 pb-6 border-b border-white/[0.08]">
+    <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-crimson-600 to-rose-500 flex items-center justify-center shadow-lg shadow-crimson-500/25 shrink-0">
+      <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
       </svg>
-      <span>{$t("btn_back_to_music")}</span>
-      <kbd class="px-1.5 py-0.5 rounded bg-black/40 text-[10px] text-zinc-400 font-mono border border-white/10">Esc</kbd>
-    </button>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+        <span>{$t("settings_title")}</span>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-crimson-500/20 text-crimson-300 border border-crimson-500/30 font-mono font-medium">v1.3.0</span>
+      </h1>
+      <p class="text-xs text-zinc-400 mt-0.5">
+        {$t("settings_subtitle")}
+      </p>
+    </div>
   </div>
 
   <!-- Omnitik-style Menu Tabs Navigation (Segmented pill bar) -->
@@ -516,6 +558,59 @@
             {/each}
           </div>
         </div>
+
+        <!-- Custom Cache Directory Location & Folder Actions -->
+        <div class="pt-4 border-t border-white/[0.06] flex flex-col gap-2">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <span class="text-xs font-semibold text-zinc-300">{$t("cache_location_title")}</span>
+              <p class="text-[11px] font-mono text-zinc-400 truncate mt-0.5 bg-black/30 px-2 py-1 rounded-lg border border-white/[0.04]" title={cacheStats?.cacheDir || ''}>
+                {cacheStats?.cacheDir || 'Default AppData'}
+              </p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0 pt-1 sm:pt-0">
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-medium text-zinc-300 hover:text-white transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                on:click={handleOpenCacheFolder}
+                title="{$t('btn_open_folder')}"
+              >
+                <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>{$t("btn_open_folder")}</span>
+              </button>
+
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-xl bg-crimson-600/20 hover:bg-crimson-600/35 border border-crimson-500/30 text-xs font-semibold text-crimson-200 hover:text-white transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                on:click={handleChangeCacheDir}
+                disabled={isChangingCacheDir}
+                title="{$t('btn_change_location')}"
+              >
+                {#if isChangingCacheDir}
+                  <div class="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                {:else}
+                  <svg class="w-3.5 h-3.5 text-crimson-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                {/if}
+                <span>{$t("btn_change_location")}</span>
+              </button>
+
+              <button
+                type="button"
+                class="px-2.5 py-1.5 rounded-xl text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] transition cursor-pointer disabled:opacity-50"
+                on:click={handleResetCacheDir}
+                disabled={isChangingCacheDir}
+                title="{$t('btn_reset_default')}"
+              >
+                {$t("btn_reset_default")}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   {:else if activeTab === "about"}
@@ -534,7 +629,7 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2.5 flex-wrap">
             <h2 class="text-base font-extrabold text-white">Dengerin Desktop</h2>
-            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 font-mono">v1.2.0</span>
+            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 font-mono">v1.3.0</span>
             <span class="text-[10px] font-medium px-2 py-0.5 rounded-full {$updateState?.isInstalled ? 'bg-sky-500/20 border-sky-500/30 text-sky-400' : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'} border font-mono">
               {$updateState?.isInstalled ? $t('package_installed') : $t('package_portable')}
             </span>
@@ -667,7 +762,7 @@
               <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399]"></span>
                 <span class="text-emerald-400 text-xs font-semibold">
-                  {$t("app_up_to_date")} ({$updateState?.currentVersion || 'v1.2.0'})
+                  {$t("app_up_to_date")} ({$updateState?.currentVersion || 'v1.3.0'})
                 </span>
               </div>
               <button

@@ -72,13 +72,18 @@ ManifestDPIAware true
 
 Name "${INFO_PRODUCTNAME}"
 OutFile "..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe" # Name of the installer's file.
+
+# Remember previous installation directory from registry if updating
 !ifdef WAILS_INSTALL_SCOPE
   !if "${WAILS_INSTALL_SCOPE}" == "user"
+    InstallDirRegKey HKCU "${UNINST_KEY}" "InstallLocation"
     InstallDir "$LOCALAPPDATA\Programs\${INFO_PRODUCTNAME}"
   !else
+    InstallDirRegKey HKLM "${UNINST_KEY}" "InstallLocation"
     InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}"
   !endif
 !else
+  InstallDirRegKey HKLM "${UNINST_KEY}" "InstallLocation"
   InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}"
 !endif # Default installing folder ($PROGRAMFILES is Program Files folder).
 ShowInstDetails show # This will always show the installation details.
@@ -89,6 +94,11 @@ FunctionEnd
 
 Section
     !insertmacro wails.setShellContext
+
+    # Gracefully terminate running instance before updating files
+    ExecWait 'taskkill /F /IM "${PRODUCT_EXECUTABLE}" /T'
+    ExecWait 'taskkill /F /IM "dengar.exe" /T'
+    Sleep 500
 
     !insertmacro wails.webview2runtime
 
@@ -103,6 +113,9 @@ Section
     !insertmacro wails.associateCustomProtocols
 
     !insertmacro wails.writeUninstaller
+
+    # Persist installation location in registry for future updates
+    WriteRegStr SHCTX "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
 SectionEnd
 
 Section "uninstall"

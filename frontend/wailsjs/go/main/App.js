@@ -26,6 +26,10 @@ export function ClearDiscordActivity() {
   return window['go']['main']['App']['ClearDiscordActivity']();
 }
 
+export function ClearHistory() {
+  return window['go']['main']['App']['ClearHistory']();
+}
+
 export function CreatePlaylist(arg1, arg2) {
   return window['go']['main']['App']['CreatePlaylist'](arg1, arg2);
 }
@@ -40,6 +44,10 @@ export function DownloadUpdate(arg1, arg2) {
 
 export function ExportPlaylist(arg1) {
   return window['go']['main']['App']['ExportPlaylist'](arg1);
+}
+
+export function GetAudioCacheDir() {
+  return window['go']['main']['App']['GetAudioCacheDir']();
 }
 
 export function GetAudioCacheStats() {
@@ -82,6 +90,10 @@ export function IsTrackOffline(arg1) {
   return window['go']['main']['App']['IsTrackOffline'](arg1);
 }
 
+export function OpenAudioCacheFolder() {
+  return window['go']['main']['App']['OpenAudioCacheFolder']();
+}
+
 export function OpenInFolder(arg1) {
   return window['go']['main']['App']['OpenInFolder'](arg1);
 }
@@ -102,12 +114,24 @@ export function RefreshHomeData() {
   return window['go']['main']['App']['RefreshHomeData']();
 }
 
+export function ReloadInstances() {
+  return window['go']['main']['App']['ReloadInstances']();
+}
+
+export function RemoveHistory(arg1) {
+  return window['go']['main']['App']['RemoveHistory'](arg1);
+}
+
 export function RemoveOfflineTrack(arg1) {
   return window['go']['main']['App']['RemoveOfflineTrack'](arg1);
 }
 
 export function RemoveTrackFromPlaylist(arg1, arg2) {
   return window['go']['main']['App']['RemoveTrackFromPlaylist'](arg1, arg2);
+}
+
+export function ResetAudioCacheFolder() {
+  return window['go']['main']['App']['ResetAudioCacheFolder']();
 }
 
 export function SaveTrackOffline(arg1) {
@@ -120,6 +144,14 @@ export function Search(arg1, arg2) {
 
 export function SearchMore(arg1) {
   return window['go']['main']['App']['SearchMore'](arg1);
+}
+
+export function SelectAudioCacheFolder() {
+  return window['go']['main']['App']['SelectAudioCacheFolder']();
+}
+
+export function SetAudioCacheFolder(arg1, arg2) {
+  return window['go']['main']['App']['SetAudioCacheFolder'](arg1, arg2);
 }
 
 export function SetAudioCacheLimit(arg1) {
@@ -144,4 +176,8 @@ export function UpdateDiscordActivity(arg1, arg2, arg3, arg4, arg5) {
 
 export function UpdatePlaylist(arg1, arg2, arg3) {
   return window['go']['main']['App']['UpdatePlaylist'](arg1, arg2, arg3);
+}
+
+export function UpdateTaskbarPlayState(arg1) {
+  return window['go']['main']['App']['UpdateTaskbarPlayState'](arg1);
 }

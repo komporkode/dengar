@@ -59,6 +59,27 @@ func TestStorageFavoritesAndHistory(t *testing.T) {
 	if data.History[0].ID != "hist-109" {
 		t.Errorf("Expected index 0 to be hist-109, got: %s", data.History[0].ID)
 	}
+
+	// 4. Test RemoveHistory
+	if err := svc.RemoveHistory("hist-109"); err != nil {
+		t.Fatalf("RemoveHistory failed: %v", err)
+	}
+	data, _ = svc.Load()
+	if len(data.History) != 99 {
+		t.Errorf("Expected 99 items after removal, got %d", len(data.History))
+	}
+	if data.History[0].ID == "hist-109" {
+		t.Errorf("Expected hist-109 to be removed")
+	}
+
+	// 5. Test ClearHistory
+	if err := svc.ClearHistory(); err != nil {
+		t.Fatalf("ClearHistory failed: %v", err)
+	}
+	data, _ = svc.Load()
+	if len(data.History) != 0 {
+		t.Errorf("Expected 0 history items after ClearHistory, got %d", len(data.History))
+	}
 }
 
 func TestPlaylistAndPlayTracking(t *testing.T) {

@@ -5,15 +5,17 @@
     SearchResultItem,
     SearchFilter,
   } from "./lib/types";
-  import { Search, SearchMore } from "../wailsjs/go/main/App";
+  import { Search, SearchMore, ReloadInstances } from "../wailsjs/go/main/App";
   import {
     Quit,
     WindowHide,
     WindowMinimise,
     WindowToggleMaximise,
+    EventsOn,
   } from "../wailsjs/runtime/runtime.js";
   import { playerStore } from "./lib/stores/playerStore";
   import { userDataStore } from "./lib/stores/userDataStore";
+  import { offlineStore } from "./lib/stores/offlineStore";
   import {
     isSettingsOpen,
     isMiniPlayer,
@@ -99,8 +101,22 @@
     // 0. Initialize hardware media keys and OS SMTC
     mediaSessionService.init();
 
-    // 1. Load user favorites & history from backend JSON storage
-    await userDataStore.load();
+    // 0b. Listen to system tray action events
+    EventsOn("tray:play_pause", () => {
+      playerStore.togglePlay();
+    });
+    EventsOn("tray:next", () => {
+      playerStore.playNext();
+    });
+    EventsOn("tray:prev", () => {
+      playerStore.playPrev();
+    });
+
+    // 1. Load user favorites, history & offline tracks from backend JSON storage
+    await Promise.all([
+      userDataStore.load(),
+      offlineStore.load(),
+    ]);
 
     // 2. Perform initial search so app is instantly ready with tracks
     performSearch("Trending Music", "music_songs");
@@ -132,7 +148,7 @@
     checkForUpdatesInBackground();
 
     // 6. Check first run for current version to show What's New
-    const CURRENT_VERSION = "v1.2.0";
+    const CURRENT_VERSION = "v1.3.0";
     try {
       const seen = localStorage.getItem("dengerin_seen_version");
       if (seen !== CURRENT_VERSION) {
@@ -148,7 +164,7 @@
   function handleCloseWhatsNew() {
     isWhatsNewOpen.set(false);
     try {
-      localStorage.setItem("dengerin_seen_version", "v1.2.0");
+      localStorage.setItem("dengerin_seen_version", "v1.3.0");
     } catch (e) {
       console.warn("Save version warning:", e);
     }
@@ -210,6 +226,30 @@
       console.warn("SearchMore failed:", err);
     } finally {
       isLoadingMore = false;
+    }
+  }
+
+  let isRetrying = false;
+  let homeSectionsRef: any = null;
+
+  async function handleRetryConnection() {
+    if (isRetrying) return;
+    isRetrying = true;
+    try {
+      await ReloadInstances();
+      searchError = null;
+      const fallbackQuery =
+        currentFilter === "videos" ? "Trending Music Video" : "Trending Music";
+      await performSearch(searchQuery.trim() || fallbackQuery, currentFilter);
+      if (homeSectionsRef?.reload) {
+        homeSectionsRef.reload();
+      }
+      showToast($t("toast_instances_reloaded"));
+    } catch (e: any) {
+      console.error("Retry failed:", e);
+      searchError = e?.message || $t("instance_connect_error");
+    } finally {
+      isRetrying = false;
     }
   }
 
@@ -433,7 +473,7 @@
 
     <!-- Main Content Viewport -->
     <main
-      class="flex-1 flex flex-col overflow-y-auto bg-gradient-to-b from-[#12141F] via-obsidian to-obsidian pb-32"
+      class="flex-1 flex flex-col overflow-y-auto [scrollbar-gutter:stable] bg-gradient-to-b from-[#12141F] via-obsidian to-obsidian pb-32"
     >
       {#if activeTab === "search"}
         <SearchBar
@@ -444,25 +484,50 @@
 
         {#if searchError}
           <div
-            class="mx-8 mt-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-crimson-500/10 border border-crimson-500/30 text-crimson-400 text-xs"
+            class="mx-4 sm:mx-8 mt-4 flex items-center justify-between gap-3 px-4 sm:px-5 py-3 rounded-2xl bg-crimson-500/10 border border-crimson-500/30 text-crimson-300 text-xs shadow-lg"
           >
-            <svg
-              class="w-4 h-4 shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full bg-crimson-500/20 text-crimson-400 flex items-center justify-center shrink-0">
+                <svg
+                  class="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <p class="font-semibold text-white text-xs sm:text-sm">{$t('instance_connect_error')}</p>
+                <p class="text-[11px] text-zinc-300 truncate">{searchError}</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="h-9 px-4 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-xs inline-flex items-center gap-2 shadow-md shadow-crimson-600/30 transition-all cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-50"
+              on:click={handleRetryConnection}
+              disabled={isRetrying}
             >
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            <span>{searchError}</span>
+              <svg
+                class="w-3.5 h-3.5 {isRetrying ? 'animate-spin' : ''}"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+              </svg>
+              <span>{isRetrying ? $t('refreshing_instances') : $t('retry_action')}</span>
+            </button>
           </div>
         {/if}
 
         {#if !searchQuery.trim()}
-          <HomeSections />
+          <HomeSections bind:this={homeSectionsRef} />
         {/if}
 
         <TrackList
@@ -483,6 +548,10 @@
           title={$t("nav_favorites")}
           tracks={$userDataStore.favorites}
           isLoading={$userDataStore.isLoading}
+          showBanner={true}
+          bannerTag="KOLEKSI PRIBADI • FAVORITES"
+          bannerTitle="Lagu Favorit Kamu"
+          bannerSubtitle="Semua alunan musik terbaik yang kamu sukai tersimpan rapi di sini"
           emptyMessage="Belum ada lagu yang ditandai favorit. Klik ikon hati pada lagu untuk menyimpannya!"
         />
       {:else if activeTab === "history"}
@@ -490,7 +559,16 @@
           title={$t("nav_history")}
           tracks={$userDataStore.history}
           isLoading={$userDataStore.isLoading}
-          emptyMessage="Belum ada riwayat putar. Mulai putar lagu untuk mencatat riwayat."
+          emptyMessage={$t("history_empty_desc")}
+          isHistory={true}
+          onRemoveItem={(track) => {
+            userDataStore.removeHistory(track.id);
+            showToast($t("toast_history_removed"));
+          }}
+          onClearAll={() => {
+            userDataStore.clearHistory();
+            showToast($t("toast_history_cleared"));
+          }}
         />
       {:else if activeTab === "playlist"}
         {@const selectedPl = $userDataStore.playlists.find(

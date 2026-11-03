@@ -1,6 +1,6 @@
 import { playerStore } from '../stores/playerStore'
 import { isDiscordRpcEnabled } from '../stores/settingsStore'
-import { UpdateDiscordActivity, ClearDiscordActivity } from '../../../wailsjs/go/main/App'
+import { UpdateDiscordActivity, ClearDiscordActivity, UpdateTaskbarPlayState } from '../../../wailsjs/go/main/App'
 import { get } from 'svelte/store'
 import type { SearchResultItem } from '../types'
 
@@ -117,6 +117,9 @@ class MediaSessionService {
       if (trackChanged || playChanged) {
         this.lastTrackId = state.currentTrack?.id || null
         this.lastPlaying = state.isPlaying
+
+        // Synchronize Windows Taskbar Thumbnail Toolbar button (Play / Pause toggle)
+        UpdateTaskbarPlayState(state.isPlaying).catch(() => {})
 
         if (get(isDiscordRpcEnabled)) {
           if (state.currentTrack) {

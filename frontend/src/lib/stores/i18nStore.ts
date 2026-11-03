@@ -31,7 +31,7 @@ const translations: Record<Locale, Record<string, string>> = {
     window_minimize: 'Minimalisir',
     window_maximize: 'Maksimalkan',
     window_close: 'Tutup',
-    master_audio_engine: 'Master Audio Streaming Engine',
+    master_audio_engine: 'Musik Apapun Tanpa Iklan',
 
     // Search
     search_placeholder: 'Cari lagu, musisi, album, atau lirik...',
@@ -76,6 +76,11 @@ const translations: Record<Locale, Record<string, string>> = {
     toast_cleared_cache: 'Seluruh berkas cache audio offline berhasil dibersihkan!',
     toast_cache_limit: 'Batas kuota cache diatur ke',
     toast_cache_unlimited: 'Batas kuota cache dinonaktifkan (Tanpa Batas)',
+    clear_history: 'Bersihkan Riwayat',
+    remove_from_history: 'Hapus dari riwayat',
+    history_empty_desc: 'Belum ada riwayat putar. Lagu yang Anda dengarkan akan tercatat di sini.',
+    toast_history_cleared: 'Riwayat pemutaran berhasil dibersihkan!',
+    toast_history_removed: 'Lagu dihapus dari riwayat',
 
     // Settings (Fullscreen Omnitik Tab)
     settings_title: 'Pengaturan',
@@ -143,6 +148,13 @@ const translations: Record<Locale, Record<string, string>> = {
     clearing_cache: 'Membersihkan...',
     cache_limit_label: 'Batas Kuota Kapasitas Disk (LRU Automatic Eviction):',
     cache_unlimited: 'Tanpa Batas',
+    cache_location_title: 'Lokasi Folder Cache',
+    cache_location_desc: 'Penyimpanan lokal untuk file audio dan cover album offline.',
+    btn_change_location: 'Ubah Lokasi...',
+    btn_reset_default: 'Reset Default',
+    toast_cache_dir_changed: 'Lokasi cache berhasil diubah dan file dipindahkan!',
+    toast_cache_dir_reset: 'Lokasi cache berhasil dikembalikan ke default!',
+    toast_cache_dir_failed: 'Gagal mengubah lokasi cache',
 
     // About & Updates
     about_desc: 'Dengerin adalah aplikasi pemutar musik desktop sumber terbuka yang ringan, modern, tanpa iklan, dan gratis selamanya (Rp0). Menghadirkan streaming audio YouTube berkualitas tinggi dengan konsumsi memori hemat dan antarmuka minimalis elegan.',
@@ -157,7 +169,7 @@ const translations: Record<Locale, Record<string, string>> = {
     zero_ads: 'Zero Ads',
     free_rp0: '100% Free / Rp0',
     low_ram: 'Hemat RAM',
-    whats_new_btn: 'Apa yang Baru di v1.2.0',
+    whats_new_btn: 'Apa yang Baru di v1.3.0',
     github_repo_title: 'GitHub & Komporkode',
     github_repo_sub: 'GNU GPLv3 Open Source Repository',
     btn_visit_repo: 'Kunjungi Repositori',
@@ -208,6 +220,9 @@ const translations: Record<Locale, Record<string, string>> = {
     offline_delete_title: 'Hapus dari penyimpanan offline',
     offline_delete_toast: 'dihapus dari penyimpanan offline',
     offline_delete_fail: 'Gagal menghapus lagu offline',
+    btn_save_offline: 'Simpan Offline',
+    saving_offline: 'Menyimpan untuk offline...',
+    track_offline_saved: 'Sudah Tersimpan Offline',
 
     // Network Banner
     network_offline_title: 'Perangkat Offline:',
@@ -237,6 +252,10 @@ const translations: Record<Locale, Record<string, string>> = {
     share_playlist: 'Bagikan Playlist',
     import_playlist: 'Impor Playlist',
     add_to_playlist: 'Tambah ke Playlist',
+    play_now: 'Putar Sekarang',
+    copy_link: 'Salin Tautan Lagu',
+    toast_link_copied: 'Tautan lagu disalin ke papan klip!',
+    remove_offline: 'Hapus dari Offline',
     playlist_name: 'Nama Playlist',
     playlist_desc: 'Deskripsi (Opsional)',
     playlist_empty: 'Playlist ini masih kosong',
@@ -255,7 +274,12 @@ const translations: Record<Locale, Record<string, string>> = {
     share_backup_note: 'Atau simpan sebagai berkas cadangan:',
     import_placeholder: 'Tempel tautan YouTube/Spotify, kode Base64, atau JSON playlist di sini...',
     import_supported_hint: 'Mendukung URL playlist YouTube & Spotify, berkas JSON, atau kode Dengerin.',
-    choose_json_file: 'Pilih File .JSON'
+    choose_json_file: 'Pilih File .JSON',
+    instance_connect_error: 'Gagal Menghubungkan ke Server Musik',
+    instance_connect_error_desc: 'Semua instance musik belum merespons. Klik tombol di bawah untuk menyegarkan server dan memuat ulang.',
+    retry_action: 'Coba Lagi',
+    refreshing_instances: 'Menyegarkan Server...',
+    toast_instances_reloaded: 'Server musik berhasil disegarkan ulang!'
   },
   en: {
     // Nav & Sidebar
@@ -321,6 +345,11 @@ const translations: Record<Locale, Record<string, string>> = {
     toast_cleared_cache: 'Audio offline cache successfully cleared!',
     toast_cache_limit: 'Audio cache limit set to',
     toast_cache_unlimited: 'Audio cache limit disabled (Unlimited)',
+    clear_history: 'Clear History',
+    remove_from_history: 'Remove from history',
+    history_empty_desc: 'No playback history yet. Songs you listen to will appear here.',
+    toast_history_cleared: 'Playback history successfully cleared!',
+    toast_history_removed: 'Song removed from history',
 
     // Settings (Fullscreen Omnitik Tab)
     settings_title: 'Settings',
@@ -388,6 +417,13 @@ const translations: Record<Locale, Record<string, string>> = {
     clearing_cache: 'Clearing...',
     cache_limit_label: 'Disk Cache Limit (LRU Automatic Eviction):',
     cache_unlimited: 'Unlimited',
+    cache_location_title: 'Cache Folder Location',
+    cache_location_desc: 'Local disk directory for offline audio files and album artwork.',
+    btn_change_location: 'Change Location...',
+    btn_reset_default: 'Reset Default',
+    toast_cache_dir_changed: 'Cache folder updated and files migrated successfully!',
+    toast_cache_dir_reset: 'Cache folder reset to system default!',
+    toast_cache_dir_failed: 'Failed to change cache location',
 
     // About & Updates
     about_desc: 'Dengerin is an open-source, modern, lightweight desktop music player with zero ads and completely free forever. Delivering high-fidelity YouTube audio streaming with minimal RAM footprint and clean aesthetics.',
@@ -402,7 +438,7 @@ const translations: Record<Locale, Record<string, string>> = {
     zero_ads: 'Zero Ads',
     free_rp0: '100% Free / $0',
     low_ram: 'Low RAM',
-    whats_new_btn: "What's New in v1.2.0",
+    whats_new_btn: "What's New in v1.3.0",
     github_repo_title: 'GitHub & Komporkode',
     github_repo_sub: 'GNU GPLv3 Open Source Repository',
     btn_visit_repo: 'Visit Repository',
@@ -453,6 +489,9 @@ const translations: Record<Locale, Record<string, string>> = {
     offline_delete_title: 'Remove from offline storage',
     offline_delete_toast: 'removed from offline storage',
     offline_delete_fail: 'Failed to remove offline song',
+    btn_save_offline: 'Save Offline',
+    saving_offline: 'Saving for offline listening...',
+    track_offline_saved: 'Saved Offline',
 
     // Network Banner
     network_offline_title: 'Device Offline:',
@@ -482,6 +521,10 @@ const translations: Record<Locale, Record<string, string>> = {
     share_playlist: 'Share Playlist',
     import_playlist: 'Import Playlist',
     add_to_playlist: 'Add to Playlist',
+    play_now: 'Play Now',
+    copy_link: 'Copy Track Link',
+    toast_link_copied: 'Track link copied to clipboard!',
+    remove_offline: 'Remove from Offline',
     playlist_name: 'Playlist Name',
     playlist_desc: 'Description (Optional)',
     playlist_empty: 'This playlist is empty',
@@ -500,7 +543,12 @@ const translations: Record<Locale, Record<string, string>> = {
     share_backup_note: 'Or save as backup file:',
     import_placeholder: 'Paste YouTube/Spotify link, Base64 code, or playlist JSON here...',
     import_supported_hint: 'Supports YouTube & Spotify playlist URLs, JSON files, or Dengerin codes.',
-    choose_json_file: 'Choose .JSON File'
+    choose_json_file: 'Choose .JSON File',
+    instance_connect_error: 'Failed to Connect to Music Server',
+    instance_connect_error_desc: 'All music server instances failed to respond. Click the button below to refresh instances and retry.',
+    retry_action: 'Retry',
+    refreshing_instances: 'Refreshing Servers...',
+    toast_instances_reloaded: 'Music servers refreshed successfully!'
   }
 }
 

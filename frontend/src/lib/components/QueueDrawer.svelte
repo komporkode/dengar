@@ -8,6 +8,7 @@
   } from "../stores/queueStore";
   import { playerStore } from "../stores/playerStore";
   import { t } from "../stores/i18nStore";
+  import { handleCoverError } from "../stores/offlineStore";
 
   $: items = $queueStore.items;
   $: currentIndex = $queueStore.currentIndex;
@@ -196,6 +197,7 @@
                   src={item.thumbnailUrl}
                   alt={item.title}
                   class="w-full h-full object-cover"
+                  on:error={(e) => handleCoverError(e, item.id)}
                 />
               {:else}
                 <svg

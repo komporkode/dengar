@@ -9,6 +9,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -72,6 +73,8 @@ type UpdateInfo struct {
 	PortableSize      int64         `json:"portableSize"`
 }
 
+var globalApp *App
+
 // NewApp creates a new App application struct.
 func NewApp() *App {
 	pool := backend.NewInstancePool(nil, nil)
@@ -91,7 +94,7 @@ func NewApp() *App {
 	discordSvc := backend.NewDiscordService("")
 	playlistImportSvc := backend.NewPlaylistImportService()
 
-	return &App{
+	app := &App{
 		search:           searchSvc,
 		resolver:         resolverSvc,
 		storage:          storageSvc,
@@ -99,12 +102,20 @@ func NewApp() *App {
 		discord:          discordSvc,
 		playlistImporter: playlistImportSvc,
 	}
+	globalApp = app
+	return app
 }
 
 // startup is called when the app starts.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	setupWindowsAppIcon()
+	go a.syncOfflineThumbnails()
+}
+
+// shutdown is called when the app closes.
+func (a *App) shutdown(ctx context.Context) {
+	removeWindowsTray()
 }
 
 // Search queries YouTube/Piped/Invidious instances for songs or videos with query caching.
@@ -117,12 +128,33 @@ func (a *App) SearchMore(continuationToken string) (*backend.SearchResponse, err
 	return a.search.SearchMore(continuationToken)
 }
 
+// ReloadInstances forces failover rotation of active instances and triggers background refresh from registries.
+func (a *App) ReloadInstances() error {
+	if a.search != nil {
+		a.search.ResetInstances()
+	}
+	if a.resolver != nil {
+		a.resolver.ResetInstances()
+	}
+	return nil
+}
+
+// UpdateTaskbarPlayState synchronizes the Windows taskbar thumbnail toolbar play/pause button state.
+func (a *App) UpdateTaskbarPlayState(isPlaying bool) {
+	updateTaskbarThumbButtons(isPlaying)
+}
+
 // ProxyHandler returns the HTTP handler for proxying audio streams with CORS and local cache serving.
 func (a *App) ProxyHandler() http.Handler {
-	proxy := backend.NewAudioProxyHandlerWithCache(a.audioCache)
+	audioProxy := backend.NewAudioProxyHandlerWithCache(a.audioCache)
+	coverProxy := backend.NewCoverProxyHandlerWithCache(a.audioCache)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/api/audio-proxy") {
-			proxy.ServeHTTP(w, r)
+			audioProxy.ServeHTTP(w, r)
+			return
+		}
+		if strings.HasPrefix(r.URL.Path, "/api/cover-proxy") {
+			coverProxy.ServeHTTP(w, r)
 			return
 		}
 		http.NotFound(w, r)
@@ -156,13 +188,14 @@ func (a *App) GetStream(videoID string, forceRefresh bool, quality string) (*bac
 	// 3. Register pending metadata and queue background caching
 	if a.audioCache != nil && res != nil && res.AudioURL != "" {
 		a.audioCache.SetPendingMeta(videoID, backend.AudioCacheMeta{
-			VideoID:  videoID,
-			Title:    res.Title,
-			Artist:   res.Artist,
-			Duration: res.Duration,
-			Format:   res.Format,
+			VideoID:      videoID,
+			Title:        res.Title,
+			Artist:       res.Artist,
+			ThumbnailURL: res.Thumbnail,
+			Duration:     res.Duration,
+			Format:       res.Format,
 		})
-		a.audioCache.QueueBackgroundCache(videoID, res.AudioURL, res.Title, res.Artist, res.Duration, res.Format)
+		a.audioCache.QueueBackgroundCacheWithThumb(videoID, res.AudioURL, res.Title, res.Artist, res.Duration, res.Format, res.Thumbnail)
 	}
 
 	return res, nil
@@ -199,6 +232,71 @@ func (a *App) SetAudioCacheLimit(limitBytes int64) error {
 	}
 	a.audioCache.SetLimit(limitBytes)
 	return nil
+}
+
+// SelectAudioCacheFolder opens an OS native directory dialog to choose a custom audio cache directory.
+func (a *App) SelectAudioCacheFolder() (string, error) {
+	if a.ctx == nil {
+		return "", fmt.Errorf("app context tidak tersedia")
+	}
+	defaultDir := ""
+	if a.audioCache != nil {
+		defaultDir = a.audioCache.GetDir()
+	}
+	selectedDir, err := wailsRuntime.OpenDirectoryDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		DefaultDirectory: defaultDir,
+		Title:            "Pilih Folder Cache Audio",
+	})
+	if err != nil {
+		return "", err
+	}
+	return selectedDir, nil
+}
+
+// SetAudioCacheFolder updates the cache directory and optionally migrates existing cache files.
+func (a *App) SetAudioCacheFolder(newDir string, moveExisting bool) error {
+	if a.audioCache == nil {
+		return fmt.Errorf("audio cache manager tidak tersedia")
+	}
+	return a.audioCache.SetCacheDir(newDir, moveExisting)
+}
+
+// ResetAudioCacheFolder resets the cache folder back to the system default cache directory.
+func (a *App) ResetAudioCacheFolder() (string, error) {
+	if a.audioCache == nil {
+		return "", fmt.Errorf("audio cache manager tidak tersedia")
+	}
+	err := a.audioCache.ResetCacheDir(true)
+	if err != nil {
+		return "", err
+	}
+	return a.audioCache.GetDir(), nil
+}
+
+// GetAudioCacheDir returns the current active audio cache directory.
+func (a *App) GetAudioCacheDir() string {
+	if a.audioCache == nil {
+		return backend.DefaultCacheDir()
+	}
+	return a.audioCache.GetDir()
+}
+
+// OpenAudioCacheFolder opens the active audio cache directory in the system file manager.
+func (a *App) OpenAudioCacheFolder() error {
+	dir := a.GetAudioCacheDir()
+	if dir == "" {
+		return fmt.Errorf("folder cache tidak ditemukan")
+	}
+	_ = os.MkdirAll(dir, 0755)
+
+	switch goruntime.GOOS {
+	case "windows":
+		return exec.Command("explorer", filepath.Clean(dir)).Start()
+	case "darwin":
+		return exec.Command("open", filepath.Clean(dir)).Start()
+	default:
+		return exec.Command("xdg-open", filepath.Clean(dir)).Start()
+	}
 }
 
 // PurgeTrackCache removes cached audio files for a specific track (e.g. if decoding failed).
@@ -275,6 +373,22 @@ func (a *App) AddToHistory(item backend.SearchResultItem) error {
 		return nil
 	}
 	return a.storage.AddHistory(item)
+}
+
+// RemoveHistory removes a specific track from local playback history.
+func (a *App) RemoveHistory(videoID string) error {
+	if a.storage == nil {
+		return nil
+	}
+	return a.storage.RemoveHistory(videoID)
+}
+
+// ClearHistory removes all items from local playback history.
+func (a *App) ClearHistory() error {
+	if a.storage == nil {
+		return nil
+	}
+	return a.storage.ClearHistory()
 }
 
 // RecordPlay records that a track was played and increments its play count.
@@ -433,7 +547,8 @@ func (a *App) GetOfflineTracks() ([]backend.SearchResultItem, error) {
 			DurationFormatted: backend.FormatDuration(c.Duration),
 		}
 
-		// Supplement thumbnail or title from trackMeta if available
+		// Point to local cover proxy with cache_id and original thumbnail URL as fallback
+		originalThumb := ""
 		if userData != nil && userData.TrackMeta != nil {
 			if meta, ok := userData.TrackMeta[c.VideoID]; ok {
 				if item.Title == "" || item.Title == c.VideoID {
@@ -446,8 +561,17 @@ func (a *App) GetOfflineTracks() ([]backend.SearchResultItem, error) {
 					item.Duration = meta.Duration
 					item.DurationFormatted = meta.DurationFormatted
 				}
-				item.ThumbnailURL = meta.ThumbnailURL
+				originalThumb = meta.ThumbnailURL
 			}
+		}
+		if originalThumb == "" && c.ThumbnailURL != "" {
+			originalThumb = c.ThumbnailURL
+		}
+
+		if originalThumb != "" && !strings.HasPrefix(originalThumb, "/api/") {
+			item.ThumbnailURL = fmt.Sprintf("/api/cover-proxy?cache_id=%s&url=%s", c.VideoID, url.QueryEscape(originalThumb))
+		} else {
+			item.ThumbnailURL = fmt.Sprintf("/api/cover-proxy?cache_id=%s", c.VideoID)
 		}
 
 		if item.Title == "" {
@@ -482,16 +606,22 @@ func (a *App) SaveTrackOffline(item backend.SearchResultItem) error {
 
 	// Trigger stream resolution and cache download in background
 	go func() {
+		// Immediately cache thumbnail for offline view
+		if a.audioCache != nil {
+			_ = a.audioCache.CacheThumbnail(item.ID, item.ThumbnailURL)
+		}
+
 		res, err := a.resolver.Resolve(item.ID, false, "high")
 		if err == nil && res != nil && res.AudioURL != "" {
 			a.audioCache.SetPendingMeta(item.ID, backend.AudioCacheMeta{
-				VideoID:  item.ID,
-				Title:    item.Title,
-				Artist:   item.UploaderName,
-				Duration: item.Duration,
-				Format:   res.Format,
+				VideoID:      item.ID,
+				Title:        item.Title,
+				Artist:       item.UploaderName,
+				ThumbnailURL: item.ThumbnailURL,
+				Duration:     item.Duration,
+				Format:       res.Format,
 			})
-			a.audioCache.QueueBackgroundCache(item.ID, res.AudioURL, item.Title, item.UploaderName, item.Duration, res.Format)
+			a.audioCache.QueueBackgroundCacheWithThumb(item.ID, res.AudioURL, item.Title, item.UploaderName, item.Duration, res.Format, item.ThumbnailURL)
 		}
 	}()
 
@@ -516,6 +646,24 @@ func (a *App) IsTrackOffline(videoID string) bool {
 	}
 	_, _, ok := a.audioCache.Get(videoID)
 	return ok
+}
+
+// syncOfflineThumbnails scans all offline tracks and caches missing thumbnails.
+func (a *App) syncOfflineThumbnails() {
+	if a.audioCache == nil {
+		return
+	}
+	fallbackMap := make(map[string]string)
+	if a.storage != nil {
+		if ud, err := a.storage.Load(); err == nil && ud != nil {
+			for vid, meta := range ud.TrackMeta {
+				if meta.ThumbnailURL != "" && !strings.HasPrefix(meta.ThumbnailURL, "/api/") {
+					fallbackMap[vid] = meta.ThumbnailURL
+				}
+			}
+		}
+	}
+	a.audioCache.SyncThumbnails(fallbackMap)
 }
 
 
@@ -779,7 +927,7 @@ func isVersionNewer(candidate, current string) bool {
 
 // CheckForUpdates checks GitHub releases API for newer version of Dengerin.
 func (a *App) CheckForUpdates() (*UpdateInfo, error) {
-	const currentVersion = "v1.2.0"
+	const currentVersion = "v1.3.0"
 	client := &http.Client{Timeout: 6 * time.Second}
 	req, err := http.NewRequest("GET", "https://api.github.com/repos/komporkode/dengar/releases/latest", nil)
 	if err != nil {

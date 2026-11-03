@@ -7,6 +7,8 @@
   import { queueStore } from '../stores/queueStore'
   import { showToast } from '../stores/settingsStore'
   import { t } from '../stores/i18nStore'
+  import { offlineStore } from '../stores/offlineStore'
+  import HeroBanner from './HeroBanner.svelte'
 
   let tracks: SearchResultItem[] = []
   let isLoading = true
@@ -19,6 +21,7 @@
   async function loadOfflineTracks() {
     isLoading = true
     try {
+      await offlineStore.load()
       tracks = (await GetOfflineTracks()) || []
       const stats = await GetAudioCacheStats()
       if (stats) {
@@ -76,7 +79,7 @@
 
   async function handleRemoveTrack(track: SearchResultItem) {
     try {
-      await RemoveOfflineTrack(track.id)
+      await offlineStore.removeTrack(track.id)
       tracks = tracks.filter(t => t.id !== track.id)
       showToast(`"${track.title}" ${$t('offline_delete_toast')}`)
       const stats = await GetAudioCacheStats()
@@ -90,101 +93,44 @@
 </script>
 
 <div class="w-full flex flex-col select-none">
-  <!-- Hero Header -->
-  <section class="px-4 sm:px-8 pt-6 pb-6 bg-gradient-to-b from-crimson-950/25 via-crimson-900/10 to-transparent border-b border-white/[0.06]">
-    <div class="flex flex-col sm:flex-row items-center sm:items-end gap-6">
-      <!-- Icon Cover Box -->
-      <div class="w-36 h-36 sm:w-44 sm:h-44 shrink-0 rounded-2xl shadow-2xl border border-white/10 bg-gradient-to-tr from-[#161824] to-[#252839] flex items-center justify-center relative group">
-        <div class="w-20 h-20 rounded-2xl bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 flex items-center justify-center shadow-lg shadow-crimson-500/20">
-          <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-        </div>
-      </div>
-
-      <!-- Info Details -->
-      <div class="flex flex-col gap-2 min-w-0 text-center sm:text-left flex-1">
-        <div class="flex items-center justify-center sm:justify-start gap-2">
-          <span class="text-[10px] font-bold uppercase tracking-widest text-crimson-400 bg-crimson-500/15 border border-crimson-500/25 px-2 py-0.5 rounded-md">
-            {$t('offline_local_storage')}
-          </span>
-          <span class="text-xs text-zinc-400">{$t('offline_quota_free')}</span>
-        </div>
-
-        <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight truncate">
-          {$t('offline_heading')}
-        </h1>
-
-        <p class="text-xs sm:text-sm text-zinc-400 max-w-xl">
-          {$t('offline_subheading')}
-        </p>
-
-        <!-- Stats Meta -->
-        <div class="flex items-center justify-center sm:justify-start gap-3 mt-1 text-xs text-zinc-400">
-          <span class="font-semibold text-white">{tracks.length} {$t('offline_songs_count')}</span>
-          {#if formatTotalDuration(tracks)}
-            <span>•</span>
-            <span>{formatTotalDuration(tracks)}</span>
-          {/if}
-          <span>•</span>
-          <span class="font-mono text-zinc-300 bg-white/[0.06] px-2 py-0.5 rounded-md">{formatBytes(totalBytes)} {$t('offline_used')}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Action Bar -->
-    <div class="flex items-center gap-3 mt-6">
+  <!-- Cinematic Full-Bleed Music Hero -->
+  <div class="px-4 sm:px-8 pt-6 pb-2">
+    <HeroBanner
+      tag="BEBAS KUOTA • OFFLINE READY"
+      title={$t('offline_heading')}
+      subtitle={`${tracks.length} ${$t('offline_songs_count')} • ${formatBytes(totalBytes)}${formatTotalDuration(tracks) ? ` • ${formatTotalDuration(tracks)}` : ''} • ${$t('offline_subheading')}`}
+      imageUrl={tracks[0]?.thumbnailUrl || ''}
+      trackId={tracks[0]?.id}
+      playLabel={isCurrentListPlaying ? $t('offline_pause') : $t('offline_play_all')}
+      isPlaying={isCurrentListPlaying}
+      showPlay={tracks.length > 0}
+      showShuffle={tracks.length > 0}
+      shuffleTitle={$t('offline_shuffle')}
+      on:play={handlePlayAll}
+      on:shuffle={handleShuffleAll}
+    >
       <button
-        class="h-11 px-6 rounded-xl bg-crimson-500 hover:bg-crimson-600 active:scale-95 text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-lg shadow-crimson-500/25 transition cursor-pointer disabled:opacity-50"
-        on:click={handlePlayAll}
-        disabled={tracks.length === 0}
-      >
-        {#if isCurrentListPlaying}
-          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-            <rect x="6" y="4" width="4" height="16" rx="1"></rect>
-            <rect x="14" y="4" width="4" height="16" rx="1"></rect>
-          </svg>
-          <span>{$t('offline_pause')}</span>
-        {:else}
-          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-          </svg>
-          <span>{$t('offline_play_all')}</span>
-        {/if}
-      </button>
-
-      <button
-        class="h-11 px-5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] active:scale-95 text-white text-xs sm:text-sm font-semibold flex items-center gap-2 border border-white/10 transition cursor-pointer disabled:opacity-50"
-        on:click={handleShuffleAll}
-        disabled={tracks.length === 0}
-      >
-        <svg class="w-4 h-4 text-zinc-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <polyline points="16 3 21 3 21 8"></polyline>
-          <line x1="4" y1="20" x2="21" y2="3"></line>
-          <polyline points="21 16 21 21 16 21"></polyline>
-          <line x1="15" y1="15" x2="21" y2="21"></line>
-          <line x1="4" y1="4" x2="9" y2="9"></line>
-        </svg>
-        <span>{$t('offline_shuffle')}</span>
-      </button>
-
-      <button
-        class="h-11 px-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition cursor-pointer border border-white/[0.06] ml-auto flex items-center gap-1.5 text-xs"
+        type="button"
+        class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 hover:border-white/20 text-zinc-200 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50 shrink-0"
         on:click={loadOfflineTracks}
-        title="{$t('offline_refresh')}"
+        disabled={isLoading}
+        title={$t('offline_refresh')}
       >
-        <svg class="w-3.5 h-3.5 {isLoading ? 'animate-spin' : ''}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        <svg
+          class="w-4 h-4 {isLoading ? 'animate-spin text-crimson-400' : 'text-zinc-200'} shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
         </svg>
-        <span>{$t('offline_refresh')}</span>
       </button>
-    </div>
-  </section>
+    </HeroBanner>
+  </div>
 
   <!-- Track List Body -->
-  <section class="px-4 sm:px-8 py-6">
+  <section class="px-3 sm:px-6 py-4">
     {#if isLoading}
       <div class="flex items-center justify-center py-20">
         <span class="w-8 h-8 border-3 border-crimson-500/30 border-t-crimson-500 rounded-full animate-spin"></span>
@@ -204,26 +150,25 @@
         </p>
       </div>
     {:else}
+      <!-- Header Bar (Ramping & Rata Kiri) -->
+      <div class="flex items-center gap-2.5 sm:gap-3.5 px-2.5 sm:px-3 py-2 text-[11px] font-bold tracking-wider text-zinc-400 uppercase border-b border-white/[0.06] mb-1">
+        <div class="w-8 sm:w-9 shrink-0 text-center">#</div>
+        <div class="flex-1 min-w-0">{$t('title_and_artist')}</div>
+        <div class="hidden lg:block w-44 xl:w-56 shrink-0 pr-3">{$t('channel_or_artist')}</div>
+        <div class="w-24 sm:w-28 shrink-0 text-right pr-1">{$t('quality_and_duration')}</div>
+        <div class="w-16 sm:w-20 shrink-0 text-right pr-1">{$t('actions')}</div>
+      </div>
+
       <div class="space-y-1">
         {#each tracks as track, index (track.id)}
-          <div class="group relative flex items-center rounded-xl hover:bg-white/[0.04] transition-colors pr-2">
-            <div class="flex-1 min-w-0">
-              <TrackItem {track} {index} />
-            </div>
-            <button
-              class="p-2 text-zinc-500 hover:text-crimson-400 rounded-lg hover:bg-white/[0.06] transition opacity-0 group-hover:opacity-100 cursor-pointer shrink-0"
-              on:click={() => handleRemoveTrack(track)}
-              title="{$t('offline_delete_title')}"
-              aria-label="{$t('offline_delete_title')}"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                <line x1="10" y1="11" x2="10" y2="17"></line>
-                <line x1="14" y1="11" x2="14" y2="17"></line>
-              </svg>
-            </button>
-          </div>
+          <TrackItem
+            {track}
+            {index}
+            tracksContext={tracks}
+            isOffline={true}
+            onRemove={() => handleRemoveTrack(track)}
+            removeTitle={$t('offline_delete_title')}
+          />
         {/each}
       </div>
     {/if}

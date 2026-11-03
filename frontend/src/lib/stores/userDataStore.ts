@@ -4,6 +4,8 @@ import {
   GetUserData,
   ToggleFavorite as wailsToggleFav,
   AddToHistory as wailsAddHist,
+  RemoveHistory as wailsRemoveHist,
+  ClearHistory as wailsClearHist,
   CreatePlaylist as wailsCreatePl,
   UpdatePlaylist as wailsUpdatePl,
   DeletePlaylist as wailsDeletePl,
@@ -73,6 +75,27 @@ function createUserDataStore() {
       })
     } catch (e) {
       console.error('Failed to record history:', e)
+    }
+  }
+
+  async function removeHistory(videoId: string) {
+    try {
+      await wailsRemoveHist(videoId)
+      update(s => ({
+        ...s,
+        history: s.history.filter(h => h.id !== videoId),
+      }))
+    } catch (e) {
+      console.error('Failed to remove history item:', e)
+    }
+  }
+
+  async function clearHistory() {
+    try {
+      await wailsClearHist()
+      update(s => ({ ...s, history: [] }))
+    } catch (e) {
+      console.error('Failed to clear history:', e)
     }
   }
 
@@ -176,6 +199,8 @@ function createUserDataStore() {
     load,
     toggleFavorite,
     recordHistory,
+    removeHistory,
+    clearHistory,
     createPlaylist,
     updatePlaylist,
     deletePlaylist,

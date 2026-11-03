@@ -202,6 +202,31 @@ func (s *StorageService) AddHistory(item SearchResultItem) error {
 	return s.saveToDisk()
 }
 
+// RemoveHistory removes a specific track from playback history.
+func (s *StorageService) RemoveHistory(videoID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	filtered := make([]SearchResultItem, 0, len(s.data.History))
+	for _, h := range s.data.History {
+		if h.ID != videoID {
+			filtered = append(filtered, h)
+		}
+	}
+	s.data.History = filtered
+	return s.saveToDisk()
+}
+
+// ClearHistory empties the entire playback history.
+func (s *StorageService) ClearHistory() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.data.History = []SearchResultItem{}
+	return s.saveToDisk()
+}
+
+
 // CreatePlaylist creates a new custom playlist and persists it.
 func (s *StorageService) CreatePlaylist(name, description string) (*Playlist, error) {
 	s.mu.Lock()

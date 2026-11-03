@@ -18,6 +18,11 @@
     GetAudioCacheStats,
     ClearAudioCache,
     SetAudioCacheLimit,
+    SelectAudioCacheFolder,
+    SetAudioCacheFolder,
+    ResetAudioCacheFolder,
+    GetAudioCacheDir,
+    OpenAudioCacheFolder,
   } from "../../../wailsjs/go/main/App";
   import type { backend } from "../../../wailsjs/go/models";
   import {
@@ -30,11 +35,13 @@
     revealDownloadedFile,
     installAndRestartUpdate,
   } from "../stores/updateStore";
+  import { offlineStore } from "../stores/offlineStore";
 
   let activeTab: "general" | "audio" | "about" = "general";
   let cacheStats: backend.AudioCacheStats | null = null;
   let isClearingCache = false;
-  let selectedLimitMb: number = 1024;
+  const savedLimitMb = typeof localStorage !== 'undefined' ? localStorage.getItem('dengar_cache_limit_mb') : null;
+  let selectedLimitMb: number = savedLimitMb !== null && !isNaN(Number(savedLimitMb)) ? Number(savedLimitMb) : 1024;
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape" && $isSettingsOpen) {
@@ -47,8 +54,11 @@
       const stats = await GetAudioCacheStats();
       if (stats) {
         cacheStats = stats;
-        selectedLimitMb =
-          stats.maxBytes > 0 ? Math.round(stats.maxBytes / (1024 * 1024)) : 0;
+        const mb = stats.maxBytes > 0 ? Math.round(stats.maxBytes / (1024 * 1024)) : 0;
+        selectedLimitMb = mb;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('dengar_cache_limit_mb', String(mb));
+        }
       }
     } catch (e) {
       console.warn("Failed to load cache stats:", e);
@@ -80,6 +90,9 @@
 
   async function handleLimitChange(limitMb: number) {
     selectedLimitMb = limitMb;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('dengar_cache_limit_mb', String(limitMb));
+    }
     const bytes = limitMb > 0 ? limitMb * 1024 * 1024 : 0;
     try {
       await SetAudioCacheLimit(bytes);
@@ -91,6 +104,49 @@
       );
     } catch (e) {
       console.warn("Set limit error:", e);
+    }
+  }
+
+  let isChangingCacheDir = false;
+
+  async function handleChangeCacheDir() {
+    if (isChangingCacheDir) return;
+    try {
+      const selected = await SelectAudioCacheFolder();
+      if (!selected) return;
+      isChangingCacheDir = true;
+      await SetAudioCacheFolder(selected, true);
+      await loadCacheStats();
+      await offlineStore.load();
+      showToast($t("toast_cache_dir_changed"));
+    } catch (e: any) {
+      console.warn("Change cache dir failed:", e);
+      showToast($t("toast_cache_dir_failed"));
+    } finally {
+      isChangingCacheDir = false;
+    }
+  }
+
+  async function handleResetCacheDir() {
+    if (isChangingCacheDir) return;
+    try {
+      isChangingCacheDir = true;
+      await ResetAudioCacheFolder();
+      await loadCacheStats();
+      await offlineStore.load();
+      showToast($t("toast_cache_dir_reset"));
+    } catch (e: any) {
+      console.warn("Reset cache dir failed:", e);
+    } finally {
+      isChangingCacheDir = false;
+    }
+  }
+
+  async function handleOpenCacheFolder() {
+    try {
+      await OpenAudioCacheFolder();
+    } catch (e) {
+      console.warn("Open cache folder failed:", e);
     }
   }
 
@@ -245,7 +301,7 @@
         <div class="pt-3 border-t border-white/[0.06] hidden md:block">
           <p class="text-[10px] text-zinc-400 font-medium">Dengerin Desktop</p>
           <p class="text-[10px] text-zinc-500 font-mono">
-            v1.2.0 • Open Source
+            v1.3.0 • Open Source
           </p>
         </div>
       </div>
@@ -726,6 +782,57 @@
                     {/each}
                   </div>
                 </div>
+
+                <!-- Custom Cache Directory Location & Folder Actions -->
+                <div class="pt-2 border-t border-white/[0.05] flex flex-col gap-1.5 text-[11px]">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-zinc-300 font-medium text-[10px]">{$t("cache_location_title")}</span>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        class="px-2 py-0.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[10px] text-zinc-300 hover:text-white transition flex items-center gap-1 cursor-pointer"
+                        on:click={handleOpenCacheFolder}
+                        title="{$t('btn_open_folder')}"
+                      >
+                        <svg class="w-3 h-3 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span>{$t("btn_open_folder")}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        class="px-2 py-0.5 rounded-lg bg-crimson-600/20 hover:bg-crimson-600/35 border border-crimson-500/30 text-[10px] font-semibold text-crimson-200 hover:text-white transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        on:click={handleChangeCacheDir}
+                        disabled={isChangingCacheDir}
+                        title="{$t('btn_change_location')}"
+                      >
+                        {#if isChangingCacheDir}
+                          <div class="w-2.5 h-2.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                        {:else}
+                          <svg class="w-3 h-3 text-crimson-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                          </svg>
+                        {/if}
+                        <span>{$t("btn_change_location")}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        class="px-1.5 py-0.5 rounded-lg text-[10px] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] transition cursor-pointer disabled:opacity-50"
+                        on:click={handleResetCacheDir}
+                        disabled={isChangingCacheDir}
+                        title="{$t('btn_reset_default')}"
+                      >
+                        {$t("btn_reset_default")}
+                      </button>
+                    </div>
+                  </div>
+                  <p class="text-[10px] font-mono text-zinc-400 truncate bg-black/25 px-2 py-0.5 rounded border border-white/[0.04]" title={cacheStats?.cacheDir || ''}>
+                    {cacheStats?.cacheDir || 'Default AppData'}
+                  </p>
+                </div>
               </div>
             </div>
           {:else if activeTab === "about"}
@@ -756,7 +863,7 @@
                     </h4>
                     <span
                       class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 font-mono"
-                      >v1.2.0</span
+                      >v1.3.0</span
                     >
                     <span
                       class="text-[9px] font-medium px-1.5 py-0.2 rounded {$updateState?.isInstalled ? 'bg-sky-500/20 border-sky-500/30 text-sky-400' : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'} border font-mono"
@@ -986,7 +1093,7 @@
                           class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34D399]"
                         ></span>
                         <span class="text-emerald-400 text-[11px] font-medium"
-                          >Aplikasi sudah versi terbaru ({$updateState?.currentVersion || 'v1.2.0'})</span
+                          >Aplikasi sudah versi terbaru ({$updateState?.currentVersion || 'v1.3.0'})</span
                         >
                       </div>
                       <button
