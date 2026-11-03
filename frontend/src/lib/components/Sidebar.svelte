@@ -12,6 +12,9 @@
 
   function setTab(tab: NavigationTab) {
     activeTab = tab
+    if (tab !== 'settings') {
+      isSettingsOpen.set(false)
+    }
     dispatch('tabChange', tab)
   }
 
@@ -375,12 +378,14 @@
   <div class="border-t border-white/[0.06] bg-[#0E1017] p-3 relative overflow-visible">
     <div class="relative group w-full flex justify-center">
       <button
-        class="w-full h-10 flex items-center rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06] cursor-pointer px-2.5"
-        on:click={() => isSettingsOpen.set(true)}
+        class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-colors cursor-pointer px-2.5 {activeTab === 'settings'
+          ? 'bg-crimson-500/15 border border-crimson-500/30 text-white shadow-xs'
+          : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.05] border border-transparent hover:border-white/[0.06]'}"
+        on:click={() => setTab('settings')}
         aria-label={$t('settings_title')}
       >
         <div class="w-5 h-5 flex items-center justify-center shrink-0">
-          <svg class="w-4.5 h-4.5 text-zinc-400 group-hover:text-crimson-400 group-hover:rotate-45 transition duration-200 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg class="w-4.5 h-4.5 {activeTab === 'settings' ? 'text-crimson-400 rotate-45' : 'text-zinc-400 group-hover:text-crimson-400 group-hover:rotate-45'} transition duration-200 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
@@ -388,13 +393,19 @@
 
         <div class="flex items-center flex-1 min-w-0 sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
           <span class="truncate">{$t('settings_title')}</span>
+          {#if activeTab === 'settings'}
+            <span class="ml-auto text-[10px] bg-crimson-500/20 text-crimson-400 font-semibold px-1.5 py-0.5 rounded shrink-0">{$t('nav_active')}</span>
+          {/if}
         </div>
       </button>
 
       {#if $isSidebarCollapsed}
         <!-- Floating Tooltip for Settings -->
-        <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[60] px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center">
+        <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[60] px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center gap-1.5">
           <span>{$t('settings_title')}</span>
+          {#if activeTab === 'settings'}
+            <span class="w-1.5 h-1.5 rounded-full bg-crimson-500 shadow-xs"></span>
+          {/if}
           <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#161824]/95"></span>
         </div>
       {/if}

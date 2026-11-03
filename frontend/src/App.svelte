@@ -15,6 +15,7 @@
   import { playerStore } from "./lib/stores/playerStore";
   import { userDataStore } from "./lib/stores/userDataStore";
   import {
+    isSettingsOpen,
     isMiniPlayer,
     toastMessage,
     togglePinMiniPlayer,
@@ -45,7 +46,7 @@
   import OfflineView from "./lib/components/OfflineView.svelte";
   import PlayerBar from "./lib/components/PlayerBar.svelte";
   import QueueDrawer from "./lib/components/QueueDrawer.svelte";
-  import SettingsModal from "./lib/components/SettingsModal.svelte";
+  import SettingsView from "./lib/components/SettingsView.svelte";
   import MiniPlayer from "./lib/components/MiniPlayer.svelte";
   import HomeSections from "./lib/components/HomeSections.svelte";
   import PlaylistView from "./lib/components/PlaylistView.svelte";
@@ -61,6 +62,28 @@
   import { mediaSessionService } from "./lib/services/mediaSessionService";
 
   let activeTab: NavigationTab = "search";
+  let previousTab: NavigationTab = "search";
+
+  function handleTabChange(e: CustomEvent<NavigationTab>) {
+    const nextTab = e.detail;
+    if (activeTab !== "settings") {
+      previousTab = activeTab;
+    }
+    activeTab = nextTab;
+    if (nextTab !== "settings") {
+      isSettingsOpen.set(false);
+    }
+  }
+
+  function handleCloseSettings() {
+    isSettingsOpen.set(false);
+    activeTab = previousTab && previousTab !== "settings" ? previousTab : "search";
+  }
+
+  $: if ($isSettingsOpen && activeTab !== "settings") {
+    previousTab = activeTab;
+    activeTab = "settings";
+  }
   let searchQuery = "";
   let currentFilter: SearchFilter = "music_songs";
   let searchResults: SearchResultItem[] = [];
@@ -315,9 +338,9 @@
     : 'opacity-100'}"
   style:display={$isMiniPlayer ? "none" : "flex"}
 >
-  <!-- Unified Dark Custom Titlebar (Frameless Windows-style, NO Mac dots) -->
+  <!-- Seamless Custom Frameless Titlebar -->
   <header
-    class="h-9 px-4 flex items-center justify-between bg-[#08080C] border-b border-white/[0.06] text-zinc-400 text-xs shrink-0 select-none z-50"
+    class="h-9 px-4 flex items-center justify-between bg-transparent text-zinc-400 text-xs shrink-0 select-none z-50 transition-colors"
     style="--wails-draggable:drag"
   >
     <div class="flex items-center gap-2" style="--wails-draggable:no-drag">
@@ -406,7 +429,7 @@
   <!-- Application Body Layout -->
   <div class="flex flex-1 overflow-hidden relative">
     <!-- Left Sidebar -->
-    <Sidebar bind:activeTab />
+    <Sidebar bind:activeTab on:tabChange={handleTabChange} />
 
     <!-- Main Content Viewport -->
     <main
@@ -485,6 +508,8 @@
         {/if}
       {:else if activeTab === "offline"}
         <OfflineView />
+      {:else if activeTab === "settings"}
+        <SettingsView on:close={handleCloseSettings} />
       {/if}
     </main>
   </div>
@@ -494,9 +519,6 @@
 
   <!-- Bottom Floating Island Player -->
   <PlayerBar />
-
-  <!-- Settings & About Modal -->
-  <SettingsModal />
 
   <!-- Playlist Modals -->
   <PlaylistModal />
