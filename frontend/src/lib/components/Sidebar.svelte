@@ -246,6 +246,40 @@
         {/if}
       </div>
 
+      <!-- Tersimpan / Offline -->
+      <div class="relative group flex justify-center">
+        <button
+          class="w-full h-10 flex items-center rounded-xl text-sm font-medium transition-colors duration-200 cursor-pointer relative px-2.5 {activeTab === 'offline' ? 'bg-white/[0.1] text-white shadow-sm border border-white/[0.08]' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'}"
+          on:click={() => setTab('offline')}
+          aria-label="Tersimpan / Offline"
+        >
+          <div class="relative w-5 h-5 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4 {activeTab === 'offline' ? 'text-crimson-400' : 'text-zinc-400 group-hover:text-zinc-200'} transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </div>
+
+          <div class="flex items-center flex-1 min-w-0 sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
+            <span class="truncate">Offline</span>
+            {#if activeTab === 'offline'}
+              <span class="ml-auto text-[10px] bg-crimson-500/20 text-crimson-400 font-semibold px-1.5 py-0.5 rounded shrink-0">{$t('nav_active')}</span>
+            {/if}
+          </div>
+        </button>
+
+        {#if $isSidebarCollapsed}
+          <div class="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[60] px-2.5 py-1.5 rounded-xl bg-[#161824]/95 border border-white/10 text-xs font-semibold text-white whitespace-nowrap shadow-2xl backdrop-blur-md opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 ease-out flex items-center gap-2">
+            <span>Tersimpan / Offline</span>
+            {#if activeTab === 'offline'}
+              <span class="w-1.5 h-1.5 rounded-full bg-crimson-500 shadow-xs"></span>
+            {/if}
+            <span class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#161824]/95"></span>
+          </div>
+        {/if}
+      </div>
+
       <!-- Playlists Section -->
       <div class="pt-2">
         <div class="flex items-center justify-between sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-h-0 opacity-0 -translate-x-2 pointer-events-none my-0' : 'max-h-6 opacity-100 translate-x-0 px-2.5 mb-1.5'}">

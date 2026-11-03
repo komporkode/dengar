@@ -411,6 +411,114 @@ func (a *App) ImportExternalPlaylist(rawURL string) (*backend.ImportedPlaylistRe
 	return a.playlistImporter.Import(rawURL)
 }
 
+// GetOfflineTracks returns all downloaded tracks currently stored in local audio cache.
+func (a *App) GetOfflineTracks() ([]backend.SearchResultItem, error) {
+	if a.audioCache == nil {
+		return []backend.SearchResultItem{}, nil
+	}
+
+	cached := a.audioCache.GetCachedTracks()
+	var userData *backend.UserData
+	if a.storage != nil {
+		userData, _ = a.storage.Load()
+	}
+
+	var results []backend.SearchResultItem
+	for _, c := range cached {
+		item := backend.SearchResultItem{
+			ID:                c.VideoID,
+			Title:             c.Title,
+			UploaderName:      c.Artist,
+			Duration:          c.Duration,
+			DurationFormatted: backend.FormatDuration(c.Duration),
+		}
+
+		// Supplement thumbnail or title from trackMeta if available
+		if userData != nil && userData.TrackMeta != nil {
+			if meta, ok := userData.TrackMeta[c.VideoID]; ok {
+				if item.Title == "" || item.Title == c.VideoID {
+					item.Title = meta.Title
+				}
+				if item.UploaderName == "" {
+					item.UploaderName = meta.UploaderName
+				}
+				if item.Duration == 0 {
+					item.Duration = meta.Duration
+					item.DurationFormatted = meta.DurationFormatted
+				}
+				item.ThumbnailURL = meta.ThumbnailURL
+			}
+		}
+
+		if item.Title == "" {
+			item.Title = "Lagu Offline (" + c.VideoID + ")"
+		}
+		if item.UploaderName == "" {
+			item.UploaderName = "Artis Lokal"
+		}
+		results = append(results, item)
+	}
+	return results, nil
+}
+
+// SaveTrackOffline saves a track permanently for offline listening and downloads its stream.
+func (a *App) SaveTrackOffline(item backend.SearchResultItem) error {
+	if a.storage != nil {
+		_ = a.storage.PinTrackOffline(item)
+	}
+
+	if a.audioCache == nil {
+		return fmt.Errorf("layanan cache audio tidak tersedia")
+	}
+
+	// If already in cache, nothing more to download
+	if _, _, ok := a.audioCache.Get(item.ID); ok {
+		return nil
+	}
+
+	if a.resolver == nil {
+		return fmt.Errorf("layanan streaming tidak tersedia")
+	}
+
+	// Trigger stream resolution and cache download in background
+	go func() {
+		res, err := a.resolver.Resolve(item.ID, false, "high")
+		if err == nil && res != nil && res.AudioURL != "" {
+			a.audioCache.SetPendingMeta(item.ID, backend.AudioCacheMeta{
+				VideoID:  item.ID,
+				Title:    item.Title,
+				Artist:   item.UploaderName,
+				Duration: item.Duration,
+				Format:   res.Format,
+			})
+			a.audioCache.QueueBackgroundCache(item.ID, res.AudioURL, item.Title, item.UploaderName, item.Duration, res.Format)
+		}
+	}()
+
+	return nil
+}
+
+// RemoveOfflineTrack removes an offline track from cache and unpins it from storage.
+func (a *App) RemoveOfflineTrack(videoID string) error {
+	if a.storage != nil {
+		_ = a.storage.UnpinTrackOffline(videoID)
+	}
+	if a.audioCache != nil {
+		a.audioCache.Purge(videoID)
+	}
+	return nil
+}
+
+// IsTrackOffline checks whether a track is fully cached on disk.
+func (a *App) IsTrackOffline(videoID string) bool {
+	if a.audioCache == nil {
+		return false
+	}
+	_, _, ok := a.audioCache.Get(videoID)
+	return ok
+}
+
+
 // GetHomeData returns personalized recommendations and frequently played tracks with 2-hour cache.
 func (a *App) GetHomeData() (*HomeData, error) {
 	return a.getHomeDataInternal(false)

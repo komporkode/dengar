@@ -130,3 +130,20 @@ export function ImportExternalPlaylist(arg1) {
   return window['go']['main']['App']['ImportExternalPlaylist'](arg1);
 }
 
+export function GetOfflineTracks() {
+  return window['go']['main']['App']['GetOfflineTracks']();
+}
+
+export function SaveTrackOffline(arg1) {
+  return window['go']['main']['App']['SaveTrackOffline'](arg1);
+}
+
+export function RemoveOfflineTrack(arg1) {
+  return window['go']['main']['App']['RemoveOfflineTrack'](arg1);
+}
+
+export function IsTrackOffline(arg1) {
+  return window['go']['main']['App']['IsTrackOffline'](arg1);
+}
+
+

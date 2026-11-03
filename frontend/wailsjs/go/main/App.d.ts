@@ -67,3 +67,11 @@ export function UpdateDiscordActivity(arg1:string,arg2:string,arg3:number,arg4:n
 export function ClearDiscordActivity():Promise<void>;
 
 export function ImportExternalPlaylist(arg1:string):Promise<backend.ImportedPlaylistResult>;
+
+export function GetOfflineTracks():Promise<Array<backend.SearchResultItem>>;
+
+export function SaveTrackOffline(arg1:backend.SearchResultItem):Promise<void>;
+
+export function RemoveOfflineTrack(arg1:string):Promise<void>;
+
+export function IsTrackOffline(arg1:string):Promise<boolean>;

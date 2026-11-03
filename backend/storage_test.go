@@ -133,3 +133,34 @@ func TestPlaylistAndPlayTracking(t *testing.T) {
 	}
 }
 
+func TestStorage_OfflinePinning(t *testing.T) {
+	tempDir := t.TempDir()
+
+	svc, err := NewStorageService(filepath.Join(tempDir, "userdata.json"))
+	if err != nil {
+		t.Fatalf("Failed to create storage service: %v", err)
+	}
+
+	track := SearchResultItem{ID: "off1", Title: "Offline Song", UploaderName: "Offline Artist"}
+	if err := svc.PinTrackOffline(track); err != nil {
+		t.Fatalf("PinTrackOffline failed: %v", err)
+	}
+
+	if !svc.IsTrackPinnedOffline("off1") {
+		t.Errorf("Expected off1 to be pinned offline")
+	}
+
+	pinnedMap := svc.GetPinnedTrackIDs()
+	if !pinnedMap["off1"] {
+		t.Errorf("Expected off1 in GetPinnedTrackIDs map")
+	}
+
+	if err := svc.UnpinTrackOffline("off1"); err != nil {
+		t.Fatalf("UnpinTrackOffline failed: %v", err)
+	}
+
+	if svc.IsTrackPinnedOffline("off1") {
+		t.Errorf("Expected off1 to be unpinned")
+	}
+}
+

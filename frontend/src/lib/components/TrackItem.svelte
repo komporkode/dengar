@@ -6,6 +6,7 @@
   import { openAddToPlaylistModal } from "../stores/playlistStore";
   import { showToast, audioQualityStore } from "../stores/settingsStore";
   import { t } from "../stores/i18nStore";
+  import { SaveTrackOffline } from "../../../wailsjs/go/main/App";
 
   export let track: SearchResultItem;
   export let index: number;
@@ -46,6 +47,16 @@
   function handleAddToPlaylist(e: MouseEvent) {
     e.stopPropagation();
     openAddToPlaylistModal(track);
+  }
+
+  async function handleSaveOffline(e: MouseEvent) {
+    e.stopPropagation();
+    try {
+      await SaveTrackOffline(track);
+      showToast(`Menyimpan "${track.title}" untuk offline...`);
+    } catch (err: any) {
+      showToast(err?.message || "Gagal menyimpan offline");
+    }
   }
 </script>
 
@@ -246,6 +257,25 @@
         <circle cx="12" cy="12" r="1.5"></circle>
         <circle cx="12" cy="5" r="1.5"></circle>
         <circle cx="12" cy="19" r="1.5"></circle>
+      </svg>
+    </button>
+
+    <!-- Save Offline button -->
+    <button
+      class="p-1 sm:p-1.5 hover:text-white transition cursor-pointer"
+      on:click={handleSaveOffline}
+      title="Simpan Offline"
+    >
+      <svg
+        class="w-3.5 h-3.5 sm:w-4 sm:h-4"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+      >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
       </svg>
     </button>
 

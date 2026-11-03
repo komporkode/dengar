@@ -397,6 +397,15 @@ func TestAudioCacheManager_CommitStream(t *testing.T) {
 	if meta.Title != "Stream Song" || meta.Artist != "Stream Artist" {
 		t.Errorf("Metadata mismatch: %+v", meta)
 	}
+
+	// Verify GetCachedTracks
+	cachedList := mgr.GetCachedTracks()
+	if len(cachedList) == 0 {
+		t.Fatalf("Expected at least 1 cached track in GetCachedTracks")
+	}
+	if cachedList[0].VideoID != "commit_track" {
+		t.Errorf("Expected videoId commit_track, got %s", cachedList[0].VideoID)
+	}
 }
 
 

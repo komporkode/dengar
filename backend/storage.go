@@ -51,8 +51,9 @@ func NewStorageService(customPath string) (*StorageService, error) {
 			Favorites:  []SearchResultItem{},
 			History:    []SearchResultItem{},
 			Playlists:  []Playlist{},
-			PlayCounts: make(map[string]int),
-			TrackMeta:  make(map[string]SearchResultItem),
+			PlayCounts:    make(map[string]int),
+			TrackMeta:     make(map[string]SearchResultItem),
+			OfflinePinned: make(map[string]bool),
 		},
 	}
 
@@ -83,6 +84,9 @@ func (s *StorageService) loadFromDisk() error {
 	}
 	if loaded.TrackMeta == nil {
 		loaded.TrackMeta = make(map[string]SearchResultItem)
+	}
+	if loaded.OfflinePinned == nil {
+		loaded.OfflinePinned = make(map[string]bool)
 	}
 	s.data = loaded
 	return nil
@@ -313,7 +317,42 @@ func (s *StorageService) GetPinnedTrackIDs() map[string]bool {
 			}
 		}
 	}
+	for id, isPinned := range s.data.OfflinePinned {
+		if isPinned && id != "" {
+			pinned[id] = true
+		}
+	}
 	return pinned
+}
+
+// PinTrackOffline marks a track as permanently pinned for offline listening.
+func (s *StorageService) PinTrackOffline(item SearchResultItem) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if item.ID == "" {
+		return fmt.Errorf("track ID kosong")
+	}
+	s.data.OfflinePinned[item.ID] = true
+	s.data.TrackMeta[item.ID] = item
+	return s.saveToDisk()
+}
+
+// UnpinTrackOffline unpins a track from offline storage.
+func (s *StorageService) UnpinTrackOffline(videoID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	delete(s.data.OfflinePinned, videoID)
+	return s.saveToDisk()
+}
+
+// IsTrackPinnedOffline checks if a track is explicitly pinned offline.
+func (s *StorageService) IsTrackPinnedOffline(videoID string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.data.OfflinePinned[videoID]
 }
 
 // RecordPlay increments play count for a track and caches its metadata.

@@ -278,6 +278,58 @@ func (m *AudioCacheManager) GetMeta(videoID string) AudioCacheMeta {
 	return meta
 }
 
+// GetCachedTracks scans the cache directory and returns metadata for all valid .cache files.
+func (m *AudioCacheManager) GetCachedTracks() []AudioCacheMeta {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	entries, err := os.ReadDir(m.dir)
+	if err != nil {
+		return nil
+	}
+
+	var results []AudioCacheMeta
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".cache") {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil || info.Size() < MinValidAudioFileSize {
+			continue
+		}
+		vid := strings.TrimSuffix(entry.Name(), ".cache")
+		metaPath := filepath.Join(m.dir, vid+".meta")
+		meta := AudioCacheMeta{
+			VideoID:        vid,
+			FileSize:       info.Size(),
+			CachedAt:       info.ModTime().Unix(),
+			LastAccessedAt: info.ModTime().Unix(),
+		}
+		if raw, err := os.ReadFile(metaPath); err == nil {
+			var loaded AudioCacheMeta
+			if err := json.Unmarshal(raw, &loaded); err == nil {
+				if loaded.Title != "" {
+					meta.Title = loaded.Title
+				}
+				if loaded.Artist != "" {
+					meta.Artist = loaded.Artist
+				}
+				if loaded.Duration > 0 {
+					meta.Duration = loaded.Duration
+				}
+				if loaded.MimeType != "" {
+					meta.MimeType = loaded.MimeType
+				}
+				if loaded.Format != "" {
+					meta.Format = loaded.Format
+				}
+			}
+		}
+		results = append(results, meta)
+	}
+	return results
+}
+
 // QueueBackgroundCache initiates an atomic background download for a stream if not already cached.
 func (m *AudioCacheManager) QueueBackgroundCache(videoID string, streamURL string, title string, artist string, duration int64, format string) {
 	vid := sanitizeVideoID(videoID)

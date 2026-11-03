@@ -46,5 +46,6 @@ type UserData struct {
 	History    []SearchResultItem `json:"history"`
 	Playlists  []Playlist                    `json:"playlists"`
 	PlayCounts map[string]int                `json:"playCounts"`
-	TrackMeta  map[string]SearchResultItem   `json:"trackMeta,omitempty"`
+	TrackMeta     map[string]SearchResultItem `json:"trackMeta,omitempty"`
+	OfflinePinned map[string]bool             `json:"offlinePinned,omitempty"`
 }
