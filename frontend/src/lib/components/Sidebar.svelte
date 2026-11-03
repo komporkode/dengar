@@ -56,11 +56,11 @@
 >
   <!-- Brand & Primary Nav Section -->
   <div
-    class="space-y-3.5 {$isSidebarCollapsed ? 'px-2 py-3' : 'px-3 py-3'} overflow-y-auto overflow-x-hidden flex-1"
+    class="space-y-3.5 {$isSidebarCollapsed ? 'px-2 py-3' : 'px-3 py-3'} overflow-y-auto overflow-x-hidden flex-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
     on:scroll={hideTooltip}
   >
     <!-- Logo and Header -->
-    <div class="flex items-center {$isSidebarCollapsed ? 'justify-center' : 'justify-between'} h-10 overflow-hidden">
+    <div class="flex items-center {$isSidebarCollapsed ? 'justify-center w-full' : 'justify-between'} h-10 overflow-hidden">
       <div class="flex items-center min-w-0 {$isSidebarCollapsed ? 'justify-center w-full' : ''}">
         <!-- Logo Box (Click to toggle collapse) -->
         <button
@@ -183,10 +183,6 @@
             </svg>
           </div>
 
-          {#if favCount > 0 && $isSidebarCollapsed}
-            <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-crimson-500 ring-2 ring-[#12141C] shadow-[0_0_6px_#E61E38] pointer-events-none"></span>
-          {/if}
-
           <div class="flex items-center flex-1 min-w-0 sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
             <span class="truncate">{$t('nav_favorites')}</span>
             {#if favCount > 0}
@@ -213,10 +209,6 @@
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
           </div>
-
-          {#if histCount > 0 && $isSidebarCollapsed}
-            <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-crimson-500 ring-2 ring-[#12141C] shadow-[0_0_6px_#E61E38] pointer-events-none"></span>
-          {/if}
 
           <div class="flex items-center flex-1 min-w-0 sidebar-text-transition overflow-hidden whitespace-nowrap {$isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 ml-3'}">
             <span class="truncate">{$t('nav_history')}</span>

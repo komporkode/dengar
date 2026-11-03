@@ -14,6 +14,44 @@ export interface ChangelogRelease {
 
 export const CHANGELOG_DATA: ChangelogRelease[] = [
   {
+    version: 'v1.3.2',
+    title: 'Perbaikan Infinite Scroll, Tampilan Sidebar & Installer Windows',
+    date: '3 November 2026',
+    badge: 'Bug Fix & Release',
+    summary: 'Rilis v1.3.2 memperbaiki infinite scroll pencarian yang terhenti di 11 lagu, membersihkan titik merah yang menutupi ikon pada sidebar collapsed, menjaga persistensi batas kuota cache LRU, dan mengaktifkan build installer Windows (.exe) pada CI/CD Multi-OS.',
+    sections: [
+      {
+        title: 'Perbaikan Pencarian & Infinite Scroll',
+        icon: 'sparkles',
+        color: 'text-crimson-400',
+        items: [
+          'Infinite Scroll Berfungsi Normal: Memulihkan token kontinuitas sehingga halaman pencarian otomatis memuat 20+ lagu berikutnya saat di-scroll tanpa batas.',
+          'Penyaringan Non-Musik Tetap Aktif: Menyaring podcast, talkshow, gameplay, dan tutorial tanpa merusak pagination.',
+          'Dukungan Kompilasi Musik Penuh: Lagu satuan dan video kompilasi musik (Best of, Kumpulan Lagu, Full Album) tetap muncul.',
+        ],
+      },
+      {
+        title: 'Penyempurnaan Tampilan & Setelan Cache',
+        icon: 'sparkles',
+        color: 'text-emerald-400',
+        items: [
+          'Sidebar Collapsed Bersih: Menghilangkan badge titik merah yang menghalangi ikon Favorit dan Riwayat Putar, serta merapikan header logo.',
+          'Persistensi Kuota Disk Cache (LRU): Pilihan batas kapasitas disk (500 MB, 1 GB, 2 GB, atau Tanpa Batas) tersimpan permanen saat aplikasi ditutup dan dibuka kembali.',
+          'Mode Hemat Data (Eco) Default: Menjamin mode audio hemat kuota aktif secara default.',
+        ],
+      },
+      {
+        title: 'Build & Installer Multi-OS',
+        icon: 'desktop',
+        color: 'text-indigo-400',
+        items: [
+          'Installer Windows (.exe): Menambahkan dependensi NSIS ke pipeline build GitHub Actions sehingga installer resmi terbuat sempurna.',
+          'Rilis Lengkap Multi-OS: Menyediakan Installer Windows, Portable ZIP Windows, Linux tar.gz, dan macOS zip.',
+        ],
+      },
+    ],
+  },
+  {
     version: 'v1.3.1',
     title: 'Pembersihan Konten Non-Musik & Integrasi YouTube Music',
     date: '3 November 2026',

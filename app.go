@@ -84,7 +84,7 @@ func NewApp() *App {
 	if err != nil {
 		println("Warning: failed to initialize storage:", err.Error())
 	}
-	audioCacheMgr, err := backend.NewAudioCacheManager("", 1024*1024*1024)
+	audioCacheMgr, err := backend.NewAudioCacheManager("", 0)
 	if err != nil {
 		println("Warning: failed to initialize audio cache manager:", err.Error())
 	}
@@ -163,6 +163,9 @@ func (a *App) ProxyHandler() http.Handler {
 
 // GetStream resolves streaming media URLs with local disk cache check, 30-min TTL caching and quality preference ("high" or "saver").
 func (a *App) GetStream(videoID string, forceRefresh bool, quality string) (*backend.StreamResult, error) {
+	if quality == "" {
+		quality = "saver"
+	}
 	// 1. Check local disk cache first (offline instant play) only when not forcing refresh
 	if !forceRefresh && a.audioCache != nil {
 		if _, mime, found := a.audioCache.Get(videoID); found {
@@ -927,7 +930,7 @@ func isVersionNewer(candidate, current string) bool {
 
 // CheckForUpdates checks GitHub releases API for newer version of Dengerin.
 func (a *App) CheckForUpdates() (*UpdateInfo, error) {
-	const currentVersion = "v1.3.1"
+	const currentVersion = "v1.3.2"
 	client := &http.Client{Timeout: 6 * time.Second}
 	req, err := http.NewRequest("GET", "https://api.github.com/repos/komporkode/dengar/releases/latest", nil)
 	if err != nil {

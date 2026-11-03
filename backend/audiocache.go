@@ -69,6 +69,7 @@ func NewAudioCacheManager(customDir string, maxBytes int64) (*AudioCacheManager,
 	dir := customDir
 	isolated := customDir != ""
 	var savedCustomDir string
+	var hasLoadedConfig bool
 
 	// 1. In production (customDir == ""), read persistent global config
 	if !isolated {
@@ -79,8 +80,9 @@ func NewAudioCacheManager(customDir string, maxBytes int64) (*AudioCacheManager,
 				if cfg.CustomCacheDir != "" {
 					savedCustomDir = cfg.CustomCacheDir
 				}
-				if cfg.MaxBytes > 0 && maxBytes <= 0 {
+				if maxBytes <= 0 {
 					maxBytes = cfg.MaxBytes
+					hasLoadedConfig = true
 				}
 			}
 		}
@@ -103,8 +105,8 @@ func NewAudioCacheManager(customDir string, maxBytes int64) (*AudioCacheManager,
 		dir = fallback
 	}
 
-	if maxBytes <= 0 {
-		maxBytes = 1024 * 1024 * 1024 // 1 GB default
+	if !hasLoadedConfig && maxBytes <= 0 {
+		maxBytes = 1024 * 1024 * 1024 // 1 GB default only if no config exists
 	}
 
 	mgr := &AudioCacheManager{

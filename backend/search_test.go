@@ -522,6 +522,7 @@ func TestYouTubeMusicSearch(t *testing.T) {
 	defer server.Close()
 
 	svc := NewSearchService(nil, nil)
+	svc.SetInnertubeURL("")
 	svc.SetYTMURL(server.URL)
 
 	res, err := svc.Search("Artist A", "music_songs")

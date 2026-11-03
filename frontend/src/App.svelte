@@ -148,7 +148,7 @@
     checkForUpdatesInBackground();
 
     // 6. Check first run for current version to show What's New
-    const CURRENT_VERSION = "v1.3.1";
+    const CURRENT_VERSION = "v1.3.2";
     try {
       const seen = localStorage.getItem("dengerin_seen_version");
       if (seen !== CURRENT_VERSION) {
@@ -164,7 +164,7 @@
   function handleCloseWhatsNew() {
     isWhatsNewOpen.set(false);
     try {
-      localStorage.setItem("dengerin_seen_version", "v1.3.1");
+      localStorage.setItem("dengerin_seen_version", "v1.3.2");
     } catch (e) {
       console.warn("Save version warning:", e);
     }

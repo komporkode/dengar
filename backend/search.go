@@ -183,24 +183,26 @@ func (s *SearchService) Search(query string, filterType string) (*SearchResponse
 
 	// Use SingleFlight to deduplicate simultaneous duplicate requests
 	val, err := s.flight.Do(cacheKey, func() (interface{}, error) {
-		// 1. Primary: Direct YouTube Music search (100% music guarantee)
-		if filterType != "videos" && filterType != "video" {
-			if resp, err := s.searchYouTubeMusic(q); err == nil && len(resp.Items) >= 3 {
-				s.cache.Set(cacheKey, resp)
-				return resp, nil
-			}
-		}
+		isMusicSearch := filterType != "videos" && filterType != "video"
 
-		// 2. Secondary: Direct YouTube Innertube with music filtering
+		// 1. Primary: Direct YouTube Innertube with music filtering & pagination support
 		if resp, err := s.searchYouTubeInnertube(q); err == nil && len(resp.Items) > 0 {
 			var filteredItems []SearchResultItem
 			for _, it := range resp.Items {
-				if IsMusicTrack(it.Title, it.UploaderName, it.Duration, q) {
+				if !isMusicSearch || IsMusicTrack(it.Title, it.UploaderName, it.Duration, q) {
 					filteredItems = append(filteredItems, it)
 				}
 			}
 			if len(filteredItems) > 0 {
 				resp.Items = filteredItems
+				s.cache.Set(cacheKey, resp)
+				return resp, nil
+			}
+		}
+
+		// 2. Secondary fallback: Direct YouTube Music search (100% music guarantee)
+		if isMusicSearch {
+			if resp, err := s.searchYouTubeMusic(q); err == nil && len(resp.Items) > 0 {
 				s.cache.Set(cacheKey, resp)
 				return resp, nil
 			}
@@ -213,8 +215,6 @@ func (s *SearchService) Search(query string, filterType string) (*SearchResponse
 		case "all":
 			filterParam = "all"
 		}
-
-		isMusicSearch := filterType != "videos" && filterType != "video"
 
 		// 3. Fallback to Piped instances
 		for _, inst := range s.pool.GetPipedInstances() {
