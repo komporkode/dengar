@@ -62,18 +62,18 @@ func TestIsVersionNewer(t *testing.T) {
 		expected  bool
 	}{
 		// Downgrade or same version should NOT trigger update
-		{"v1.1.0", "v1.1.2", false},
-		{"v1.1.1", "v1.1.2", false},
-		{"v1.1.2", "v1.1.2", false},
-		{"1.1.1", "v1.1.2", false},
-		{"1.0.9", "1.1.2", false},
-		{"", "v1.1.2", false},
+		{"v1.1.0", "v1.2.0", false},
+		{"v1.1.2", "v1.2.0", false},
+		{"v1.2.0", "v1.2.0", false},
+		{"1.1.2", "v1.2.0", false},
+		{"1.0.9", "1.2.0", false},
+		{"", "v1.2.0", false},
 
 		// Upgrade SHOULD trigger update
-		{"v1.1.3", "v1.1.2", true},
-		{"v1.2.0", "v1.1.2", true},
-		{"v2.0.0", "v1.1.2", true},
-		{"1.1.3", "v1.1.2", true},
+		{"v1.2.1", "v1.2.0", true},
+		{"v1.3.0", "v1.2.0", true},
+		{"v2.0.0", "v1.2.0", true},
+		{"1.2.1", "v1.2.0", true},
 		{"v1.1.10", "v1.1.9", true},
 	}
 

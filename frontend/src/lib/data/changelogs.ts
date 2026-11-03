@@ -14,6 +14,45 @@ export interface ChangelogRelease {
 
 export const CHANGELOG_DATA: ChangelogRelease[] = [
   {
+    version: 'v1.2.0',
+    title: 'Integrasi OS Desktop, Tab Offline & Perombakan Algoritma FYP',
+    date: '3 November 2026',
+    badge: 'Pembaruan Besar',
+    summary: 'Pembaruan besar menghadirkan integrasi mendalam OS Windows (Hardware Media Keys / SMTC & System Tray), Discord Rich Presence, Ekosistem Playlist YouTube & Spotify, Tab Offline baru, Sleep Timer dengan smooth fade-out, serta algoritma rekomendasi FYP multi-artis berimbang.',
+    sections: [
+      {
+        title: 'Integrasi OS & Ekosistem Desktop',
+        icon: '🖥️',
+        color: 'text-indigo-400',
+        items: [
+          'Windows SMTC & Media Keys: Kontrol putar, jeda, lagu berikutnya, dan scrubber langsung via keyboard hardware dan taskbar thumbnail.',
+          'Windows System Tray: Ikon tray di taskbar dengan pilihan dialog konfirmasi saat tombol tutup (X) ditekan.',
+          'Discord Rich Presence (RPC): Status aktivitas lagu yang sedang diputar di Discord dengan cover dan durasi via Windows Named Pipe.',
+        ],
+      },
+      {
+        title: 'Ekosistem Playlist & Mode Offline',
+        icon: '💾',
+        color: 'text-crimson-400',
+        items: [
+          'Impor Playlist YouTube & Spotify: Masukkan tautan playlist publik YouTube atau Spotify embed untuk langsung disimpan ke pustaka Dengerin Anda.',
+          'Tab Tersimpan / Offline: Simpan lagu langsung ke penyimpanan lokal perangkat tanpa batas kuota internet.',
+          'Perlindungan Pinning Cache: Lagu tersimpan dan lagu favorit tidak akan terhapus oleh mekanisme pembersihan LRU.',
+        ],
+      },
+      {
+        title: 'Audio Polish & Algoritma FYP',
+        icon: '✨',
+        color: 'text-emerald-400',
+        items: [
+          'Perombakan Total Algoritma FYP: Rekomendasi kini menggabungkan hingga 6 artis teratas dengan batas maksimal 2 lagu per artis, discovery mix, dan pengacakan segar.',
+          'Sleep Timer Nyaman: Pilihan timer durasi atau akhir lagu dengan penurunan volume bertahap (5 detik smooth fade-out).',
+          'Zero Latency & Crossfade: Pre-fetch otomatis 15 detik sebelum lagu usai dan pengaturan transisi crossfade 0-10 detik.',
+        ],
+      },
+    ],
+  },
+  {
     version: 'v1.1.2',
     title: 'Equalizer Studio, Desain Sinematik & Stabilitas Audio',
     date: '30 Oktober 2026',

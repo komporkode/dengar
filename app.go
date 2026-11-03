@@ -779,7 +779,7 @@ func isVersionNewer(candidate, current string) bool {
 
 // CheckForUpdates checks GitHub releases API for newer version of Dengerin.
 func (a *App) CheckForUpdates() (*UpdateInfo, error) {
-	const currentVersion = "v1.1.2"
+	const currentVersion = "v1.2.0"
 	client := &http.Client{Timeout: 6 * time.Second}
 	req, err := http.NewRequest("GET", "https://api.github.com/repos/komporkode/dengar/releases/latest", nil)
 	if err != nil {
