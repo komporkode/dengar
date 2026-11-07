@@ -44,6 +44,10 @@
   }
 </script>
 
+<svelte:window
+  on:keydown={(e) => mode === 'video' && e.key === 'Escape' && closeVideo()}
+/>
+
 {#if mode === 'video' && currentTrack}
   <div class="video-overlay" role="dialog" aria-modal="true">
     <div class="video-header">
@@ -52,7 +56,7 @@
         <span class="video-artist text-truncate text-secondary">{currentTrack.uploaderName}</span>
       </div>
 
-      <button class="close-btn" on:click={closeVideo} title="Tutup Tampilan Video (V)">
+      <button class="close-btn" on:click={closeVideo} title="Tutup Tampilan Video (V)" aria-label="Tutup Tampilan Video">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>

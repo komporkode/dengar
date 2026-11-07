@@ -19,6 +19,7 @@
   import {
     isSettingsOpen,
     isMiniPlayer,
+    toastData,
     toastMessage,
     togglePinMiniPlayer,
     exitMiniPlayer,
@@ -33,13 +34,16 @@
     updateState,
     showUpdateBanner,
     isDownloadingUpdate,
+    downloadProgressData,
     downloadedFilePath,
     checkForUpdatesInBackground,
     startDownloadUpdate,
     revealDownloadedFile,
     installAndRestartUpdate,
+    formatBytes,
   } from "./lib/stores/updateStore";
   import { t } from "./lib/stores/i18nStore";
+  import { CURRENT_APP_VERSION } from "./lib/data/changelogs";
 
   import Sidebar from "./lib/components/Sidebar.svelte";
   import SearchBar from "./lib/components/SearchBar.svelte";
@@ -79,7 +83,8 @@
 
   function handleCloseSettings() {
     isSettingsOpen.set(false);
-    activeTab = previousTab && previousTab !== "settings" ? previousTab : "search";
+    activeTab =
+      previousTab && previousTab !== "settings" ? previousTab : "search";
   }
 
   $: if ($isSettingsOpen && activeTab !== "settings") {
@@ -113,10 +118,7 @@
     });
 
     // 1. Load user favorites, history & offline tracks from backend JSON storage
-    await Promise.all([
-      userDataStore.load(),
-      offlineStore.load(),
-    ]);
+    await Promise.all([userDataStore.load(), offlineStore.load()]);
 
     // 2. Perform initial search so app is instantly ready with tracks
     performSearch("Trending Music", "music_songs");
@@ -148,7 +150,7 @@
     checkForUpdatesInBackground();
 
     // 6. Check first run for current version to show What's New
-    const CURRENT_VERSION = "v1.3.2";
+    const CURRENT_VERSION = CURRENT_APP_VERSION;
     try {
       const seen = localStorage.getItem("dengerin_seen_version");
       if (seen !== CURRENT_VERSION) {
@@ -159,12 +161,24 @@
     } catch (e) {
       console.warn("Version check warning:", e);
     }
+
+    // 7. Global listener for artist search clicks
+    window.addEventListener("dengar-search-artist", handleSearchArtistEvent);
   });
+
+  function handleSearchArtistEvent(e: any) {
+    const artist = e.detail?.artist;
+    if (artist) {
+      activeTab = "search";
+      searchQuery = artist;
+      performSearch(artist, "music_songs");
+    }
+  }
 
   function handleCloseWhatsNew() {
     isWhatsNewOpen.set(false);
     try {
-      localStorage.setItem("dengerin_seen_version", "v1.3.2");
+      localStorage.setItem("dengerin_seen_version", CURRENT_APP_VERSION);
     } catch (e) {
       console.warn("Save version warning:", e);
     }
@@ -172,6 +186,7 @@
 
   onDestroy(() => {
     window.removeEventListener("keydown", handleGlobalKeydown);
+    window.removeEventListener("dengar-search-artist", handleSearchArtistEvent);
     if (handleScrollActivity) {
       window.removeEventListener("scroll", handleScrollActivity, {
         capture: true,
@@ -187,7 +202,8 @@
       return;
     }
     if (!$networkStore.isOnline) {
-      searchError = "Perangkat sedang offline. Sambungkan internet untuk mencari lagu.";
+      searchError =
+        "Perangkat sedang offline. Sambungkan internet untuk mencari lagu.";
       searchResults = [];
       continuationToken = "";
       return;
@@ -407,11 +423,11 @@
     >
       {#if $playerStore.currentTrack}
         <span class="text-zinc-300 truncate"
-          >{$playerStore.currentTrack.title} — {$playerStore.currentTrack
+          >{$playerStore.currentTrack.title} • {$playerStore.currentTrack
             .uploaderName}</span
         >
       {:else}
-        <span class="text-zinc-500">{$t('master_audio_engine')}</span>
+        <span class="text-zinc-500">{$t("master_audio_engine")}</span>
       {/if}
     </div>
 
@@ -423,7 +439,8 @@
       <button
         class="h-full px-3.5 hover:text-zinc-100 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center justify-center"
         on:click={handleWindowMinimise}
-        title={$t('window_minimize')}
+        title={$t("window_minimize")}
+        aria-label={$t("window_minimize")}
       >
         <svg
           class="w-3.5 h-3.5"
@@ -436,7 +453,8 @@
       <button
         class="h-full px-3.5 hover:text-zinc-100 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center justify-center"
         on:click={handleWindowToggleMaximise}
-        title={$t('window_maximize')}
+        title={$t("window_maximize")}
+        aria-label={$t("window_maximize")}
       >
         <svg
           class="w-3.5 h-3.5"
@@ -450,7 +468,8 @@
       <button
         class="h-full px-4 hover:text-white hover:bg-crimson-600 transition-colors cursor-pointer flex items-center justify-center"
         on:click={handleWindowClose}
-        title={$t('window_close')}
+        title={$t("window_close")}
+        aria-label={$t("window_close")}
       >
         <svg
           class="w-3.5 h-3.5"
@@ -487,7 +506,9 @@
             class="mx-4 sm:mx-8 mt-4 flex items-center justify-between gap-3 px-4 sm:px-5 py-3 rounded-2xl bg-crimson-500/10 border border-crimson-500/30 text-crimson-300 text-xs shadow-lg"
           >
             <div class="flex items-center gap-3 min-w-0">
-              <div class="w-8 h-8 rounded-full bg-crimson-500/20 text-crimson-400 flex items-center justify-center shrink-0">
+              <div
+                class="w-8 h-8 rounded-full bg-crimson-500/20 text-crimson-400 flex items-center justify-center shrink-0"
+              >
                 <svg
                   class="w-4 h-4"
                   viewBox="0 0 24 24"
@@ -501,7 +522,9 @@
                 </svg>
               </div>
               <div class="min-w-0">
-                <p class="font-semibold text-white text-xs sm:text-sm">{$t('instance_connect_error')}</p>
+                <p class="font-semibold text-white text-xs sm:text-sm">
+                  {$t("instance_connect_error")}
+                </p>
                 <p class="text-[11px] text-zinc-300 truncate">{searchError}</p>
               </div>
             </div>
@@ -519,9 +542,15 @@
                 stroke-width="2"
                 viewBox="0 0 24 24"
               >
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                <path
+                  d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"
+                />
               </svg>
-              <span>{isRetrying ? $t('refreshing_instances') : $t('retry_action')}</span>
+              <span
+                >{isRetrying
+                  ? $t("refreshing_instances")
+                  : $t("retry_action")}</span
+              >
             </button>
           </div>
         {/if}
@@ -536,6 +565,7 @@
             : $t("popular_songs")}
           tracks={searchResults}
           isLoading={isSearching}
+          isSearchContext={true}
           hasMore={!!continuationToken}
           {isLoadingMore}
           emptyMessage={$t("no_results")}
@@ -604,8 +634,33 @@
   <PlaylistShareModal />
   <SleepTimerModal />
 
-  <!-- Toast Notification -->
-  {#if $toastMessage}
+  <!-- Toast Notification with optional Undo -->
+  {#if $toastData}
+    <div
+      class="fixed top-12 right-5 z-50 pointer-events-auto animate-slide-up duration-200"
+    >
+      <div
+        class="px-4 py-2.5 rounded-xl bg-[#181A24]/95 border border-white/10 shadow-2xl text-xs font-medium text-white flex items-center gap-3 backdrop-blur-md"
+      >
+        <span
+          class="w-2 h-2 rounded-full bg-crimson-500 shadow-[0_0_8px_#E61E38] shrink-0"
+        ></span>
+        <span>{$toastData.message}</span>
+        {#if $toastData.undoAction}
+          <button
+            type="button"
+            class="ml-1 px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-crimson-400 font-bold text-[11px] transition cursor-pointer"
+            on:click={() => {
+              if ($toastData?.undoAction) $toastData.undoAction();
+              toastData.set(null);
+            }}
+          >
+            Urungkan
+          </button>
+        {/if}
+      </div>
+    </div>
+  {:else if $toastMessage}
     <div
       class="fixed top-12 right-5 z-50 pointer-events-none animate-slide-up duration-200"
     >
@@ -646,25 +701,32 @@
               </svg>
             </div>
             <div class="min-w-0">
-              <div class="font-bold text-zinc-100 flex items-center gap-1.5 flex-wrap">
+              <div
+                class="font-bold text-zinc-100 flex items-center gap-1.5 flex-wrap"
+              >
                 <span class="text-xs">Versi Baru Tersedia!</span>
                 <span
                   class="text-[10px] px-1.5 py-0.5 rounded bg-crimson-500/20 text-crimson-300 font-mono font-semibold"
                   >{$updateState.latestVersion}</span
                 >
                 <span
-                  class="text-[9px] px-1.5 py-0.5 rounded {$updateState.isInstalled ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'} font-mono"
+                  class="text-[9px] px-1.5 py-0.5 rounded {$updateState.isInstalled
+                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'} font-mono"
                 >
-                  {$updateState.isInstalled ? 'Installer' : 'Portabel'}
+                  {$updateState.isInstalled ? "Installer" : "Portabel"}
                 </span>
               </div>
               <p class="text-[11px] text-zinc-400 mt-1 leading-snug">
                 {#if $downloadedFilePath}
-                  Pembaruan siap dipasang. Klik tombol di bawah untuk mulai ulang.
+                  Pembaruan siap dipasang. Klik tombol di bawah untuk mulai
+                  ulang.
                 {:else if $isDownloadingUpdate}
                   Sedang mengunduh berkas pembaruan...
                 {:else}
-                  Dengerin {$updateState.latestVersion} ({$updateState.isInstalled ? 'Setup .exe' : 'Portable .zip'}) siap diunduh otomatis.
+                  Dengerin {$updateState.latestVersion} ({$updateState.isInstalled
+                    ? "Setup .exe"
+                    : "Portable .zip"}) siap diunduh otomatis.
                 {/if}
               </p>
             </div>
@@ -687,43 +749,69 @@
         </div>
 
         <!-- Bottom Row: Action Buttons -->
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/[0.08]">
+        <div
+          class="flex items-center justify-end gap-2 pt-2 border-t border-white/[0.08]"
+        >
           {#if $downloadedFilePath}
             <button
               class="flex-1 py-1.5 px-3 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-semibold transition cursor-pointer text-xs flex items-center justify-center gap-1.5 shadow-md shadow-crimson-600/30"
               on:click={installAndRestartUpdate}
-              title={$t('btn_install_restart')}
+              title={$t("btn_install_restart")}
             >
-              <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              <svg
+                class="w-3.5 h-3.5 shrink-0"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
               </svg>
-              <span>{$t('btn_install_restart')}</span>
+              <span>{$t("btn_install_restart")}</span>
             </button>
             <button
               class="py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-200 font-semibold transition cursor-pointer text-xs flex items-center justify-center gap-1.5 shadow-sm shrink-0"
               on:click={revealDownloadedFile}
-              title={$t('btn_open_folder')}
-            >
-              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-              </svg>
-              <span>{$t('btn_open_folder')}</span>
-            </button>
-          {:else if $isDownloadingUpdate}
-            <div
-              class="flex items-center gap-2 text-zinc-300 text-xs py-1"
+              title={$t("btn_open_folder")}
             >
               <svg
-                class="w-3.5 h-3.5 animate-spin text-crimson-400"
-                viewBox="0 0 24 24"
+                class="w-3.5 h-3.5 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
+                viewBox="0 0 24 24"
               >
-                <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
-                <path d="M12 2a10 10 0 0 1 10 10" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                />
               </svg>
-              <span>Mengunduh biner pembaruan...</span>
+              <span>{$t("btn_open_folder")}</span>
+            </button>
+          {:else if $isDownloadingUpdate}
+            <div class="space-y-1.5 w-full py-1">
+              <div class="flex items-center justify-between text-[11px] text-zinc-300">
+                <span class="flex items-center gap-1.5 font-medium">
+                  <span class="w-2 h-2 rounded-full bg-crimson-500 animate-pulse"></span>
+                  Mengunduh pembaruan...
+                </span>
+                <span class="font-mono text-crimson-400 font-bold">
+                  {$downloadProgressData ? `${$downloadProgressData.percent}%` : '0%'}
+                </span>
+              </div>
+              <div class="h-2 w-full bg-white/10 rounded-full overflow-hidden relative">
+                <div
+                  class="h-full bg-gradient-to-r from-crimson-600 to-rose-500 rounded-full transition-all duration-150"
+                  style="width: {$downloadProgressData ? $downloadProgressData.percent : 0}%"
+                ></div>
+              </div>
+              <div class="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
+                <span>
+                  {$downloadProgressData && $downloadProgressData.total > 0
+                    ? `${formatBytes($downloadProgressData.downloaded)} / ${formatBytes($downloadProgressData.total)}`
+                    : 'Menghubungkan...'}
+                </span>
+                <span>{$downloadProgressData?.speedText || ''}</span>
+              </div>
             </div>
           {:else}
             <button
@@ -731,7 +819,9 @@
               on:click={() => startDownloadUpdate()}
               title="Unduh paket pembaruan resmi"
             >
-              Unduh Pembaruan ({$updateState.isInstalled ? 'Installer .exe' : 'Portable .zip'})
+              Unduh Pembaruan ({$updateState.isInstalled
+                ? "Installer .exe"
+                : "Portable .zip"})
             </button>
           {/if}
         </div>

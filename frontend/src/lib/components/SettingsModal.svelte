@@ -29,6 +29,7 @@
     updateState,
     isCheckingUpdate,
     isDownloadingUpdate,
+    downloadProgressData,
     downloadedFilePath,
     checkForUpdatesManual,
     startDownloadUpdate,
@@ -1036,13 +1037,30 @@
                             <span>Buka Folder</span>
                           </button>
                         {:else if $isDownloadingUpdate}
-                          <div
-                            class="flex items-center gap-2 text-zinc-300 text-[11px] py-1"
-                          >
-                            <div
-                              class="w-3 h-3 border-2 border-white/20 border-t-crimson-500 rounded-full animate-spin"
-                            ></div>
-                            <span>Mengunduh berkas pembaruan...</span>
+                          <div class="space-y-1.5 w-full py-1">
+                            <div class="flex items-center justify-between text-[11px] text-zinc-300">
+                              <span class="flex items-center gap-1.5 font-medium">
+                                <span class="w-1.5 h-1.5 rounded-full bg-crimson-500 animate-pulse"></span>
+                                Mengunduh...
+                              </span>
+                              <span class="font-mono text-crimson-400 font-bold">
+                                {$downloadProgressData ? `${$downloadProgressData.percent}%` : '0%'}
+                              </span>
+                            </div>
+                            <div class="h-1.5 w-full bg-white/10 rounded-full overflow-hidden relative">
+                              <div
+                                class="h-full bg-gradient-to-r from-crimson-600 to-rose-500 rounded-full transition-all duration-150"
+                                style="width: {$downloadProgressData ? $downloadProgressData.percent : 0}%"
+                              ></div>
+                            </div>
+                            <div class="flex items-center justify-between text-[9px] text-zinc-400 font-mono">
+                              <span>
+                                {$downloadProgressData && $downloadProgressData.total > 0
+                                  ? `${formatBytes($downloadProgressData.downloaded)} / ${formatBytes($downloadProgressData.total)}`
+                                  : 'Menghubungkan...'}
+                              </span>
+                              <span>{$downloadProgressData?.speedText || ''}</span>
+                            </div>
                           </div>
                         {:else}
                           <button

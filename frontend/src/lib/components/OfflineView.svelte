@@ -115,6 +115,7 @@
         on:click={loadOfflineTracks}
         disabled={isLoading}
         title={$t('offline_refresh')}
+        aria-label={$t('offline_refresh')}
       >
         <svg
           class="w-4 h-4 {isLoading ? 'animate-spin text-crimson-400' : 'text-zinc-200'} shrink-0"

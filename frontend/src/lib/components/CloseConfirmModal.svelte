@@ -35,6 +35,10 @@
   }
 </script>
 
+<svelte:window
+  on:keydown={(e) => $isCloseConfirmOpen && e.key === "Escape" && handleCancel()}
+/>
+
 {#if $isCloseConfirmOpen}
   <div
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in"

@@ -1,46 +1,114 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte'
-  import type { SearchFilter } from '../types'
-  import { queueStore } from '../stores/queueStore'
-  import { t } from '../stores/i18nStore'
+  import { createEventDispatcher, onMount } from "svelte";
+  import type { SearchFilter } from "../types";
+  import { queueStore } from "../stores/queueStore";
+  import { t } from "../stores/i18nStore";
 
-  export let query = ''
-  export let isLoading = false
+  export let query = "";
+  export let isLoading = false;
 
   const dispatch = createEventDispatcher<{
-    search: { query: string; filter: SearchFilter }
-  }>()
+    search: { query: string; filter: SearchFilter };
+  }>();
 
-  let queueCount = 0
-  $: queueCount = $queueStore.items.length
+  let queueCount = 0;
+  $: queueCount = $queueStore.items.length;
+
+  const RECENT_KEY = "dengar_recent_searches";
+  let recentSearches: string[] = [];
+  let isFocused = false;
+
+  onMount(() => {
+    loadRecentSearches();
+  });
+
+  function loadRecentSearches() {
+    if (typeof localStorage === "undefined") return;
+    try {
+      const data = localStorage.getItem(RECENT_KEY);
+      recentSearches = data ? JSON.parse(data) : [];
+    } catch {
+      recentSearches = [];
+    }
+  }
+
+  function saveRecentSearch(term: string) {
+    if (!term || typeof localStorage === "undefined") return;
+    try {
+      const filtered = recentSearches.filter(
+        (s) => s.toLowerCase() !== term.toLowerCase(),
+      );
+      const updated = [term, ...filtered].slice(0, 10);
+      recentSearches = updated;
+      localStorage.setItem(RECENT_KEY, JSON.stringify(updated));
+    } catch {}
+  }
+
+  function removeRecentSearch(term: string, e: MouseEvent) {
+    e.stopPropagation();
+    recentSearches = recentSearches.filter((s) => s !== term);
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(RECENT_KEY, JSON.stringify(recentSearches));
+    }
+  }
+
+  function clearAllRecentSearches(e: MouseEvent) {
+    e.stopPropagation();
+    recentSearches = [];
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem(RECENT_KEY);
+    }
+  }
+
+  function selectRecent(term: string) {
+    query = term;
+    isFocused = false;
+    triggerSearch();
+  }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
-      triggerSearch()
+    if (e.key === "Enter") {
+      triggerSearch();
+    } else if (e.key === "Escape") {
+      isFocused = false;
     }
   }
 
   function clearQuery() {
-    query = ''
+    query = "";
   }
 
   function triggerSearch() {
-    dispatch('search', { query: query.trim(), filter: 'music_songs' })
+    const q = query.trim();
+    if (q) {
+      saveRecentSearch(q);
+    }
+    isFocused = false;
+    dispatch("search", { query: q, filter: "music_songs" });
   }
 </script>
 
-<section class="sticky top-0 z-30 px-4 sm:px-8 py-3.5 bg-[#0E1017]/85 backdrop-blur-xl border-b border-white/[0.04] select-none">
+<section
+  class="sticky top-0 z-30 px-4 sm:px-8 py-3.5 bg-[#0E1017]/85 backdrop-blur-xl border-b border-white/[0.04] select-none"
+>
   <!-- Search Input Bar & Top Right Actions -->
   <div class="flex items-center justify-between gap-2.5 sm:gap-4">
     <!-- Search Bar Input with Clickable Magnifying Glass -->
     <div class="relative flex-1 max-w-2xl">
       <button
         type="button"
-        class="absolute inset-y-0 left-0 pl-3.5 pr-2 flex items-center text-zinc-400 hover:text-crimson-400 active:scale-90 transition cursor-pointer"
+        class="absolute inset-y-0 left-0 pl-3.5 pr-2 flex items-center text-zinc-400 hover:text-crimson-400 active:scale-90 transition cursor-pointer z-10"
         on:click={triggerSearch}
         title="Cari (Enter)"
+        aria-label="Cari"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          viewBox="0 0 24 24"
+        >
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" x2="16.65" y1="21" y2="16.65"></line>
         </svg>
@@ -48,38 +116,152 @@
 
       <input
         class="w-full pl-10 pr-24 py-2.5 bg-white/[0.06] hover:bg-white/[0.08] focus:bg-white/[0.1] border border-white/10 focus:border-crimson-500 rounded-2xl text-sm font-medium text-white placeholder-zinc-400 outline-none transition duration-150 backdrop-blur-md shadow-inner"
-        placeholder={$t('search_placeholder')}
+        placeholder={$t("search_placeholder")}
         type="text"
         bind:value={query}
         on:keydown={handleKeydown}
+        on:focus={() => {
+          loadRecentSearches();
+          isFocused = true;
+        }}
+        on:blur={() =>
+          setTimeout(() => {
+            isFocused = false;
+          }, 200)}
       />
-      <div class="absolute inset-y-0 right-0 pr-3 flex items-center gap-1.5">
+      <div
+        class="absolute inset-y-0 right-0 pr-3 flex items-center gap-1.5 z-10"
+      >
         {#if isLoading}
-          <div class="w-4 h-4 border-2 border-white/20 border-t-crimson-500 rounded-full animate-spin"></div>
+          <div
+            class="w-4 h-4 border-2 border-white/20 border-t-crimson-500 rounded-full animate-spin"
+          ></div>
         {:else if query.length > 0}
           <button
             class="p-1 text-zinc-400 hover:text-white transition cursor-pointer"
             on:click={clearQuery}
             title="Hapus teks"
+            aria-label="Hapus teks"
           >
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg
+              class="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
               <path d="M18 6L6 18M6 6l12 12"></path>
             </svg>
           </button>
         {/if}
-        <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-medium text-zinc-400 bg-white/[0.08] border border-white/10 rounded-md">Enter</kbd>
+        <kbd
+          class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-medium text-zinc-400 bg-white/[0.08] border border-white/10 rounded-md"
+          >Enter</kbd
+        >
       </div>
+
+      <!-- Recent Searches Dropdown Panel -->
+      {#if isFocused && recentSearches.length > 0}
+        <div
+          class="absolute left-0 right-0 top-full mt-2 bg-[#12141D]/95 border border-white/10 rounded-2xl p-2 shadow-2xl backdrop-blur-2xl z-50 animate-in fade-in slide-in-from-top-1 duration-150"
+        >
+          <div
+            class="flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold text-zinc-400 border-b border-white/[0.06] mb-1"
+          >
+            <span class="flex items-center gap-1.5">
+              <svg
+                class="w-3.5 h-3.5 text-zinc-400"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              {$t("recent_searches")}
+            </span>
+            <button
+              type="button"
+              class="text-zinc-500 hover:text-crimson-400 text-[10px] transition cursor-pointer"
+              on:mousedown|preventDefault={clearAllRecentSearches}
+            >
+              {$t("clear_all")}
+            </button>
+          </div>
+          <div class="max-h-60 overflow-y-auto divide-y divide-white/[0.02]">
+            {#each recentSearches as term}
+              <div
+                class="flex items-center justify-between px-3 py-2 hover:bg-white/[0.06] rounded-xl cursor-pointer transition group"
+                on:mousedown|preventDefault={() => selectRecent(term)}
+                role="button"
+                tabindex="0"
+                on:keydown={(e) => e.key === "Enter" && selectRecent(term)}
+              >
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <svg
+                    class="w-3.5 h-3.5 text-zinc-500 group-hover:text-zinc-300 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" x2="16.65" y1="21" y2="16.65"></line>
+                  </svg>
+                  <span
+                    class="text-xs text-zinc-200 group-hover:text-white truncate"
+                    >{term}</span
+                  >
+                </div>
+                <button
+                  type="button"
+                  class="p-1 text-zinc-500 hover:text-white transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                  on:mousedown|preventDefault={(e) =>
+                    removeRecentSearch(term, e)}
+                  title="Hapus riwayat ini"
+                  aria-label="Hapus riwayat ini"
+                >
+                  <svg
+                    class="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
     </div>
 
     <!-- Top Right Action Controls: Unified Sleek Segmented Capsule Dock -->
-    <div class="flex items-center bg-white/[0.04] p-1 rounded-2xl border border-white/[0.08] backdrop-blur-md shadow-xs shrink-0">
+    <div
+      class="flex items-center bg-white/[0.04] p-1 rounded-2xl border border-white/[0.08] backdrop-blur-md shadow-xs shrink-0"
+    >
       <!-- Queue Button with Badge -->
       <button
-        class="flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all cursor-pointer {$queueStore.isDrawerOpen ? 'bg-white/[0.14] text-white shadow-xs' : 'text-zinc-300 hover:text-white hover:bg-white/[0.06]'}"
+        class="flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all cursor-pointer {$queueStore.isDrawerOpen
+          ? 'bg-white/[0.14] text-white shadow-xs'
+          : 'text-zinc-300 hover:text-white hover:bg-white/[0.06]'}"
         on:click={() => queueStore.toggleDrawer()}
-        title={$t('nav_queue')}
+        title={$t("nav_queue")}
+        aria-label={$t("nav_queue")}
       >
-        <svg class="w-4 h-4 {$queueStore.isDrawerOpen ? 'text-crimson-400' : 'text-zinc-300'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <svg
+          class="w-4 h-4 {$queueStore.isDrawerOpen
+            ? 'text-crimson-400'
+            : 'text-zinc-300'}"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
           <line x1="8" y1="6" x2="21" y2="6"></line>
           <line x1="8" y1="12" x2="21" y2="12"></line>
           <line x1="8" y1="18" x2="21" y2="18"></line>
@@ -87,9 +269,13 @@
           <line x1="3" y1="12" x2="3.01" y2="12"></line>
           <line x1="3" y1="18" x2="3.01" y2="18"></line>
         </svg>
-        <span class="text-xs font-semibold hidden md:inline">{$t('nav_queue')}</span>
+        <span class="text-xs font-semibold hidden md:inline"
+          >{$t("nav_queue")}</span
+        >
         {#if queueCount > 0}
-          <span class="px-1.5 py-0.2 rounded-full bg-crimson-500 text-[10px] font-bold text-white font-mono shadow-xs">
+          <span
+            class="px-1.5 py-0.2 rounded-full bg-crimson-500 text-[10px] font-bold text-white font-mono shadow-xs"
+          >
             {queueCount}
           </span>
         {/if}

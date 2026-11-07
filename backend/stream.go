@@ -221,7 +221,7 @@ func (r *StreamResolver) isStreamURLPlayable(streamURL string) bool {
 		}
 	}
 
-	// Fast pre-flight HTTP Range request (1.5 seconds timeout)
+	// Fast pre-flight HTTP Range request (2.5 seconds timeout to prevent false-negative timeouts on international latency)
 	req, err := http.NewRequest(http.MethodGet, clean, nil)
 	if err != nil {
 		return false
@@ -230,7 +230,7 @@ func (r *StreamResolver) isStreamURLPlayable(streamURL string) bool {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
 	probeClient := &http.Client{
-		Timeout: 1500 * time.Millisecond,
+		Timeout: 2500 * time.Millisecond,
 	}
 	resp, err := probeClient.Do(req)
 	if err != nil {

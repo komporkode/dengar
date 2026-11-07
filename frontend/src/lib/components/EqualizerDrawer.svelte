@@ -20,6 +20,10 @@
   }
 </script>
 
+<svelte:window
+  on:keydown={(e) => isOpen && e.key === 'Escape' && onClose()}
+/>
+
 {#if isOpen}
   <!-- Backdrop click catcher -->
   <div
@@ -144,6 +148,7 @@
                 max="12"
                 step="0.5"
                 value={gain}
+                aria-label={`Gain band ${band.label}`}
                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 style="writing-mode: vertical-lr; direction: rtl;"
                 disabled={!eq.isEnabled}

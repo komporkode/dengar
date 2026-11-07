@@ -26,7 +26,11 @@ func NewAudioProxyHandler() *AudioProxyHandler {
 func NewAudioProxyHandlerWithCache(cacheManager *AudioCacheManager) *AudioProxyHandler {
 	return &AudioProxyHandler{
 		client: &http.Client{
-			Timeout: 60 * time.Second, // Long timeout for streaming media chunks
+			Timeout: 0, // No full-body timeout for continuous audio media streaming
+			Transport: &http.Transport{
+				ResponseHeaderTimeout: 15 * time.Second,
+				IdleConnTimeout:       90 * time.Second,
+			},
 		},
 		cacheManager: cacheManager,
 	}

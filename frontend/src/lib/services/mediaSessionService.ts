@@ -31,7 +31,7 @@ class MediaSessionService {
           UpdateDiscordActivity(
             state.currentTrack.title,
             state.currentTrack.uploaderName || 'Dengerin',
-            state.duration || state.currentTrack.duration || 0,
+            Math.round(state.duration || state.currentTrack.duration || 0),
             Math.round(state.currentTime),
             state.isPlaying
           ).catch(() => {})
@@ -126,7 +126,7 @@ class MediaSessionService {
             UpdateDiscordActivity(
               state.currentTrack.title,
               state.currentTrack.uploaderName || 'Dengerin',
-              state.duration || state.currentTrack.duration || 0,
+              Math.round(state.duration || state.currentTrack.duration || 0),
               Math.round(state.currentTime),
               state.isPlaying
             ).catch(() => {})

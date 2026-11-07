@@ -172,6 +172,8 @@ function createPlayerStore() {
 
     audio.addEventListener('error', () => {
       clearLoadWatchdog()
+      const err = audio?.error
+      console.warn('Audio media element error:', err ? `code=${err.code}, msg=${err.message}` : 'unknown')
       handleMediaError()
     })
 
@@ -185,10 +187,10 @@ function createPlayerStore() {
             console.log('[Auto-Recovery] Network stalled but buffer is healthy, continuing playback...')
             return
           }
-          console.warn('[Auto-Recovery] Audio playback stalled for > 6s, refreshing stream...')
+          console.warn('[Auto-Recovery] Audio playback stalled for > 12s, refreshing stream...')
           handleMediaError()
         }
-      }, 6000)
+      }, 12000)
     })
 
     audio.addEventListener('waiting', () => {
@@ -200,6 +202,7 @@ function createPlayerStore() {
       clearTimeout(stallTimer)
       clearLoadWatchdog()
       cancelAutoRetry()
+      equalizerStore.resumeContext()
       updateBuffered()
       update(st => ({ ...st, isPlaying: true, isLoading: false, error: null, retryCount: 0 }))
     })
@@ -211,6 +214,7 @@ function createPlayerStore() {
 
     audio.addEventListener('canplay', () => {
       clearLoadWatchdog()
+      equalizerStore.resumeContext()
       updateBuffered()
       update(st => ({ ...st, isLoading: false }))
     })
@@ -224,22 +228,32 @@ function createPlayerStore() {
       if (s.isLoading && !s.isPlaying && s.currentTrack) {
         if (hasHealthyBuffer()) {
           console.log('[StallWatchdog] Buffer has playable audio, attempting play instead of rotating...')
-          audio?.play().catch(() => {})
+          audio?.play().catch(() => { })
           startLoadWatchdog()
           return
         }
-        console.warn('[StallWatchdog] Playback failed to start within 7s, triggering automatic instance rotation...')
+        console.warn('[StallWatchdog] Playback failed to start within 15s, triggering automatic instance rotation...')
         handleMediaError()
       }
-    }, 7000)
+    }, 15000)
   }
 
   function clearLoadWatchdog() {
     clearTimeout(loadWatchdogTimer)
   }
 
+  let crossfadeInTimer: any = null
+
+  function cancelCrossfadeIn() {
+    if (crossfadeInTimer) {
+      clearInterval(crossfadeInTimer)
+      crossfadeInTimer = null
+    }
+  }
+
   function setAudioSourceAndPlay(streamUrl: string, startTime = 0, autoPlay = true, trackId?: string) {
     if (!audio) return
+    cancelCrossfadeIn()
     const currentTrackId = trackId || get({ subscribe }).currentTrack?.id
     const proxied = equalizerStore.getProxiedStreamUrl(streamUrl, currentTrackId)
     const currentAttr = audio.getAttribute('src')
@@ -254,6 +268,11 @@ function createPlayerStore() {
       audio.play().then(() => {
         applyCrossfadeIn()
       }).catch(e => {
+        // AbortError or NotAllowedError are normal browser lifecycle events when loading new sources
+        if (e && (e.name === 'AbortError' || e.name === 'NotAllowedError')) {
+          console.log(`[AudioPlayback] play() paused/aborted (${e.name}):`, e.message)
+          return
+        }
         console.warn('Audio play error, attempting recovery:', e)
         handleMediaError()
       })
@@ -261,24 +280,32 @@ function createPlayerStore() {
   }
 
   function applyCrossfadeIn() {
+    cancelCrossfadeIn()
     const crossfadeSec = get(crossfadeDurationStore)
-    if (!audio || crossfadeSec <= 0) return
+    const s = get({ subscribe })
+    const targetVol = s.isMuted ? 0 : s.volume
+    if (!audio || crossfadeSec <= 0 || targetVol <= 0) {
+      if (audio) {
+        audio.volume = targetVol
+        audio.muted = s.isMuted
+      }
+      return
+    }
 
-    const targetVol = audio.volume
     audio.volume = 0
     const durationMs = crossfadeSec * 1000
     const steps = 20
     const stepInterval = Math.max(20, Math.floor(durationMs / steps))
     let currentStep = 0
 
-    const fadeTimer = setInterval(() => {
+    crossfadeInTimer = setInterval(() => {
       currentStep++
       const progress = currentStep / steps
       if (audio) {
         audio.volume = Math.min(targetVol, targetVol * progress)
       }
       if (currentStep >= steps) {
-        clearInterval(fadeTimer)
+        cancelCrossfadeIn()
         if (audio) {
           audio.volume = targetVol
         }
@@ -296,7 +323,7 @@ function createPlayerStore() {
       if (nextTrack && nextTrack.id !== prefetchedTrackId) {
         prefetchedTrackId = nextTrack.id
         const currentQuality = get(audioQualityStore)
-        GetStream(nextTrack.id, false, currentQuality).catch(() => {})
+        GetStream(nextTrack.id, false, currentQuality).catch(() => { })
       }
     }
   }
@@ -338,6 +365,7 @@ function createPlayerStore() {
 
   async function playTrack(track: SearchResultItem, modeOverride?: PlayMode, forceRestart = false) {
     initAudio()
+    equalizerStore.resumeContext()
     const s = get({ subscribe })
     const activeMode = modeOverride || s.mode
     const isOnline = get(networkStore).isOnline
@@ -487,7 +515,7 @@ function createPlayerStore() {
       } else if (action === 'skip') {
         if (hasHealthyBuffer()) {
           console.log('[Auto-Recovery] Preserving healthy buffer, continuing playback instead of skipping')
-          audio?.play().catch(() => {})
+          audio?.play().catch(() => { })
           return
         }
         showToast('Lagu tidak tersedia di server, memutar lagu berikutnya...')
@@ -548,7 +576,7 @@ function createPlayerStore() {
     // If buffer still has playable audio, suppress error and continue playing
     if (hasHealthyBuffer()) {
       console.log('[Auto-Recovery] Error event suppressed because buffer has playable audio')
-      audio?.play().catch(() => {})
+      audio?.play().catch(() => { })
       return
     }
 
@@ -557,7 +585,7 @@ function createPlayerStore() {
       const code = audio.error.code
       if (code === 3 /* MEDIA_ERR_DECODE */) {
         console.warn(`[Auto-Recovery] Decoding error (${code}) on ${s.currentTrack.id}, purging corrupt cache`)
-        PurgeTrackCache(s.currentTrack.id).catch(() => {})
+        PurgeTrackCache(s.currentTrack.id).catch(() => { })
       }
     }
 
@@ -636,12 +664,15 @@ function createPlayerStore() {
       const currentQuality = get(audioQualityStore) || 'saver'
       const fresh = await GetStream(track.id, false, currentQuality)
       const streamUrl = fresh.audioUrl || fresh.videoUrl
-      if (streamUrl && audio && audio.src !== streamUrl) {
-        const wasPaused = audio.paused
-        audio.src = streamUrl
-        audio.currentTime = currentTime
-        if (!wasPaused) {
-          audio.play().catch(console.warn)
+      if (streamUrl && audio) {
+        const proxied = equalizerStore.getProxiedStreamUrl(streamUrl, track.id)
+        if (audio.src !== proxied) {
+          const wasPaused = audio.paused
+          audio.src = proxied
+          audio.currentTime = currentTime
+          if (!wasPaused) {
+            audio.play().catch(console.warn)
+          }
         }
       }
     } catch (e) {
@@ -650,6 +681,20 @@ function createPlayerStore() {
   }
 
   function togglePlay() {
+    const s = get({ subscribe })
+    if (!s.currentTrack) {
+      // If there are tracks in queue, start playing from the queue
+      const q = get(queueStore)
+      if (q.items.length > 0) {
+        const nextTrack = queueStore.jumpToIndex(Math.max(0, q.currentIndex)) || q.items[0]
+        if (nextTrack) {
+          playTrack(nextTrack, undefined, true)
+          return
+        }
+      }
+      return
+    }
+
     initAudio()
     if (!audio) return
 
@@ -717,6 +762,8 @@ function createPlayerStore() {
   }
 
   function seek(time: number) {
+    const s = get({ subscribe })
+    if (!s.currentTrack) return
     initAudio()
     if (audio) {
       try {
@@ -871,12 +918,13 @@ function createPlayerStore() {
 
   function playNext() {
     cancelAutoRetry()
+    const s = get({ subscribe })
+    if (!s.currentTrack) return
     // When manually clicking next, advance forward even if repeat one is set
     const nextTrack = queueStore.next(true)
     if (nextTrack) {
       playTrack(nextTrack, undefined, true)
     } else {
-      const s = get({ subscribe })
       if (get(isAutoplayEnabled) && s.currentTrack) {
         triggerAutoplayNext(s.currentTrack)
       }
@@ -885,6 +933,8 @@ function createPlayerStore() {
 
   function playPrev() {
     cancelAutoRetry()
+    const s = get({ subscribe })
+    if (!s.currentTrack) return
     const prevTrack = queueStore.prev()
     if (prevTrack) {
       playTrack(prevTrack, undefined, true)
@@ -908,7 +958,8 @@ function createPlayerStore() {
         const freshStream = await GetStream(s.currentTrack.id, true, newQuality)
         const streamUrl = freshStream.audioUrl || freshStream.videoUrl
         if (streamUrl && audio) {
-          audio.src = streamUrl
+          const proxied = equalizerStore.getProxiedStreamUrl(streamUrl, s.currentTrack.id)
+          audio.src = proxied
           audio.currentTime = savedTime
           if (wasPlaying) {
             audio.play().catch(e => console.warn('Hot-swap playback resume error:', e))

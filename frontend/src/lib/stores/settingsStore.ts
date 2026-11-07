@@ -28,6 +28,11 @@ export const isSettingsOpen = writable<boolean>(false)
 export const isWhatsNewOpen = writable<boolean>(false)
 export const isMiniPlayer = writable<boolean>(false)
 export const isTransitioning = writable<boolean>(false)
+export interface ToastData {
+  message: string
+  undoAction?: (() => void) | null
+}
+export const toastData = writable<ToastData | null>(null)
 export const toastMessage = writable<string | null>(null)
 
 // Mini Player Pin (Always on top) store
@@ -67,12 +72,14 @@ export function toggleSidebar() {
 
 let toastTimer: any
 
-export function showToast(message: string) {
+export function showToast(message: string, undoAction?: (() => void) | null) {
   toastMessage.set(message)
+  toastData.set({ message, undoAction })
   clearTimeout(toastTimer)
   toastTimer = setTimeout(() => {
     toastMessage.set(null)
-  }, 2500)
+    toastData.set(null)
+  }, undoAction ? 4500 : 2500)
 }
 
 interface SavedWindowState {

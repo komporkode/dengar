@@ -145,6 +145,105 @@ function createQueueStore() {
     }))
   }
 
+  function clearUpcomingQueue() {
+    update(s => {
+      if (s.currentIndex < 0 || s.items.length === 0) {
+        return { ...s, items: [], currentIndex: -1, shuffleOrder: [], shufflePointer: -1 }
+      }
+      const cur = s.items[s.currentIndex]
+      return {
+        ...s,
+        items: [cur],
+        currentIndex: 0,
+        shuffleOrder: [0],
+        shufflePointer: 0,
+      }
+    })
+  }
+
+  function playNow(track: SearchResultItem) {
+    update(s => {
+      if (s.items.length === 0) {
+        return {
+          ...s,
+          items: [track],
+          currentIndex: 0,
+          shuffleOrder: [0],
+          shufflePointer: 0,
+        }
+      }
+
+      // If current track is already this track, just keep it
+      if (s.currentIndex >= 0 && s.items[s.currentIndex]?.id === track.id) {
+        return s
+      }
+
+      const insertIdx = Math.max(0, s.currentIndex + 1)
+      const newItems = [...s.items]
+      newItems.splice(insertIdx, 0, track)
+
+      return {
+        ...s,
+        items: newItems,
+        currentIndex: insertIdx,
+        shuffleOrder: newItems.map((_, i) => i),
+        shufflePointer: insertIdx,
+      }
+    })
+  }
+
+  function insertNext(track: SearchResultItem) {
+    update(s => {
+      if (s.items.length === 0) {
+        return {
+          ...s,
+          items: [track],
+          currentIndex: 0,
+          shuffleOrder: [0],
+          shufflePointer: 0,
+        }
+      }
+
+      const insertIdx = Math.max(0, s.currentIndex + 1)
+      const newItems = [...s.items]
+      newItems.splice(insertIdx, 0, track)
+
+      return {
+        ...s,
+        items: newItems,
+        shuffleOrder: newItems.map((_, i) => i),
+      }
+    })
+  }
+
+  function reorderQueue(fromIndex: number, toIndex: number) {
+    update(s => {
+      if (fromIndex < 0 || fromIndex >= s.items.length || toIndex < 0 || toIndex >= s.items.length || fromIndex === toIndex) {
+        return s
+      }
+      const newItems = [...s.items]
+      const [moved] = newItems.splice(fromIndex, 1)
+      newItems.splice(toIndex, 0, moved)
+
+      let newCurrentIndex = s.currentIndex
+      if (s.currentIndex === fromIndex) {
+        newCurrentIndex = toIndex
+      } else if (fromIndex < s.currentIndex && toIndex >= s.currentIndex) {
+        newCurrentIndex--
+      } else if (fromIndex > s.currentIndex && toIndex <= s.currentIndex) {
+        newCurrentIndex++
+      }
+
+      return {
+        ...s,
+        items: newItems,
+        currentIndex: newCurrentIndex,
+        shuffleOrder: newItems.map((_, i) => i),
+        shufflePointer: newCurrentIndex,
+      }
+    })
+  }
+
   function jumpToIndex(index: number): SearchResultItem | null {
     const s = get({ subscribe })
     if (index < 0 || index >= s.items.length) return null
@@ -338,8 +437,12 @@ function createQueueStore() {
     subscribe,
     setQueue,
     addToQueue,
+    playNow,
+    insertNext,
+    reorderQueue,
     removeFromQueue,
     clearQueue,
+    clearUpcomingQueue,
     jumpToIndex,
     getCurrent,
     next,

@@ -33,9 +33,8 @@
   <!-- Top-edge luminous accent line -->
   <div class="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none z-20"></div>
 
-  <!-- Ambient background glow if no image or fallback -->
+  <!-- Ambient background glow if no image or fallback (Consistent Crimson brand palette) -->
   <div class="absolute -right-16 -top-16 w-96 h-96 bg-crimson-600/10 rounded-full blur-[140px] pointer-events-none z-0"></div>
-  <div class="absolute -left-16 -bottom-16 w-80 h-80 bg-indigo-600/10 rounded-full blur-[130px] pointer-events-none z-0"></div>
 
   <!-- Full-height background cover image pinned to right, 100% height fit with zero crop & seamless dissolve -->
   {#if imageUrl && !imgFailed}
@@ -86,6 +85,7 @@
           class="h-11 sm:h-12 px-6 sm:px-7 rounded-full bg-crimson-600 hover:bg-crimson-500 border border-transparent text-white font-bold text-xs sm:text-sm inline-flex items-center gap-2.5 shadow-xl shadow-crimson-600/35 hover:shadow-crimson-600/50 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
           on:click={() => dispatch('play')}
           title={playLabel}
+          aria-label={playLabel}
         >
           {#if isPlaying}
             <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
@@ -108,6 +108,7 @@
           class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 hover:border-white/20 text-zinc-200 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
           on:click={() => dispatch('shuffle')}
           title={shuffleTitle}
+          aria-label={shuffleTitle}
         >
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <polyline points="16 3 21 3 21 8"></polyline>

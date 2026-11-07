@@ -29,6 +29,10 @@
   }
 </script>
 
+<svelte:window
+  on:keydown={(e) => $trackToAddToPlaylist && e.key === 'Escape' && handleClose()}
+/>
+
 {#if $trackToAddToPlaylist}
   <div
     class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 select-none"
@@ -76,7 +80,12 @@
               on:click={() => handleToggleTrack(pl.id, isIn)}
             >
               <div class="min-w-0 pr-2">
-                <div class="text-xs font-semibold truncate">{pl.name}</div>
+                <div class="text-xs font-semibold truncate flex items-center gap-1.5">
+                  <span class="truncate">{pl.name}</span>
+                  {#if isIn}
+                    <span class="text-[9px] px-1.5 py-0.2 rounded bg-crimson-500/25 text-crimson-300 font-medium shrink-0">{$t('already_in_playlist')}</span>
+                  {/if}
+                </div>
                 <div class="text-[10px] text-zinc-400 mt-0.5">{(pl.tracks || []).length} {$t('items_count')}</div>
               </div>
               <div class="shrink-0 w-5 h-5 rounded-md flex items-center justify-center border {isIn ? 'bg-crimson-500 border-crimson-500 text-white' : 'border-white/20 text-transparent'}">

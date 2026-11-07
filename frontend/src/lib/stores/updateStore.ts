@@ -1,12 +1,20 @@
 import { writable, get } from 'svelte/store'
 import { CheckForUpdates, DownloadUpdate, OpenInFolder, ApplyUpdateAndRestart } from '../../../wailsjs/go/main/App'
-import { BrowserOpenURL } from '../../../wailsjs/runtime/runtime.js'
+import { BrowserOpenURL, EventsOn } from '../../../wailsjs/runtime/runtime.js'
 import { showToast } from './settingsStore'
 
 export interface UpdateAsset {
   name: string
   downloadUrl: string
   size: number
+}
+
+export interface DownloadProgress {
+  downloaded: number
+  total: number
+  percent: number
+  speedText: string
+  fileName: string
 }
 
 export interface UpdateInfo {
@@ -33,8 +41,28 @@ export const updateState = writable<UpdateInfo | null>(null)
 export const isCheckingUpdate = writable<boolean>(false)
 export const isDownloadingUpdate = writable<boolean>(false)
 export const downloadProgress = writable<string>('')
+export const downloadProgressData = writable<DownloadProgress | null>(null)
 export const downloadedFilePath = writable<string | null>(null)
 export const showUpdateBanner = writable<boolean>(false)
+
+if (typeof window !== 'undefined') {
+  try {
+    EventsOn('update:download-progress', (data: DownloadProgress) => {
+      downloadProgressData.set(data)
+    })
+  } catch (e) {
+    console.warn('Wails EventsOn update:download-progress unavailable:', e)
+  }
+}
+
+export function formatBytes(bytes: number): string {
+  if (!bytes || bytes <= 0) return '0 MB'
+  const mb = bytes / (1024 * 1024)
+  if (mb >= 1024) {
+    return `${(mb / 1024).toFixed(1)} GB`
+  }
+  return `${mb.toFixed(1)} MB`
+}
 
 /**
  * Otomatis periksa pembaruan di latar belakang saat aplikasi pertama kali dibuka.
@@ -103,15 +131,18 @@ export async function startDownloadUpdate(customUrl?: string, customFileName?: s
   }
 
   isDownloadingUpdate.set(true)
-  downloadProgress.set('Mengunduh biner pembaruan ke folder Downloads...')
+  downloadProgressData.set(null)
+  downloadProgress.set('Mengunduh berkas pembaruan...')
 
   try {
     const savedPath = await DownloadUpdate(targetUrl, targetName)
     downloadedFilePath.set(savedPath)
-    showToast('Berhasil diunduh! Klik "Buka Folder" untuk melihat file.')
+    downloadProgressData.set(null)
+    showToast('Pembaruan selesai diunduh! Siap dipasang.')
   } catch (err: any) {
     console.error('Download update failed:', err)
     showToast(`Gagal mengunduh: ${err?.message || err}`)
+    downloadProgressData.set(null)
   } finally {
     isDownloadingUpdate.set(false)
     downloadProgress.set('')

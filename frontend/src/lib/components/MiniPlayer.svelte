@@ -108,6 +108,7 @@
         class="flex items-center gap-1 px-1.5 py-0.5 rounded-md transition cursor-pointer text-xs {isPinned ? 'bg-crimson-500/25 text-crimson-300 font-semibold shadow-xs' : 'text-zinc-400 hover:text-white hover:bg-white/10'}"
         on:click={togglePinMiniPlayer}
         title={isPinned ? 'Lepas Sematan (Always on Top Aktif - P)' : 'Sematkan di Atas (Always on Top - P)'}
+        aria-label={isPinned ? 'Lepas Sematan (Always on Top Aktif)' : 'Sematkan di Atas (Always on Top)'}
       >
         <svg class="w-3 h-3 {isPinned ? 'fill-current' : 'fill-none stroke-current'}" viewBox="0 0 24 24" stroke-width="2">
           <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l1 1 1-1v-6H18v-2l-2-2z"/>
@@ -122,6 +123,7 @@
         class="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
         on:click={exitMiniPlayer}
         title="Kembali ke Pemutar Penuh (Esc)"
+        aria-label="Kembali ke Pemutar Penuh"
       >
         <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="15 3 21 3 21 9"></polyline>
@@ -170,6 +172,7 @@
               class="p-0.5 text-crimson-500 hover:text-crimson-400 hover:scale-110 active:scale-95 transition cursor-pointer shrink-0"
               on:click={handleToggleFav}
               title={isFav ? 'Hapus dari favorit (F)' : 'Tambah ke favorit (F)'}
+              aria-label={isFav ? 'Hapus dari favorit' : 'Tambah ke favorit'}
             >
               <svg class="w-3.5 h-3.5 {isFav ? 'fill-current drop-shadow-[0_0_6px_rgba(230,30,56,0.6)]' : 'text-zinc-500'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -190,6 +193,7 @@
         class="w-6 h-6 rounded-full transition relative flex items-center justify-center cursor-pointer {isShuffle ? 'text-crimson-400' : 'text-zinc-400 hover:text-zinc-200'}"
         on:click={queueStore.toggleShuffle}
         title={isShuffle ? 'Putar Acak: Aktif' : 'Putar Acak: Nonaktif'}
+        aria-label={isShuffle ? 'Putar Acak: Aktif' : 'Putar Acak: Nonaktif'}
       >
         <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <polyline points="16 3 21 3 21 8"></polyline>
@@ -208,6 +212,7 @@
         class="w-6 h-6 rounded-full text-zinc-400 hover:text-white hover:bg-white/[0.08] active:scale-90 transition flex items-center justify-center cursor-pointer"
         on:click={playerStore.playPrev}
         title="Lagu Sebelumnya (J)"
+        aria-label="Lagu Sebelumnya"
       >
         <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24">
           <polygon points="19 20 9 12 19 4 19 20"></polygon>
@@ -217,11 +222,13 @@
 
       <!-- Play / Pause Accent Button -->
       <button
-        class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-crimson-500 hover:bg-crimson-600 text-white flex items-center justify-center shadow-lg shadow-crimson-500/40 hover:scale-105 active:scale-95 transition cursor-pointer shrink-0"
+        disabled={!currentTrack && $queueStore.items.length === 0}
+        class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition shrink-0 {!currentTrack && $queueStore.items.length === 0 ? 'bg-white/[0.06] border border-white/10 text-zinc-500 shadow-none cursor-not-allowed' : 'bg-crimson-500 hover:bg-crimson-600 text-white shadow-lg shadow-crimson-500/40 hover:scale-105 active:scale-95 cursor-pointer'}"
         on:click={playerStore.togglePlay}
-        title="Play/Pause (Spasi)"
+        title={!currentTrack && $queueStore.items.length === 0 ? 'Pilih lagu untuk mulai memutar' : 'Play/Pause (Spasi)'}
+        aria-label={isPlaying ? 'Jeda' : 'Putar'}
       >
-        {#if isLoading}
+        {#if isLoading && currentTrack}
           <div class="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
         {:else if isPlaying}
           <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" viewBox="0 0 24 24">
@@ -240,6 +247,7 @@
         class="w-6 h-6 rounded-full text-zinc-400 hover:text-white hover:bg-white/[0.08] active:scale-90 transition flex items-center justify-center cursor-pointer"
         on:click={playerStore.playNext}
         title="Lagu Selanjutnya (L)"
+        aria-label="Lagu Selanjutnya"
       >
         <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24">
           <polygon points="5 4 15 12 5 20 5 4"></polygon>
@@ -252,6 +260,7 @@
         class="w-6 h-6 rounded-full transition relative flex items-center justify-center cursor-pointer {repeatMode !== 'off' ? 'text-crimson-400' : 'text-zinc-400 hover:text-zinc-200'}"
         on:click={queueStore.cycleRepeat}
         title={repeatMode === 'one' ? 'Ulangi: Satu Lagu' : repeatMode === 'all' ? 'Ulangi: Semua Lagu' : 'Ulangi: Mati'}
+        aria-label={repeatMode === 'one' ? 'Ulangi: Satu Lagu' : repeatMode === 'all' ? 'Ulangi: Semua Lagu' : 'Ulangi: Mati'}
       >
         <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <polyline points="17 1 21 5 17 9"></polyline>
@@ -297,6 +306,7 @@
         on:input={handleSeek}
         disabled={!currentTrack}
         title="Durasi: {formatTime(currentTime)} / {formatTime(duration)} (Panah Kiri/Kanan)"
+        aria-label="Posisi Durasi Lagu"
       />
     </div>
 
@@ -318,6 +328,7 @@
         class="p-0.5 text-zinc-400 hover:text-white transition cursor-pointer"
         on:click={playerStore.toggleMute}
         title={isMuted || volume === 0 ? 'Bunyikan (M)' : 'Bisukan (M)'}
+        aria-label={isMuted || volume === 0 ? 'Bunyikan' : 'Bisukan'}
       >
         {#if isMuted || volume === 0}
           <svg class="w-3.5 h-3.5 text-crimson-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -361,6 +372,7 @@
           value={isMuted ? 0 : volume}
           on:input={handleVolumeChange}
           title="Atur Volume: {volumePercent}%"
+          aria-label="Pengatur Volume"
         />
       </div>
 

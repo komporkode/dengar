@@ -131,6 +131,7 @@
           on:click={handleRefreshRecommendations}
           disabled={isRefreshing}
           title={$t('offline_refresh')}
+          aria-label={$t('offline_refresh')}
         >
           <svg
             class="w-4 h-4 {isRefreshing ? 'animate-spin text-crimson-400' : 'text-zinc-200'} shrink-0"
@@ -210,6 +211,7 @@
                 class="shrink-0 p-1 text-zinc-500 hover:text-white opacity-0 group-hover:opacity-100 transition rounded-lg hover:bg-white/[0.1] cursor-pointer"
                 on:click|stopPropagation={() => openAddToPlaylistModal(track)}
                 title={$t('add_to_playlist')}
+                aria-label={$t('add_to_playlist')}
               >
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="1.5"></circle>
@@ -239,6 +241,7 @@
             on:click={handleRefreshRecommendations}
             disabled={isRefreshing}
             title="Segarkan Rekomendasi"
+            aria-label="Segarkan Rekomendasi"
           >
             <svg class="w-3 h-3 {isRefreshing ? 'animate-spin text-crimson-400' : 'text-zinc-400'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M23 4v6h-6"></path>
@@ -279,6 +282,7 @@
                 <button
                   class="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-crimson-500 text-white flex items-center justify-center shadow-lg shadow-crimson-500/30 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 cursor-pointer hover:scale-105"
                   on:click|stopPropagation={() => handlePlayTrack(track, recommended)}
+                  aria-label={isPlaying ? 'Jeda' : 'Putar'}
                 >
                   {#if isPlaying}
                     <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
@@ -301,6 +305,7 @@
                   class="shrink-0 p-1 text-zinc-500 hover:text-white opacity-0 group-hover:opacity-100 transition rounded-lg hover:bg-white/[0.1] cursor-pointer"
                   on:click|stopPropagation={() => openAddToPlaylistModal(track)}
                   title={$t('add_to_playlist')}
+                  aria-label={$t('add_to_playlist')}
                 >
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="1.5"></circle>
@@ -334,6 +339,7 @@
         type="button"
         class="h-10 px-5 rounded-full bg-crimson-600 hover:bg-crimson-500 text-white font-semibold text-xs inline-flex items-center gap-2 shadow-lg shadow-crimson-600/30 transition-all cursor-pointer"
         on:click={loadHomeData}
+        aria-label={$t('retry_action')}
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />

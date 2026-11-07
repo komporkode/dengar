@@ -83,6 +83,7 @@ function createEqualizerStore() {
   let audioCtx: AudioContext | null = null
   let sourceNode: MediaElementAudioSourceNode | null = null
   let filterNodes: BiquadFilterNode[] = []
+  let compressorNode: DynamicsCompressorNode | null = null
   let isConnected = false
 
   function applyFiltersToNodes() {
@@ -126,13 +127,21 @@ function createEqualizerStore() {
         return filter
       })
 
-      // Chain: source -> filter0 -> ... -> filter4 -> destination
+      compressorNode = audioCtx!.createDynamicsCompressor()
+      compressorNode.threshold.value = -24
+      compressorNode.knee.value = 30
+      compressorNode.ratio.value = get(loudnessNormalizationStore) ? 12 : 1
+      compressorNode.attack.value = 0.003
+      compressorNode.release.value = 0.25
+
+      // Chain: source -> filter0 -> ... -> filter4 -> compressor -> destination
       let current: AudioNode = sourceNode
       for (const filter of filterNodes) {
         current.connect(filter)
         current = filter
       }
-      current.connect(audioCtx.destination)
+      current.connect(compressorNode)
+      compressorNode.connect(audioCtx.destination)
 
       isConnected = true
       applyFiltersToNodes()
@@ -208,8 +217,20 @@ function createEqualizerStore() {
     setBandGain,
     resetToFlat,
     getProxiedStreamUrl,
+    setLoudnessNormalization(enabled: boolean) {
+      if (compressorNode && audioCtx) {
+        compressorNode.ratio.setTargetAtTime(enabled ? 12 : 1, audioCtx.currentTime, 0.05)
+      }
+      loudnessNormalizationStore.set(enabled)
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('dengar_audio_normalization', String(enabled))
+      }
+    },
   }
 }
+
+const savedNormalization = typeof localStorage !== 'undefined' ? localStorage.getItem('dengar_audio_normalization') !== 'false' : true
+export const loudnessNormalizationStore = writable<boolean>(savedNormalization)
 
 export const equalizerStore = createEqualizerStore()
 

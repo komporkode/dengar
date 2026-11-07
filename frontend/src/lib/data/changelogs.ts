@@ -12,9 +12,73 @@ export interface ChangelogRelease {
   }[]
 }
 
-export const CURRENT_APP_VERSION = 'v1.3.2'
+export const CURRENT_APP_VERSION = 'v1.4.0'
 
 export const CHANGELOG_DATA: ChangelogRelease[] = [
+  {
+    version: 'v1.4.0',
+    title: 'Redesign Antrean, Craftsmanship Aksesibilitas & Auto-Update Sempurna',
+    date: '7 November 2026',
+    badge: 'Fitur Baru & Perbaikan',
+    summary: 'Rilis v1.4.0 menghadirkan antarmuka antrean minimalis satu baris dengan pembagian visual terstruktur, status pemutar elegan ala Spotify Desktop, sistem auto-update & installer NSIS yang telah disempurnakan (progress bar live & in-place restart), craftsmanship anti-slop dengan aksesibilitas keyboard lengkap, serta stabilitas pemutaran cold-start.',
+    sections: [
+      {
+        title: 'Sistem Auto-Update & Installer Disempurnakan',
+        icon: 'sparkles',
+        color: 'text-crimson-400',
+        items: [
+          'Progress Bar Unduhan Real-Time: Indikator visual live dengan byte terunduh, persentase akurat, dan kecepatan transfer (MB/s).',
+          'Pemasangan & Mulai Ulang Otomatis: Upgrade in-place instan untuk installer (.exe) dan versi portabel (.zip) dengan proteksi file lock.',
+          'Opsi Jalankan Dengerin di Installer: Wizard NSIS kini menyertakan opsi langsung membuka Dengerin di akhir instalasi.',
+          'Deteksi Akurat Tipe Paket: Membedakan edisi Terpasang dan Portabel dengan verifikasi keberadaan uninstaller.',
+          'Pratinjau Catatan Rilis: Akordeon interaktif untuk membaca changelog pembaruan langsung di halaman Pengaturan.',
+        ],
+      },
+      {
+        title: 'Craftsmanship, Aksesibilitas & Anti-Slop',
+        icon: 'sparkles',
+        color: 'text-amber-400',
+        items: [
+          'Navigasi Keyboard Escape Menyeluruh: Tekan Escape untuk menutup laci antrean, equalizer, timer tidur, dan seluruh modal dialog.',
+          'Cakupan Aksesibilitas Penuh: Atribut aria-label lengkap pada semua tombol kendali dan indikator focus-visible crimson yang kontras.',
+          'Dukungan Motion Halus: Integrasi prefers-reduced-motion untuk kenyamanan pengguna dengan sensitivitas gerak.',
+          'Pembersihan Visual & Salinan: Menghapus radial blur orb asing dan mengganti buzzword pemasaran dengan terminologi audio yang membumi.',
+        ],
+      },
+      {
+        title: 'Antarmuka Antrean Minimalis & Terstruktur',
+        icon: 'sparkles',
+        color: 'text-crimson-400',
+        items: [
+          'Header Tunggal Ramping: Mengganti header bertingkat yang padat dengan toolbar minimalis satu baris (56px) tanpa ikon hamburger besar.',
+          'Pemisahan Visual Section: Membagi daftar antrean menjadi Sedang Diputar (kartu crimson glowing dengan equalizer aktif), Berikutnya, dan Sebelumnya lengkap dengan badge hitung lagu.',
+          'Aksi Bersihkan Sisa (Clear Upcoming): Tombol cepat untuk mengosongkan antrean lagu berikutnya tanpa menghapus riwayat yang sedang diputar.',
+          'Autoplay Kompak: Toggle autoplay serupa kini menyatu rapi di toolbar kanan.',
+        ],
+      },
+      {
+        title: 'Pengalaman Pemutar & Navigasi Bersih',
+        icon: 'sparkles',
+        color: 'text-indigo-400',
+        items: [
+          'Spotify-Style Player Empty State: Saat belum ada lagu yang dipilih, tombol kendali (Play, Shuffle, Prev, Next, Repeat) dinonaktifkan dengan transisi redup halus tanpa pergeseran tata letak dan tanpa spinner macet. Slider volume dan equalizer tetap aktif.',
+          'Sidebar Ramping: Menghilangkan teks indikator "Aktif" pada tombol navigasi, digantikan dengan sorotan visual halus (background highlight dan ikon merah).',
+          'Lokalisasi Penuh (Bilingual ID/EN): 100% teks di antrean, pencarian, menu opsi lagu, modal playlist, dan pengaturan telah diterjemahkan dengan benar.',
+        ],
+      },
+      {
+        title: 'Perbaikan Mesin Pemutar & Keandalan Jaringan',
+        icon: 'sparkles',
+        color: 'text-emerald-400',
+        items: [
+          'Bebas Error Retry Pemutaran Pertama: Menghilangkan konflik unduhan duplikat di background yang memicu perebutan bandwidth dan file lock saat memutar lagu pertama.',
+          'Watchdog & Stall Timer Adaptif: Mengakomodasi latensi cold-start HTTPS/DNS internasional dengan timer pemantau 15 detik dan stall 12 detik berproteksi buffer.',
+          'Filter Lifecycle Browser: Mencegah AbortError alami dari Chromium WebView2 ditafsirkan sebagai kegagalan server.',
+          'AudioContext Instan: Membuka kunci Web Audio API secara sinkron saat klik awal untuk mencegah pembatasan pemblokiran audio browser.',
+        ],
+      },
+    ],
+  },
   {
     version: 'v1.3.2',
     title: 'Perbaikan Infinite Scroll, Tampilan Sidebar & Installer Windows',

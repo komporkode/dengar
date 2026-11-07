@@ -166,6 +166,40 @@ html, body {
   -webkit-user-select: none;
 }
 
+/* Antislop Accessible Interaction Affordances & Focus Indicators */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+a[href],
+select:not(:disabled),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+input[type="range"]:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+[disabled] {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid #E61E38;
+  outline-offset: 2px;
+}
+
+/* Reduced Motion for Accessible Performance & User Preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 #app {
   width: 100vw;
   height: 100vh;

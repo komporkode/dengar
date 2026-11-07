@@ -188,7 +188,7 @@ func (a *App) GetStream(videoID string, forceRefresh bool, quality string) (*bac
 		return nil, err
 	}
 
-	// 3. Register pending metadata and queue background caching
+	// 3. Register pending metadata and pre-cache thumbnail (audio is cached via AudioProxyHandler TeeReader during playback)
 	if a.audioCache != nil && res != nil && res.AudioURL != "" {
 		a.audioCache.SetPendingMeta(videoID, backend.AudioCacheMeta{
 			VideoID:      videoID,
@@ -198,7 +198,11 @@ func (a *App) GetStream(videoID string, forceRefresh bool, quality string) (*bac
 			Duration:     res.Duration,
 			Format:       res.Format,
 		})
-		a.audioCache.QueueBackgroundCacheWithThumb(videoID, res.AudioURL, res.Title, res.Artist, res.Duration, res.Format, res.Thumbnail)
+		if res.Thumbnail != "" {
+			go func() {
+				_ = a.audioCache.CacheThumbnail(videoID, res.Thumbnail)
+			}()
+		}
 	}
 
 	return res, nil
@@ -332,10 +336,10 @@ func (a *App) SetDiscordRPCEnabled(enabled bool) {
 }
 
 // UpdateDiscordActivity broadcasts current song playback status to Discord.
-func (a *App) UpdateDiscordActivity(title, artist string, duration, elapsed int64, isPlaying bool) {
+func (a *App) UpdateDiscordActivity(title, artist string, duration, elapsed float64, isPlaying bool) {
 	if a.discord != nil {
 		go func() {
-			_ = a.discord.UpdateActivity(title, artist, duration, elapsed, isPlaying)
+			_ = a.discord.UpdateActivity(title, artist, int64(duration), int64(elapsed), isPlaying)
 		}()
 	}
 }
@@ -930,7 +934,7 @@ func isVersionNewer(candidate, current string) bool {
 
 // CheckForUpdates checks GitHub releases API for newer version of Dengerin.
 func (a *App) CheckForUpdates() (*UpdateInfo, error) {
-	const currentVersion = "v1.3.2"
+	const currentVersion = "v1.4.0"
 	client := &http.Client{Timeout: 6 * time.Second}
 	req, err := http.NewRequest("GET", "https://api.github.com/repos/komporkode/dengar/releases/latest", nil)
 	if err != nil {
@@ -948,11 +952,31 @@ func (a *App) CheckForUpdates() (*UpdateInfo, error) {
 	isInstalled := false
 	if execPath != "" {
 		execLower := strings.ToLower(execPath)
-		isInstalled = strings.Contains(execLower, "program files") || strings.Contains(execLower, "appdata\\local\\programs") || strings.Contains(execLower, "appdata/local/programs")
+		execDir := filepath.Dir(execPath)
+		// Check standard installation paths or presence of uninstaller in the app directory
+		isInstalled = strings.Contains(execLower, "program files") ||
+			strings.Contains(execLower, "appdata\\local\\programs") ||
+			strings.Contains(execLower, "appdata/local/programs")
+
+		if !isInstalled {
+			uninstPath := filepath.Join(execDir, "uninstall.exe")
+			if _, err := os.Stat(uninstPath); err == nil {
+				isInstalled = true
+			}
+		}
+	}
+
+	if resp.StatusCode == http.StatusForbidden {
+		return &UpdateInfo{
+			CurrentVersion: currentVersion,
+			HasUpdate:      false,
+			IsInstalled:    isInstalled,
+			ReleaseNotes:   "Limit pemeriksaan GitHub tercapai. Silakan coba lagi beberapa saat lagi.",
+		}, fmt.Errorf("limit pemeriksaan GitHub tercapai (rate limit exceeded)")
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return &UpdateInfo{CurrentVersion: currentVersion, HasUpdate: false, IsInstalled: isInstalled}, nil
+		return &UpdateInfo{CurrentVersion: currentVersion, HasUpdate: false, IsInstalled: isInstalled}, fmt.Errorf("server GitHub merespons HTTP %d", resp.StatusCode)
 	}
 
 	var release struct {
@@ -1057,8 +1081,32 @@ func (a *App) CheckForUpdates() (*UpdateInfo, error) {
 	}, nil
 }
 
-// DownloadUpdate downloads the update file directly to the user's Downloads folder
-// and returns the full absolute path of the saved file.
+// DownloadProgressEvent carries real-time download status to the frontend.
+type DownloadProgressEvent struct {
+	Downloaded int64  `json:"downloaded"`
+	Total      int64  `json:"total"`
+	Percent    int    `json:"percent"`
+	SpeedBps   int64  `json:"speedBps"`
+	SpeedText  string `json:"speedText"`
+	FileName   string `json:"fileName"`
+}
+
+func formatDownloadSpeed(bytesPerSec int64) string {
+	if bytesPerSec <= 0 {
+		return ""
+	}
+	const (
+		kb = 1024
+		mb = 1024 * kb
+	)
+	if bytesPerSec >= mb {
+		return fmt.Sprintf("%.1f MB/s", float64(bytesPerSec)/float64(mb))
+	}
+	return fmt.Sprintf("%d KB/s", bytesPerSec/kb)
+}
+
+// DownloadUpdate downloads the update file directly to the user's Downloads folder,
+// emits live progress events, and returns the full absolute path of the saved file.
 func (a *App) DownloadUpdate(downloadURL, fileName string) (string, error) {
 	if downloadURL == "" {
 		return "", fmt.Errorf("URL unduhan tidak valid atau kosong")
@@ -1080,7 +1128,7 @@ func (a *App) DownloadUpdate(downloadURL, fileName string) (string, error) {
 	targetPath := filepath.Join(downloadsDir, fileName)
 
 	client := &http.Client{
-		Timeout: 5 * time.Minute,
+		Timeout: 10 * time.Minute,
 	}
 
 	req, err := http.NewRequest("GET", downloadURL, nil)
@@ -1105,10 +1153,67 @@ func (a *App) DownloadUpdate(downloadURL, fileName string) (string, error) {
 	}
 	defer outFile.Close()
 
-	if _, err := io.Copy(outFile, resp.Body); err != nil {
-		return "", fmt.Errorf("gagal menyimpan file unduhan: %w", err)
+	total := resp.ContentLength
+	buf := make([]byte, 32*1024)
+	var downloaded int64
+	lastEmitTime := time.Now()
+	lastDownloaded := int64(0)
+	var currentSpeedText string
+
+	// Emit initial progress event
+	wailsRuntime.EventsEmit(a.ctx, "update:download-progress", DownloadProgressEvent{
+		Downloaded: 0,
+		Total:      total,
+		Percent:    0,
+		SpeedText:  "Menghubungkan...",
+		FileName:   fileName,
+	})
+
+	for {
+		n, readErr := resp.Body.Read(buf)
+		if n > 0 {
+			if _, writeErr := outFile.Write(buf[:n]); writeErr != nil {
+				return "", fmt.Errorf("gagal menulis file unduhan: %w", writeErr)
+			}
+			downloaded += int64(n)
+
+			now := time.Now()
+			if now.Sub(lastEmitTime) >= 150*time.Millisecond || readErr != nil {
+				duration := now.Sub(lastEmitTime).Seconds()
+				if duration > 0 {
+					speedBps := int64(float64(downloaded-lastDownloaded) / duration)
+					currentSpeedText = formatDownloadSpeed(speedBps)
+				}
+				lastEmitTime = now
+				lastDownloaded = downloaded
+
+				percent := 0
+				if total > 0 {
+					percent = int(float64(downloaded) / float64(total) * 100)
+					if percent > 100 {
+						percent = 100
+					}
+				}
+
+				wailsRuntime.EventsEmit(a.ctx, "update:download-progress", DownloadProgressEvent{
+					Downloaded: downloaded,
+					Total:      total,
+					Percent:    percent,
+					SpeedText:  currentSpeedText,
+					FileName:   fileName,
+				})
+			}
+		}
+
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			return "", fmt.Errorf("koneksi unduhan terputus: %w", readErr)
+		}
 	}
 
+	wailsRuntime.EventsEmit(a.ctx, "update:download-complete", targetPath)
 	return targetPath, nil
 }
 
@@ -1153,15 +1258,65 @@ func (a *App) ApplyUpdateAndRestart(filePath string) error {
 	case "windows":
 		// Case 1: Downloaded asset is an installer (.exe)
 		if ext == ".exe" {
+			targetDir := filepath.Dir(execPath)
+			tempDir := os.TempDir()
+			updaterBat := filepath.Join(tempDir, fmt.Sprintf("dengerin_install_%d.bat", time.Now().UnixNano()))
+			pid := os.Getpid()
+
+			// Batch script that gracefully waits for the running instance to close,
+			// runs the NSIS installer silently (/S) for seamless in-place upgrade,
+			// and automatically launches the newly updated Dengerin!
+			batContent := fmt.Sprintf(`@echo off
+setlocal enabledelayedexpansion
+
+set "PID=%d"
+set "INSTALLER=%s"
+set "CURR=%s"
+set "CURR_DIR=%s"
+
+:: 1. Wait for Dengerin process to terminate cleanly
+if not "%%PID%%"=="" (
+    for /L %%%%i in (1,1,30) do (
+        tasklist /fi "PID eq %%PID%%" 2>NUL | find /I "%%PID%%" >NUL
+        if errorlevel 1 goto :proc_done
+        timeout /t 1 /nobreak >NUL
+    )
+)
+:proc_done
+
+:: 2. Run installer silently (/S) to upgrade in-place
+"!INSTALLER!" /S
+
+:: 3. Wait a brief moment for installer to finish writing files
+timeout /t 3 /nobreak >NUL
+
+:: 4. Start the updated application
+cd /d "!CURR_DIR!"
+if exist "!CURR!" (
+    start "" "!CURR!"
+) else (
+    start "" "!INSTALLER!"
+)
+
+:: 5. Self-destruct
+(goto) 2>nul & del "%%~f0"
+`, pid, cleanPath, execPath, targetDir)
+
+			if err := os.WriteFile(updaterBat, []byte(batContent), 0755); err != nil {
+				// Fallback: launch installer directly
+				return exec.Command("cmd.exe", "/c", "start", "", cleanPath).Start()
+			}
+
 			isProtected := strings.Contains(strings.ToLower(execPath), "program files")
 			if isProtected {
-				psCmd := fmt.Sprintf(`Start-Process -FilePath "%s" -Verb RunAs`, cleanPath)
+				psCmd := fmt.Sprintf(`Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "`+"`\"%s`\""+`" -Verb RunAs`, updaterBat)
 				_ = exec.Command("powershell.exe", "-NoProfile", "-WindowStyle", "Hidden", "-Command", psCmd).Start()
 			} else {
-				_ = exec.Command("cmd.exe", "/c", "start", "", cleanPath).Start()
+				_ = exec.Command("cmd.exe", "/c", updaterBat).Start()
 			}
+
 			go func() {
-				time.Sleep(500 * time.Millisecond)
+				time.Sleep(400 * time.Millisecond)
 				wailsRuntime.Quit(a.ctx)
 			}()
 			return nil
@@ -1211,6 +1366,7 @@ func (a *App) ApplyUpdateAndRestart(filePath string) error {
 			updaterBat := filepath.Join(tempDir, fmt.Sprintf("dengerin_updater_%d.bat", time.Now().UnixNano()))
 			pid := os.Getpid()
 			baseName := filepath.Base(execPath)
+			targetDir := filepath.Dir(execPath)
 
 			batContent := fmt.Sprintf(`@echo off
 setlocal enabledelayedexpansion
@@ -1218,6 +1374,7 @@ setlocal enabledelayedexpansion
 set "PID=%d"
 set "NEW=%s"
 set "CURR=%s"
+set "CURR_DIR=%s"
 set "BACKUP=%s.bak"
 
 :: 1. Wait for Dengerin process to terminate cleanly
@@ -1235,15 +1392,15 @@ set ATTEMPTS=0
 :retry_loop
 set /a ATTEMPTS+=1
 
-:: Direct move attempt
-move /y "!NEW!" "!CURR!" >NUL 2>&1
+:: Direct copy attempt (works across different drive volumes C:, D:, etc.)
+copy /y "!NEW!" "!CURR!" >NUL 2>&1
 if not errorlevel 1 goto :success
 
 :: Rename trick: Windows permits renaming locked/cached binaries even if overwrite is denied
 if exist "!BACKUP!" del /f /q "!BACKUP!" >NUL 2>&1
 ren "!CURR!" "%s.bak" >NUL 2>&1
 if not errorlevel 1 (
-    move /y "!NEW!" "!CURR!" >NUL 2>&1
+    copy /y "!NEW!" "!CURR!" >NUL 2>&1
     if not errorlevel 1 (
         del /f /q "!BACKUP!" >NUL 2>&1
         goto :success
@@ -1256,6 +1413,8 @@ goto :retry_loop
 
 :success
 if exist "!BACKUP!" del /f /q "!BACKUP!" >NUL 2>&1
+if exist "!NEW!" del /f /q "!NEW!" >NUL 2>&1
+cd /d "!CURR_DIR!"
 start "" "!CURR!"
 goto :cleanup
 
@@ -1263,12 +1422,13 @@ goto :cleanup
 if not exist "!CURR!" (
     if exist "!BACKUP!" ren "!BACKUP!" "%s" >NUL 2>&1
 )
+cd /d "!CURR_DIR!"
 start "" "!CURR!"
 
 :cleanup
 if exist "!NEW!" del /f /q "!NEW!" >NUL 2>&1
 (goto) 2>nul & del "%%~f0"
-`, pid, updateExePath, execPath, execPath, baseName, baseName)
+`, pid, updateExePath, execPath, targetDir, execPath, baseName, baseName)
 
 			if err := os.WriteFile(updaterBat, []byte(batContent), 0755); err != nil {
 				return fmt.Errorf("gagal membuat script updater: %w", err)
@@ -1290,7 +1450,7 @@ if exist "!NEW!" del /f /q "!NEW!" >NUL 2>&1
 			}
 
 			go func() {
-				time.Sleep(500 * time.Millisecond)
+				time.Sleep(400 * time.Millisecond)
 				wailsRuntime.Quit(a.ctx)
 			}()
 			return nil
@@ -1301,7 +1461,7 @@ if exist "!NEW!" del /f /q "!NEW!" >NUL 2>&1
 		if ext == ".dmg" {
 			exec.Command("open", cleanPath).Start()
 			go func() {
-				time.Sleep(500 * time.Millisecond)
+				time.Sleep(400 * time.Millisecond)
 				wailsRuntime.Quit(a.ctx)
 			}()
 			return nil

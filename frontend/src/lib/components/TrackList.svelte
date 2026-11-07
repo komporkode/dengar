@@ -14,6 +14,7 @@
   export let isLoadingMore = false
   export let emptyMessage = 'Tidak ada lagu yang ditemukan.'
   export let isHistory = false
+  export let isSearchContext = false
   export let showBanner = false
   export let bannerTag = ''
   export let bannerTitle = ''
@@ -112,6 +113,7 @@
             class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/[0.08] hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 text-zinc-300 hover:text-red-400 flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
             on:click={onClearAll}
             title={$t('clear_history')}
+            aria-label={$t('clear_history')}
           >
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <polyline points="3 6 5 6 21 6"></polyline>
@@ -152,6 +154,7 @@
               class="h-10 px-5 rounded-full bg-gradient-to-r from-crimson-600 to-crimson-500 hover:from-crimson-500 hover:to-crimson-400 border border-transparent text-white font-semibold text-xs sm:text-sm inline-flex items-center gap-2 shadow-lg shadow-crimson-500/25 hover:shadow-crimson-500/40 transition-all transform active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
               on:click={handlePlayAll}
               title={isCurrentListPlaying ? $t('pause_all') : $t('play_all')}
+              aria-label={isCurrentListPlaying ? $t('pause_all') : $t('play_all')}
             >
               {#if isCurrentListPlaying}
                 <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
@@ -171,6 +174,7 @@
               class="h-10 px-5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-all active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
               on:click={handleShuffleAll}
               title={$t('shuffle')}
+              aria-label={$t('shuffle')}
             >
               <svg class="w-4 h-4 text-zinc-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <polyline points="16 3 21 3 21 8"></polyline>
@@ -243,6 +247,7 @@
             {track}
             index={i}
             tracksContext={tracks}
+            {isSearchContext}
             onRemove={onRemoveItem ? () => onRemoveItem(track) : null}
             removeTitle={isHistory ? $t('remove_from_history') : ''}
           />

@@ -51,6 +51,21 @@
     showToast(wasFav ? $t('removed_from_favorites') : $t('added_to_favorites'))
   }
 
+  let hoverSeekTime: number | null = null
+  let hoverSeekPercent = 0
+
+  function handleSeekMouseMove(e: MouseEvent) {
+    if (!duration || !currentTrack) return
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const offsetX = Math.max(0, Math.min(e.clientX - rect.left, rect.width))
+    hoverSeekPercent = (offsetX / rect.width) * 100
+    hoverSeekTime = (offsetX / rect.width) * duration
+  }
+
+  function handleSeekMouseLeave() {
+    hoverSeekTime = null
+  }
+
   function formatTime(sec: number): string {
     if (!sec || isNaN(sec) || sec <= 0) return '00:00'
     const m = Math.floor(sec / 60)
@@ -154,7 +169,16 @@
     </div>
   {/if}
 
-  <div class="pointer-events-auto floating-island rounded-2xl border border-white/[0.12] shadow-island-glow px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300">
+  <div
+    class="pointer-events-auto floating-island rounded-2xl border border-white/[0.12] shadow-island-glow px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300 relative overflow-hidden"
+    on:wheel={handleVolumeWheel}
+  >
+    {#if currentTrack?.thumbnailUrl}
+      <div
+        class="absolute -inset-6 bg-cover bg-center filter blur-3xl opacity-20 pointer-events-none transition-all duration-700 -z-10"
+        style="background-image: url('{currentTrack.thumbnailUrl}')"
+      ></div>
+    {/if}
     
     <!-- Sisi Kiri: Album art melengkung, interaktif favorit, detail lagu & HQ stream info -->
     <div class="flex items-center gap-2.5 sm:gap-3.5 min-w-0 max-w-[130px] sm:max-w-[220px] md:max-w-[280px] shrink-0">
@@ -185,9 +209,22 @@
               <span class="hidden sm:inline-block text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 shrink-0" title="Kualitas Tertinggi (HQ Opus/AAC)">HQ</span>
             {/if}
           </div>
-          <p class="text-[11px] sm:text-xs text-zinc-400 truncate hover:text-zinc-200" title={currentTrack.uploaderName}>
+          <button
+            type="button"
+            class="text-[11px] sm:text-xs text-zinc-400 truncate hover:text-crimson-400 hover:underline cursor-pointer transition text-left p-0 bg-transparent border-0"
+            title={`Cari lagu karya ${currentTrack.uploaderName}`}
+            on:click={() => {
+              if (currentTrack?.uploaderName) {
+                window.dispatchEvent(
+                  new CustomEvent('dengar-search-artist', {
+                    detail: { artist: currentTrack.uploaderName },
+                  })
+                )
+              }
+            }}
+          >
             {currentTrack.uploaderName}
-          </p>
+          </button>
           <div class="hidden md:flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono">
             <span class="w-1.5 h-1.5 rounded-full {$audioQualityStore === 'saver' ? 'bg-emerald-400' : 'bg-crimson-400'}"></span>
             <span>{stream?.format || ($audioQualityStore === 'saver' ? 'ECO ~70-128kbps' : 'HQ Opus 160kbps')}</span>
@@ -217,9 +254,12 @@
       <div class="flex items-center gap-2 sm:gap-4 mb-0.5 sm:mb-1">
         <!-- Shuffle -->
         <button
-          class="p-1 sm:p-1.5 transition relative active:scale-95 cursor-pointer hidden sm:block {isShuffle ? 'text-crimson-400' : 'text-zinc-400 hover:text-zinc-200'}"
+          type="button"
+          disabled={!currentTrack}
+          class="p-1 sm:p-1.5 transition relative active:scale-95 hidden sm:block {!currentTrack ? 'opacity-25 cursor-not-allowed pointer-events-none text-zinc-600' : isShuffle ? 'text-crimson-400 cursor-pointer' : 'text-zinc-400 hover:text-zinc-200 cursor-pointer'}"
           on:click={queueStore.toggleShuffle}
-          title={isShuffle ? 'Putar Acak: Aktif' : 'Putar Acak: Nonaktif'}
+          title={!currentTrack ? 'Pilih lagu untuk acak putar' : isShuffle ? 'Putar Acak: Aktif' : 'Putar Acak: Nonaktif'}
+          aria-label={isShuffle ? 'Putar acak aktif' : 'Putar acak nonaktif'}
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <polyline points="16 3 21 3 21 8"></polyline>
@@ -228,16 +268,19 @@
             <line x1="15" y1="15" x2="21" y2="21"></line>
             <line x1="4" y1="4" x2="9" y2="9"></line>
           </svg>
-          {#if isShuffle}
+          {#if isShuffle && currentTrack}
             <span class="absolute -bottom-0.5 right-1 w-1 h-1 rounded-full bg-crimson-400 shadow-[0_0_4px_#FF4D62]"></span>
           {/if}
         </button>
 
         <!-- Previous -->
         <button
-          class="p-1 sm:p-1.5 text-zinc-300 hover:text-white transition active:scale-90 cursor-pointer"
+          type="button"
+          disabled={!currentTrack}
+          class="p-1 sm:p-1.5 transition active:scale-90 {!currentTrack ? 'opacity-25 cursor-not-allowed pointer-events-none text-zinc-600' : 'text-zinc-300 hover:text-white cursor-pointer'}"
           on:click={playerStore.playPrev}
-          title="Lagu Sebelumnya (J)"
+          title={!currentTrack ? '' : 'Lagu Sebelumnya (J)'}
+          aria-label="Lagu sebelumnya"
         >
           <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
             <polygon points="19 20 9 12 19 4 19 20"></polygon>
@@ -247,11 +290,16 @@
 
         <!-- Play / Pause Circle Accent Button -->
         <button
-          class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-crimson-500 hover:bg-crimson-600 text-white flex items-center justify-center shadow-lg shadow-crimson-500/40 hover:scale-105 active:scale-95 transition duration-150 cursor-pointer shrink-0"
+          type="button"
+          disabled={!currentTrack && $queueStore.items.length === 0}
+          class="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition duration-150 shrink-0 {!currentTrack && $queueStore.items.length === 0
+            ? 'bg-white/[0.06] border border-white/10 text-zinc-500 shadow-none cursor-not-allowed'
+            : 'bg-crimson-500 hover:bg-crimson-600 text-white shadow-lg shadow-crimson-500/40 hover:scale-105 active:scale-95 cursor-pointer'}"
           on:click={playerStore.togglePlay}
-          title="Play/Pause (Spasi)"
+          title={!currentTrack && $queueStore.items.length === 0 ? 'Pilih lagu untuk mulai memutar' : 'Play/Pause (Spasi)'}
+          aria-label={isPlaying ? 'Jeda pemutaran musik' : 'Mulai pemutaran musik'}
         >
-          {#if isLoading}
+          {#if isLoading && currentTrack}
             <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
           {:else if isPlaying}
             <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" viewBox="0 0 24 24">
@@ -267,9 +315,12 @@
 
         <!-- Next -->
         <button
-          class="p-1 sm:p-1.5 text-zinc-300 hover:text-white transition active:scale-90 cursor-pointer"
+          type="button"
+          disabled={!currentTrack && $queueStore.items.length === 0}
+          class="p-1 sm:p-1.5 transition active:scale-90 {!currentTrack && $queueStore.items.length === 0 ? 'opacity-25 cursor-not-allowed pointer-events-none text-zinc-600' : 'text-zinc-300 hover:text-white cursor-pointer'}"
           on:click={playerStore.playNext}
-          title="Lagu Selanjutnya (L)"
+          title={!currentTrack && $queueStore.items.length === 0 ? '' : 'Lagu Selanjutnya (L)'}
+          aria-label="Lagu selanjutnya"
         >
           <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
             <polygon points="5 4 15 12 5 20 5 4"></polygon>
@@ -279,9 +330,12 @@
 
         <!-- Repeat Mode -->
         <button
-          class="p-1 sm:p-1.5 transition relative active:scale-95 cursor-pointer hidden sm:block {repeatMode !== 'off' ? 'text-crimson-400' : 'text-zinc-400 hover:text-zinc-200'}"
+          type="button"
+          disabled={!currentTrack}
+          class="p-1 sm:p-1.5 transition relative active:scale-95 hidden sm:block {!currentTrack ? 'opacity-25 cursor-not-allowed pointer-events-none text-zinc-600' : repeatMode !== 'off' ? 'text-crimson-400 cursor-pointer' : 'text-zinc-400 hover:text-zinc-200 cursor-pointer'}"
           on:click={queueStore.cycleRepeat}
-          title={repeatMode === 'one' ? 'Ulangi: Satu Lagu (1)' : repeatMode === 'all' ? 'Ulangi: Semua Lagu' : 'Ulangi: Mati'}
+          title={!currentTrack ? 'Pilih lagu untuk mengulang' : repeatMode === 'one' ? 'Ulangi: Satu Lagu (1)' : repeatMode === 'all' ? 'Ulangi: Semua Lagu' : 'Ulangi: Mati'}
+          aria-label={repeatMode === 'one' ? 'Ulangi satu lagu aktif' : repeatMode === 'all' ? 'Ulangi semua lagu aktif' : 'Ulangi lagu nonaktif'}
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <polyline points="17 1 21 5 17 9"></polyline>
@@ -289,19 +343,34 @@
             <polyline points="7 23 3 19 7 15"></polyline>
             <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
           </svg>
-          {#if repeatMode === 'one'}
+          {#if repeatMode === 'one' && currentTrack}
             <span class="absolute -top-1 -right-1 text-[9px] font-bold font-mono text-crimson-400">1</span>
-          {:else if repeatMode === 'all'}
+          {:else if repeatMode === 'all' && currentTrack}
             <span class="absolute -bottom-0.5 right-1 w-1 h-1 rounded-full bg-crimson-400 shadow-[0_0_4px_#FF4D62]"></span>
           {/if}
         </button>
       </div>
 
       <!-- Dual time indicator & scrubber bar -->
-      <div class="w-full flex items-center gap-1.5 sm:gap-2.5 text-[10px] sm:text-[11px] font-mono font-medium text-zinc-400">
-        <span class="w-7 sm:w-9 text-right text-zinc-300 shrink-0">{formatTime(currentTime)}</span>
+      <div class="w-full flex items-center gap-1.5 sm:gap-2.5 text-[10px] sm:text-[11px] font-mono font-medium {!currentTrack ? 'text-zinc-600 select-none' : 'text-zinc-400'}">
+        <span class="w-7 sm:w-9 text-right {!currentTrack ? 'text-zinc-600' : 'text-zinc-300'} shrink-0">
+          {currentTrack ? formatTime(currentTime) : '00:00'}
+        </span>
         
-        <div class="relative flex-1 group py-1 flex items-center">
+        <div
+          class="relative flex-1 group py-1 flex items-center {!currentTrack ? 'opacity-30 pointer-events-none' : ''}"
+          role="presentation"
+          on:mousemove={handleSeekMouseMove}
+          on:mouseleave={handleSeekMouseLeave}
+        >
+          {#if hoverSeekTime !== null && currentTrack && duration > 0}
+            <div
+              class="absolute bottom-full mb-1.5 -translate-x-1/2 px-2 py-0.5 rounded-lg bg-[#141620]/95 border border-white/10 text-[10px] font-mono font-semibold text-white shadow-xl pointer-events-none z-30"
+              style="left: {hoverSeekPercent}%"
+            >
+              {formatTime(hoverSeekTime)}
+            </div>
+          {/if}
           <div class="h-1 w-full bg-white/[0.12] rounded-full overflow-hidden group-hover:h-1.5 transition-all relative">
             <!-- YouTube-style Buffer Bar (Semi-transparent white) -->
             <div
@@ -317,17 +386,19 @@
           <!-- Real seek input overlay -->
           <input
             type="range"
-            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            class="absolute inset-0 w-full h-full opacity-0 {!currentTrack ? 'cursor-not-allowed' : 'cursor-pointer'}"
             min="0"
             max={duration || 100}
             step="0.1"
             value={currentTime}
             on:input={handleSeek}
-            disabled={!currentTrack}
+            disabled={!currentTrack || duration <= 0}
           />
         </div>
 
-        <span class="w-7 sm:w-9 text-zinc-400 shrink-0">{formatTime(duration)}</span>
+        <span class="w-7 sm:w-9 {!currentTrack ? 'text-zinc-600' : 'text-zinc-400'} shrink-0">
+          {currentTrack ? formatTime(duration) : '00:00'}
+        </span>
       </div>
     </div>
 
@@ -344,6 +415,7 @@
           class="p-0.5 text-zinc-400 hover:text-white transition cursor-pointer"
           on:click={playerStore.toggleMute}
           title={isMuted || volume === 0 ? 'Bunyikan (M)' : 'Bisukan (M)'}
+          aria-label={isMuted || volume === 0 ? 'Bunyikan volume suara' : 'Bisukan volume suara'}
         >
           {#if isMuted || volume === 0}
             <svg class="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -380,6 +452,7 @@
             step="0.01"
             value={isMuted ? 0 : volume}
             on:input={handleVolumeChange}
+            aria-label="Tingkat volume audio"
           />
         </div>
 
@@ -395,6 +468,7 @@
         class="p-2 rounded-xl transition cursor-pointer flex items-center justify-center {$equalizerStore.isEnabled ? 'text-crimson-400 bg-crimson-500/15 border border-crimson-500/30 shadow-[0_0_8px_rgba(230,30,56,0.3)]' : 'text-zinc-400 hover:text-white hover:bg-white/[0.08] border border-transparent'}"
         on:click={() => isEqualizerOpen = !isEqualizerOpen}
         title="Equalizer Audio (EQ)"
+        aria-label="Pengaturan equalizer audio"
       >
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="4" y1="21" x2="4" y2="14"></line>
@@ -415,6 +489,7 @@
         class="p-2 rounded-xl transition cursor-pointer flex items-center justify-center relative {$sleepTimerRemaining !== null ? 'text-purple-400 bg-purple-500/15 border border-purple-500/30 shadow-[0_0_8px_rgba(168,85,247,0.3)]' : 'text-zinc-400 hover:text-white hover:bg-white/[0.08] border border-transparent'}"
         on:click={openSleepTimerModal}
         title={$sleepTimerRemaining !== null ? `Sleep Timer aktif: ${Math.ceil($sleepTimerRemaining / 60)} mnt tersisa` : 'Sleep Timer'}
+        aria-label={$sleepTimerRemaining !== null ? `Waktu tidur aktif, ${Math.ceil($sleepTimerRemaining / 60)} menit tersisa` : 'Atur waktu tidur otomatis'}
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -430,6 +505,7 @@
         class="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.08] border border-transparent hover:border-white/[0.08] transition cursor-pointer hidden sm:flex items-center justify-center"
         on:click={enterMiniPlayer}
         title={$t('mini_player') || 'Mini Player'}
+        aria-label="Buka mode mini player"
       >
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>

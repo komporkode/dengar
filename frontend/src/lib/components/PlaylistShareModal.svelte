@@ -109,6 +109,10 @@
   }
 </script>
 
+<svelte:window
+  on:keydown={(e) => ($sharingPlaylist || $isImportPlaylistOpen) && e.key === 'Escape' && handleClose()}
+/>
+
 {#if $sharingPlaylist || $isImportPlaylistOpen}
   <div
     class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 select-none"
