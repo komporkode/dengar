@@ -12,9 +12,37 @@ export interface ChangelogRelease {
   }[]
 }
 
-export const CURRENT_APP_VERSION = 'v1.4.0'
+export const CURRENT_APP_VERSION = 'v1.4.1'
 
 export const CHANGELOG_DATA: ChangelogRelease[] = [
+  {
+    version: 'v1.4.1',
+    title: 'Isolasi Lagu Populer & Sinkronisasi Versi',
+    date: '8 November 2026',
+    badge: 'Perbaikan Bug',
+    summary: 'Rilis v1.4.1 memperbaiki masalah daftar Lagu Populer yang tercampur dengan hasil pencarian artis saat query dikosongkan, menyinkronkan seluruh tampilan versi secara dinamis di seluruh menu Pengaturan, dan menambahkan reset otomatis saat menghapus teks pencarian.',
+    sections: [
+      {
+        title: 'Perbaikan Katalog & Pencarian',
+        icon: 'sparkles',
+        color: 'text-crimson-400',
+        items: [
+          'Isolasi State Lagu Populer: Daftar lagu populer di beranda kini memiliki state tersendiri yang terlindungi dari penimpaan hasil pencarian musisi/artis.',
+          'Pembersihan Input Real-Time: Mengosongkan kolom pencarian atau mengklik ikon silang langsung memulihkan daftar lagu tren yang beragam secara instan.',
+          'Navigasi Eksplorasi Bersih: Mengklik menu Eksplorasi & Cari di sidebar saat pencarian aktif akan otomatis mereset pencarian ke beranda.',
+        ],
+      },
+      {
+        title: 'Sinkronisasi Informasi Versi',
+        icon: 'sparkles',
+        color: 'text-amber-400',
+        items: [
+          'Label Catatan Rilis Dinamis: Tombol "Apa yang Baru" kini otomatis menampilkan nomor versi rilis saat ini.',
+          'Pembaruan Teks Statis: Memperbaiki badge versi pada informasi Pengaturan yang sebelumnya tertinggal.',
+        ],
+      },
+    ],
+  },
   {
     version: 'v1.4.0',
     title: 'Redesign Antrean, Craftsmanship Aksesibilitas & Auto-Update Sempurna',

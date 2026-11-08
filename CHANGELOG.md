@@ -7,6 +7,13 @@ dan proyek ini mematuhi [Semantic Versioning (SemVer)](https://semver.org/spec/v
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-11-08
+
+### Fixed
+- **Isolasi Katalog Lagu Populer:** Memisahkan state katalog lagu tren beranda dari hasil pencarian agar pencarian artis tidak mengotori daftar Lagu Populer saat kolom pencarian dikosongkan.
+- **Sinkronisasi Otomatis Teks Versi:** Menghubungkan tombol "Apa yang Baru", modal pengaturan, dan badge info secara dinamis ke konstanta versi aplikasi (mengeliminasi teks statis versi lama).
+- **Reset Pencarian Otomatis:** Menekan tombol hapus (silang) atau mengosongkan input pencarian kini otomatis mereset tampilan dan mengembalikan katalog tren yang beragam.
+
 ## [1.4.0] - 2026-11-07
 
 ### Added
