@@ -37,6 +37,7 @@
     installAndRestartUpdate,
   } from "../stores/updateStore";
   import { offlineStore } from "../stores/offlineStore";
+  import { CURRENT_APP_VERSION } from "../data/changelogs";
 
   let activeTab: "general" | "audio" | "about" = "general";
   let cacheStats: backend.AudioCacheStats | null = null;
@@ -302,7 +303,7 @@
         <div class="pt-3 border-t border-white/[0.06] hidden md:block">
           <p class="text-[10px] text-zinc-400 font-medium">Dengerin Desktop</p>
           <p class="text-[10px] text-zinc-500 font-mono">
-            v1.3.2 • Open Source
+            {CURRENT_APP_VERSION} • Open Source
           </p>
         </div>
       </div>
@@ -864,7 +865,7 @@
                     </h4>
                     <span
                       class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 font-mono"
-                      >v1.3.0</span
+                      >{CURRENT_APP_VERSION}</span
                     >
                     <span
                       class="text-[9px] font-medium px-1.5 py-0.2 rounded {$updateState?.isInstalled ? 'bg-sky-500/20 border-sky-500/30 text-sky-400' : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'} border font-mono"
@@ -1111,7 +1112,7 @@
                           class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34D399]"
                         ></span>
                         <span class="text-emerald-400 text-[11px] font-medium"
-                          >Aplikasi sudah versi terbaru ({$updateState?.currentVersion || 'v1.3.2'})</span
+                          >{$t("app_up_to_date")} ({$updateState?.currentVersion || CURRENT_APP_VERSION})</span
                         >
                       </div>
                       <button
@@ -1119,7 +1120,7 @@
                         on:click={checkForUpdatesManual}
                         disabled={$isCheckingUpdate}
                       >
-                        Cek Pembaruan
+                        {$t("btn_check_update")}
                       </button>
                     </div>
                   {/if}

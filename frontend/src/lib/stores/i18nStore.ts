@@ -1,4 +1,5 @@
 import { writable, derived } from 'svelte/store'
+import { CURRENT_APP_VERSION } from '../data/changelogs'
 
 export type Locale = 'id' | 'en'
 
@@ -197,7 +198,7 @@ const translations: Record<Locale, Record<string, string>> = {
     zero_ads: 'Zero Ads',
     free_rp0: '100% Free / Rp0',
     low_ram: 'Hemat RAM',
-    whats_new_btn: 'Apa yang Baru di v1.3.2',
+    whats_new_btn: 'Apa yang Baru di ' + CURRENT_APP_VERSION,
     github_repo_title: 'GitHub & Komporkode',
     github_repo_sub: 'GNU GPLv3 Open Source Repository',
     btn_visit_repo: 'Kunjungi Repositori',
@@ -494,7 +495,7 @@ const translations: Record<Locale, Record<string, string>> = {
     zero_ads: 'Zero Ads',
     free_rp0: '100% Free / $0',
     low_ram: 'Low RAM',
-    whats_new_btn: "What's New in v1.3.2",
+    whats_new_btn: "What's New in " + CURRENT_APP_VERSION,
     github_repo_title: 'GitHub & Komporkode',
     github_repo_sub: 'GNU GPLv3 Open Source Repository',
     btn_visit_repo: 'Visit Repository',

@@ -173,7 +173,7 @@
 
   function openGithub() {
     try {
-      BrowserOpenURL("https://github.com/komporkode/dengerin");
+      BrowserOpenURL("https://github.com/komporkode/dengar");
     } catch (e) {
       console.warn("Failed to open github:", e);
     }
@@ -1074,12 +1074,21 @@
               </div>
 
               {#if $updateState?.releaseNotes}
-                <details class="text-xs text-zinc-300 bg-black/20 p-3 rounded-xl border border-white/[0.06] cursor-pointer">
-                  <summary class="font-semibold text-zinc-200 hover:text-white transition flex items-center justify-between">
-                    <span>Lihat Catatan Rilis {$updateState.latestVersion}</span>
-                    <span class="text-[10px] text-zinc-500 font-mono">Klik untuk buka/tutup</span>
+                <details
+                  class="text-xs text-zinc-300 bg-black/20 p-3 rounded-xl border border-white/[0.06] cursor-pointer"
+                >
+                  <summary
+                    class="font-semibold text-zinc-200 hover:text-white transition flex items-center justify-between"
+                  >
+                    <span>Lihat Catatan Rilis {$updateState.latestVersion}</span
+                    >
+                    <span class="text-[10px] text-zinc-500 font-mono"
+                      >Klik untuk buka/tutup</span
+                    >
                   </summary>
-                  <div class="mt-2.5 text-zinc-300 whitespace-pre-wrap font-sans text-xs max-h-40 overflow-y-auto leading-relaxed border-t border-white/[0.06] pt-2.5 scrollbar-thin">
+                  <div
+                    class="mt-2.5 text-zinc-300 whitespace-pre-wrap font-sans text-xs max-h-40 overflow-y-auto leading-relaxed border-t border-white/[0.06] pt-2.5 scrollbar-thin"
+                  >
                     {$updateState.releaseNotes}
                   </div>
                 </details>
@@ -1134,28 +1143,41 @@
                   </div>
                 {:else if $isDownloadingUpdate}
                   <div class="space-y-2 w-full py-1">
-                    <div class="flex items-center justify-between text-xs text-zinc-300">
+                    <div
+                      class="flex items-center justify-between text-xs text-zinc-300"
+                    >
                       <span class="flex items-center gap-2 font-medium">
-                        <span class="w-2 h-2 rounded-full bg-crimson-500 animate-pulse"></span>
+                        <span
+                          class="w-2 h-2 rounded-full bg-crimson-500 animate-pulse"
+                        ></span>
                         Mengunduh berkas pembaruan...
                       </span>
                       <span class="font-mono text-crimson-400 font-bold">
-                        {$downloadProgressData ? `${$downloadProgressData.percent}%` : '0%'}
+                        {$downloadProgressData
+                          ? `${$downloadProgressData.percent}%`
+                          : "0%"}
                       </span>
                     </div>
-                    <div class="h-2 w-full bg-white/10 rounded-full overflow-hidden relative">
+                    <div
+                      class="h-2 w-full bg-white/10 rounded-full overflow-hidden relative"
+                    >
                       <div
                         class="h-full bg-gradient-to-r from-crimson-600 to-rose-500 rounded-full transition-all duration-150"
-                        style="width: {$downloadProgressData ? $downloadProgressData.percent : 0}%"
+                        style="width: {$downloadProgressData
+                          ? $downloadProgressData.percent
+                          : 0}%"
                       ></div>
                     </div>
-                    <div class="flex items-center justify-between text-[11px] text-zinc-400 font-mono">
+                    <div
+                      class="flex items-center justify-between text-[11px] text-zinc-400 font-mono"
+                    >
                       <span>
-                        {$downloadProgressData && $downloadProgressData.total > 0
+                        {$downloadProgressData &&
+                        $downloadProgressData.total > 0
                           ? `${formatBytes($downloadProgressData.downloaded)} / ${formatBytes($downloadProgressData.total)}`
-                          : 'Menghubungkan...'}
+                          : "Menghubungkan..."}
                       </span>
-                      <span>{$downloadProgressData?.speedText || ''}</span>
+                      <span>{$downloadProgressData?.speedText || ""}</span>
                     </div>
                   </div>
                 {:else}
@@ -1185,7 +1207,11 @@
                       <button
                         type="button"
                         class="text-[11px] text-zinc-400 hover:text-crimson-400 transition cursor-pointer underline underline-offset-2"
-                        on:click={() => startDownloadUpdate($updateState?.portableUrl, $updateState?.portableFileName)}
+                        on:click={() =>
+                          startDownloadUpdate(
+                            $updateState?.portableUrl,
+                            $updateState?.portableFileName,
+                          )}
                       >
                         Atau unduh versi Portabel (.zip)
                       </button>
@@ -1195,7 +1221,11 @@
                       <button
                         type="button"
                         class="text-[11px] text-zinc-400 hover:text-crimson-400 transition cursor-pointer underline underline-offset-2"
-                        on:click={() => startDownloadUpdate($updateState?.installerUrl, $updateState?.installerFileName)}
+                        on:click={() =>
+                          startDownloadUpdate(
+                            $updateState?.installerUrl,
+                            $updateState?.installerFileName,
+                          )}
                       >
                         Atau unduh versi Installer (.exe)
                       </button>

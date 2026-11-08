@@ -76,6 +76,16 @@
 
   function clearQuery() {
     query = "";
+    isFocused = false;
+    dispatch("search", { query: "", filter: "music_songs" });
+  }
+
+  function handleInput(e: Event) {
+    const val = (e.target as HTMLInputElement).value;
+    query = val;
+    if (!val.trim()) {
+      dispatch("search", { query: "", filter: "music_songs" });
+    }
   }
 
   function triggerSearch() {
@@ -119,6 +129,7 @@
         placeholder={$t("search_placeholder")}
         type="text"
         bind:value={query}
+        on:input={handleInput}
         on:keydown={handleKeydown}
         on:focus={() => {
           loadRecentSearches();

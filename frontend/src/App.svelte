@@ -72,6 +72,12 @@
 
   function handleTabChange(e: CustomEvent<NavigationTab>) {
     const nextTab = e.detail;
+    if (activeTab === "search" && nextTab === "search" && searchQuery) {
+      searchQuery = "";
+      if (popularTracks.length === 0) {
+        loadPopularTracks();
+      }
+    }
     if (activeTab !== "settings") {
       previousTab = activeTab;
     }
@@ -93,11 +99,20 @@
   }
   let searchQuery = "";
   let currentFilter: SearchFilter = "music_songs";
+
+  // Dedicated popular / trending tracks (protected from search pollution)
+  let popularTracks: SearchResultItem[] = [];
+  let popularContinuationToken: string = "";
+  let isPopularLoading = false;
+  let popularError: string | null = null;
+
+  // Search results
   let searchResults: SearchResultItem[] = [];
-  let continuationToken: string = "";
+  let searchContinuationToken: string = "";
   let isSearching = false;
-  let isLoadingMore = false;
   let searchError: string | null = null;
+
+  let isLoadingMore = false;
 
   let scrollTimer: any;
   let handleScrollActivity: (e: Event) => void;
@@ -120,8 +135,8 @@
     // 1. Load user favorites, history & offline tracks from backend JSON storage
     await Promise.all([userDataStore.load(), offlineStore.load()]);
 
-    // 2. Perform initial search so app is instantly ready with tracks
-    performSearch("Trending Music", "music_songs");
+    // 2. Load popular / trending tracks so app is instantly ready with tracks
+    loadPopularTracks();
 
     // 3. Register global in-app keyboard shortcuts
     window.addEventListener("keydown", handleGlobalKeydown);
@@ -195,53 +210,99 @@
     clearTimeout(scrollTimer);
   });
 
+  async function loadPopularTracks(force = false) {
+    if (popularTracks.length > 0 && !force) return;
+    if (!$networkStore.isOnline) {
+      popularError =
+        "Perangkat sedang offline. Sambungkan internet untuk memuat lagu populer.";
+      return;
+    }
+    isPopularLoading = true;
+    popularError = null;
+    try {
+      const fallbackQuery =
+        currentFilter === "videos" ? "Trending Music Video" : "Trending Music";
+      const res = await Search(fallbackQuery, currentFilter);
+      popularTracks = res?.items || [];
+      popularContinuationToken = res?.continuationToken || "";
+    } catch (err: any) {
+      console.error("Load popular tracks failed:", err);
+      popularError =
+        err?.message || "Gagal memuat lagu populer. Periksa koneksi internet.";
+    } finally {
+      isPopularLoading = false;
+    }
+  }
+
   async function performSearch(query: string, filter: SearchFilter) {
-    if (!query) {
+    const q = query.trim();
+    if (!q) {
       searchResults = [];
-      continuationToken = "";
+      searchContinuationToken = "";
       return;
     }
     if (!$networkStore.isOnline) {
       searchError =
         "Perangkat sedang offline. Sambungkan internet untuk mencari lagu.";
       searchResults = [];
-      continuationToken = "";
+      searchContinuationToken = "";
       return;
     }
     isSearching = true;
     searchError = null;
     try {
-      const res = await Search(query, filter);
+      const res = await Search(q, filter);
       searchResults = res?.items || [];
-      continuationToken = res?.continuationToken || "";
+      searchContinuationToken = res?.continuationToken || "";
     } catch (err: any) {
       console.error("Search failed:", err);
       searchError =
         err?.message || "Gagal mencari lagu. Periksa koneksi internet.";
       searchResults = [];
-      continuationToken = "";
+      searchContinuationToken = "";
     } finally {
       isSearching = false;
     }
   }
 
   async function handleLoadMore() {
-    if (!continuationToken || isLoadingMore || isSearching) return;
-    isLoadingMore = true;
-    try {
-      const res = await SearchMore(continuationToken);
-      if (res && res.items && res.items.length > 0) {
-        const existingIds = new Set(searchResults.map((i) => i.id));
-        const fresh = res.items.filter((i) => !existingIds.has(i.id));
-        searchResults = [...searchResults, ...fresh];
-        continuationToken = res.continuationToken || "";
-      } else {
-        continuationToken = "";
+    if (isLoadingMore) return;
+    if (searchQuery.trim()) {
+      if (!searchContinuationToken || isSearching) return;
+      isLoadingMore = true;
+      try {
+        const res = await SearchMore(searchContinuationToken);
+        if (res && res.items && res.items.length > 0) {
+          const existingIds = new Set(searchResults.map((i) => i.id));
+          const fresh = res.items.filter((i) => !existingIds.has(i.id));
+          searchResults = [...searchResults, ...fresh];
+          searchContinuationToken = res.continuationToken || "";
+        } else {
+          searchContinuationToken = "";
+        }
+      } catch (err: any) {
+        console.warn("SearchMore failed:", err);
+      } finally {
+        isLoadingMore = false;
       }
-    } catch (err: any) {
-      console.warn("SearchMore failed:", err);
-    } finally {
-      isLoadingMore = false;
+    } else {
+      if (!popularContinuationToken || isPopularLoading) return;
+      isLoadingMore = true;
+      try {
+        const res = await SearchMore(popularContinuationToken);
+        if (res && res.items && res.items.length > 0) {
+          const existingIds = new Set(popularTracks.map((i) => i.id));
+          const fresh = res.items.filter((i) => !existingIds.has(i.id));
+          popularTracks = [...popularTracks, ...fresh];
+          popularContinuationToken = res.continuationToken || "";
+        } else {
+          popularContinuationToken = "";
+        }
+      } catch (err: any) {
+        console.warn("SearchMore popular failed:", err);
+      } finally {
+        isLoadingMore = false;
+      }
     }
   }
 
@@ -254,16 +315,23 @@
     try {
       await ReloadInstances();
       searchError = null;
-      const fallbackQuery =
-        currentFilter === "videos" ? "Trending Music Video" : "Trending Music";
-      await performSearch(searchQuery.trim() || fallbackQuery, currentFilter);
+      popularError = null;
+      if (searchQuery.trim()) {
+        await performSearch(searchQuery.trim(), currentFilter);
+      } else {
+        await loadPopularTracks(true);
+      }
       if (homeSectionsRef?.reload) {
         homeSectionsRef.reload();
       }
       showToast($t("toast_instances_reloaded"));
     } catch (e: any) {
       console.error("Retry failed:", e);
-      searchError = e?.message || $t("instance_connect_error");
+      if (searchQuery.trim()) {
+        searchError = e?.message || $t("instance_connect_error");
+      } else {
+        popularError = e?.message || $t("instance_connect_error");
+      }
     } finally {
       isRetrying = false;
     }
@@ -274,9 +342,15 @@
   ) {
     searchQuery = e.detail.query;
     currentFilter = e.detail.filter;
-    const fallbackQuery =
-      currentFilter === "videos" ? "Trending Music Video" : "Trending Music";
-    performSearch(searchQuery.trim() || fallbackQuery, currentFilter);
+    if (!searchQuery.trim()) {
+      searchResults = [];
+      searchContinuationToken = "";
+      if (popularTracks.length === 0) {
+        loadPopularTracks();
+      }
+      return;
+    }
+    performSearch(searchQuery.trim(), currentFilter);
   }
 
   function handleWindowClose() {
@@ -501,7 +575,7 @@
           on:search={handleSearchEvent}
         />
 
-        {#if searchError}
+        {#if (searchQuery.trim() ? searchError : popularError)}
           <div
             class="mx-4 sm:mx-8 mt-4 flex items-center justify-between gap-3 px-4 sm:px-5 py-3 rounded-2xl bg-crimson-500/10 border border-crimson-500/30 text-crimson-300 text-xs shadow-lg"
           >
@@ -525,7 +599,9 @@
                 <p class="font-semibold text-white text-xs sm:text-sm">
                   {$t("instance_connect_error")}
                 </p>
-                <p class="text-[11px] text-zinc-300 truncate">{searchError}</p>
+                <p class="text-[11px] text-zinc-300 truncate">
+                  {searchQuery.trim() ? searchError : popularError}
+                </p>
               </div>
             </div>
 
@@ -560,13 +636,15 @@
         {/if}
 
         <TrackList
-          title={searchQuery
-            ? `${$t("search_results_prefix")}“${searchQuery}”`
+          title={searchQuery.trim()
+            ? `${$t("search_results_prefix")}“${searchQuery.trim()}”`
             : $t("popular_songs")}
-          tracks={searchResults}
-          isLoading={isSearching}
-          isSearchContext={true}
-          hasMore={!!continuationToken}
+          tracks={searchQuery.trim() ? searchResults : popularTracks}
+          isLoading={searchQuery.trim() ? isSearching : isPopularLoading}
+          isSearchContext={!!searchQuery.trim()}
+          hasMore={searchQuery.trim()
+            ? !!searchContinuationToken
+            : !!popularContinuationToken}
           {isLoadingMore}
           emptyMessage={$t("no_results")}
           on:loadMore={handleLoadMore}
