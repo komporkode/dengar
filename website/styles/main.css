@@ -104,7 +104,7 @@
 
     /* Layout & systemic z-index scale */
     --container-max: 76rem;
-    --header-height: 4.5rem;
+    --header-height: 3.75rem;
     --z-sticky: 20;
     --z-skip: 60;
 
@@ -131,6 +131,12 @@
       --border-interactive: ButtonText;
       --focus-ring: Highlight;
     }
+
+    .lang-btn[aria-pressed="true"] {
+      background-color: Highlight;
+      color: HighlightText;
+      border-color: Highlight;
+    }
   }
 }
 
@@ -147,7 +153,7 @@
   }
 
   :where(
-    body, header, nav, main, section, article, aside, footer,
+    body, header, nav, main, section, article, aside, footer, dialog,
     div, ul, ol, li, dl, dt, dd, figure, figcaption, pre, code,
     details, summary, a, button, span, img, svg, p, h1, h2, h3
   ) {
@@ -391,24 +397,32 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.75rem;
     min-block-size: var(--header-height);
   }
 
   .brand-link {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 0.7rem;
-    min-block-size: 2.75rem;
+    gap: 0.6rem;
+    min-block-size: 2rem;
     font-weight: 700;
-    font-size: 1.0625rem;
+    font-size: 1rem;
     letter-spacing: -0.02em;
     flex-shrink: 0;
   }
 
+  .brand-link::after {
+    content: "";
+    position: absolute;
+    inset-block: -0.375rem;
+    inset-inline: 0;
+  }
+
   .brand-mark {
-    inline-size: 2rem;
-    block-size: 2rem;
+    inline-size: 1.75rem;
+    block-size: 1.75rem;
     border-radius: 7px;
   }
 
@@ -419,19 +433,27 @@
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.625rem;
   }
 
   .nav-link {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    min-block-size: 2.75rem;
-    padding-inline: 0.75rem;
-    border-radius: var(--radius-control);
+    min-block-size: 2rem;
+    padding-inline: 0.65rem;
+    border-radius: 8px;
     color: var(--text-secondary);
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     font-weight: 500;
     transition: color 150ms ease, background-color 150ms ease;
+  }
+
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    inset-block: -0.375rem;
+    inset-inline: 0;
   }
 
   .nav-link:hover {
@@ -442,52 +464,117 @@
   .lang-switch {
     display: inline-flex;
     align-items: center;
-    background-color: var(--bg-surface);
-    border: 1px solid var(--border-interactive);
-    border-radius: var(--radius-control);
-    padding: 0.1875rem;
+    gap: 0.125rem;
+    background-color: #0D0F15;
+    border: 1px solid #5C657D;
+    border-radius: 8px;
+    padding: 0.125rem;
   }
 
   .lang-btn {
-    min-inline-size: 2.75rem;
-    min-block-size: 2.75rem;
-    padding-inline: 0.65rem;
-    border-radius: 7px;
-    font-size: 0.8125rem;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: 1.875rem;
+    min-block-size: 1.625rem;
+    padding-inline: 0.45rem;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-size: 0.75rem;
     font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1;
     color: var(--text-muted);
+    transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+  }
+
+  .lang-btn::after {
+    content: "";
+    position: absolute;
+    inset-block: -0.5625rem;
+    inset-inline: 0;
   }
 
   .lang-btn:hover {
     color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+
+  .lang-btn:focus-visible {
+    outline-offset: 2px;
   }
 
   .lang-btn[aria-pressed="true"] {
-    background-color: var(--text-primary);
-    color: var(--bg-canvas);
+    background-color: #262A38;
+    border-color: #6E7791;
+    color: var(--text-primary);
   }
 
   .github-header-link {
     display: none;
+    position: relative;
+    min-block-size: 2rem;
+    padding-block: 0.35rem;
+    padding-inline: 0.75rem;
+    gap: 0.4rem;
+    border-radius: 8px;
+    border-color: #5C657D;
+    font-size: 0.8125rem;
+  }
+
+  .github-header-link::after {
+    content: "";
+    position: absolute;
+    inset-block: -0.375rem;
+    inset-inline: 0;
   }
 
   .drawer-trigger {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-inline-size: 2.75rem;
-    min-block-size: 2.75rem;
-    border-radius: var(--radius-control);
-    border: 1px solid var(--border-interactive);
+    min-inline-size: 2rem;
+    min-block-size: 2rem;
+    border-radius: 8px;
+    border: 1px solid #5C657D;
     background-color: var(--bg-surface);
     color: var(--text-primary);
+  }
+
+  .drawer-trigger::after {
+    content: "";
+    position: absolute;
+    inset: -0.375rem;
   }
 
   .drawer-trigger:hover {
     background-color: var(--bg-elevated);
   }
 
-  @media (min-width: 48rem) {
+  @media (pointer: coarse) {
+    .lang-btn {
+      min-inline-size: 2rem;
+      min-block-size: 1.75rem;
+    }
+
+    .lang-btn::after {
+      inset-block: -0.5rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lang-btn {
+      transition: none;
+    }
+  }
+
+  @media (min-width: 56rem) {
+    .header-inner {
+      gap: 1rem;
+    }
+
     .desktop-nav {
       display: flex;
       align-items: center;
@@ -497,7 +584,7 @@
     .desktop-nav ul {
       display: flex;
       align-items: center;
-      gap: 0.25rem;
+      gap: 0.15rem;
     }
 
     .github-header-link {
@@ -668,7 +755,10 @@
   }
 
   .media-frame {
-    aspect-ratio: 1376 / 768;
+    position: relative;
+    display: block;
+    inline-size: 100%;
+    aspect-ratio: 1024 / 682;
     border-radius: var(--radius-panel);
     border: 1px solid var(--border-subtle);
     background-color: var(--bg-surface);
@@ -684,8 +774,49 @@
   .media-frame img {
     inline-size: 100%;
     block-size: 100%;
-    aspect-ratio: 1376 / 768;
+    aspect-ratio: 1024 / 682;
     object-fit: cover;
+  }
+
+  .shot-trigger {
+    position: relative;
+    display: block;
+    inline-size: 100%;
+    overflow: hidden;
+    text-align: start;
+    transition: border-color 160ms var(--ease-snappy);
+  }
+
+  .shot-trigger:hover {
+    border-color: var(--border-interactive);
+  }
+
+  .shot-zoom-badge {
+    position: absolute;
+    inset-block-end: 0.75rem;
+    inset-inline-end: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    border-radius: var(--radius-control);
+    background-color: rgba(9, 10, 14, 0.88);
+    color: var(--text-primary);
+    border: 1px solid var(--border-interactive);
+    transition: border-color 160ms var(--ease-snappy), background-color 160ms var(--ease-snappy);
+  }
+
+  .shot-trigger:hover .shot-zoom-badge {
+    border-color: var(--text-secondary);
+    background-color: var(--bg-elevated);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shot-trigger,
+    .shot-zoom-badge {
+      transition: none;
+    }
   }
 
   /* Section Spacing & Shared Headers */
@@ -940,7 +1071,215 @@
     min-inline-size: 0;
   }
 
-  /* Section 3: Audio Engineering & Architecture Split */
+  /* Section 3: Desktop Screenshots Showcase & Lightbox */
+  .gallery-grid {
+    display: grid;
+    gap: 1.35rem;
+  }
+
+  @media (min-width: 48rem) {
+    .gallery-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .shot-card {
+    display: grid;
+    gap: 0.9rem;
+    padding: 0.95rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-panel);
+    min-inline-size: 0;
+  }
+
+  .shot-frame {
+    aspect-ratio: 1024 / 682;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-canvas);
+  }
+
+  .shot-frame picture,
+  .shot-frame img {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+
+  .shot-meta {
+    display: grid;
+    gap: 0.3rem;
+    padding-inline: 0.25rem;
+    min-inline-size: 0;
+  }
+
+  .shot-caption {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+  }
+
+  .miniplayer-spotlight {
+    margin-block-start: 1.5rem;
+    padding: clamp(1.25rem, 2.5vw, 1.85rem);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-panel);
+    display: grid;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  @media (min-width: 54rem) {
+    .miniplayer-spotlight {
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, auto);
+      justify-content: space-between;
+    }
+  }
+
+  .miniplayer-copy {
+    display: grid;
+    gap: 0.75rem;
+    max-inline-size: 36rem;
+    min-inline-size: 0;
+  }
+
+  .shot-mini-frame {
+    inline-size: min(100%, 27.5rem);
+    padding: 0.65rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--border-interactive);
+    background-color: var(--bg-canvas);
+    justify-self: start;
+  }
+
+  .shot-mini-frame picture {
+    inline-size: 100%;
+  }
+
+  .shot-mini-frame img {
+    inline-size: 100%;
+    max-inline-size: 420px;
+    block-size: auto;
+    aspect-ratio: 420 / 175;
+    border-radius: 6px;
+  }
+
+  /* Accessible Modal Lightbox (modern-web-guidance: light-dismiss-a-dialog + prevent-page-scroll-under-modal-dialog) */
+  .lightbox-dialog {
+    margin: auto;
+    padding: 0;
+    inline-size: min(94dvw, 66rem);
+    max-inline-size: min(94dvw, 66rem);
+    max-block-size: 92dvb;
+    border: 1px solid var(--border-interactive);
+    border-radius: var(--radius-panel);
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-frame);
+  }
+
+  .lightbox-dialog:modal {
+    overscroll-behavior: contain;
+  }
+
+  .lightbox-dialog::backdrop {
+    background-color: rgba(5, 6, 9, 0.84);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    overflow: hidden;
+    overscroll-behavior: contain;
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .lightbox-dialog::backdrop {
+      background-color: rgba(5, 6, 9, 0.95);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+
+  .lightbox-shell {
+    display: grid;
+    gap: 1rem;
+    padding: clamp(1rem, 2.2vw, 1.45rem);
+  }
+
+  .lightbox-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .lightbox-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+    min-inline-size: 0;
+  }
+
+  .lightbox-counter {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    background-color: var(--bg-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .lightbox-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .lightbox-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: 2.75rem;
+    min-block-size: 2.75rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--border-interactive);
+    background-color: var(--bg-elevated);
+    color: var(--text-primary);
+  }
+
+  .lightbox-nav-btn:hover {
+    background-color: var(--bg-highlight);
+    border-color: var(--text-secondary);
+  }
+
+  .lightbox-stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    background-color: var(--bg-canvas);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-control);
+    overflow: hidden;
+  }
+
+  .lightbox-stage img {
+    max-inline-size: 100%;
+    max-block-size: min(68dvb, 682px);
+    inline-size: auto;
+    block-size: auto;
+    border-radius: 6px;
+  }
+
+  .lightbox-caption {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+  }
+
+  /* Section 4: Audio Engineering & Architecture Split */
   .features-layout {
     display: grid;
     gap: clamp(2rem, 4vw, 3.5rem);
@@ -1187,7 +1526,7 @@
   /* Footer */
   .site-footer {
     border-block-start: 1px solid var(--border-subtle);
-    background-color: var(--bg-surface);
+    background-color: var(--bg-canvas);
     padding-block: 2.5rem;
   }
 

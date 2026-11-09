@@ -82,12 +82,61 @@ const PLATFORM_DEFINITIONS = {
   }
 };
 
+const SCREENSHOTS = [
+  {
+    id: "explore",
+    src: "/assets/screenshots/screen-explore.webp",
+    width: 1024,
+    height: 682,
+    titleKey: "shot.s1.title",
+    descKey: "shot.s1.desc",
+    altKey: "shot.s1.alt"
+  },
+  {
+    id: "foryou",
+    src: "/assets/screenshots/screen-foryou.webp",
+    width: 1024,
+    height: 682,
+    titleKey: "shot.s2.title",
+    descKey: "shot.s2.desc",
+    altKey: "shot.s2.alt"
+  },
+  {
+    id: "equalizer",
+    src: "/assets/screenshots/screen-equalizer.webp",
+    width: 1024,
+    height: 682,
+    titleKey: "shot.s3.title",
+    descKey: "shot.s3.desc",
+    altKey: "shot.s3.alt"
+  },
+  {
+    id: "sleeptimer",
+    src: "/assets/screenshots/screen-sleeptimer.webp",
+    width: 1024,
+    height: 682,
+    titleKey: "shot.s4.title",
+    descKey: "shot.s4.desc",
+    altKey: "shot.s4.alt"
+  },
+  {
+    id: "miniplayer",
+    src: "/assets/screenshots/screen-miniplayer.webp",
+    width: 420,
+    height: 175,
+    titleKey: "shot.s5.title",
+    descKey: "shot.s5.desc",
+    altKey: "shot.s5.alt"
+  }
+];
+
 const I18N = {
   id: {
     "meta.title": "Dengerin Desktop - Pemutar Musik YouTube Bebas Iklan",
     "meta.desc": "Aplikasi desktop Go dan Wails ringan untuk memutar katalog YouTube Music bebas iklan dengan cache lokal offline, equalizer 5-band, dan playlist P2P.",
     "skip": "Lewati ke konten utama",
     "nav.download": "Unduh",
+    "nav.screens": "Tampilan",
     "nav.features": "Fitur",
     "nav.releases": "Rilis",
     "nav.specs": "Spesifikasi",
@@ -101,7 +150,36 @@ const I18N = {
     "hero.lead": "Dibangun dengan Go dan Wails. Putar katalog YouTube Music dengan cache lokal, equalizer 5-band, dan update otomatis.",
     "hero.ctaPrimary": "Unduh Dengerin",
     "hero.ctaSecondary": "Lihat Kode di GitHub",
-    "hero.mediaAlt": "Antarmuka audio gelap Dengerin Desktop bersama headphone studio hitam matte.",
+    "hero.zoomAria": "Perbesar tangkapan layar utama Dengerin Desktop",
+    "hero.mediaAlt": "Tangkapan layar asli Dengerin Desktop menampilkan halaman Eksplorasi & Cari beserta pemutar audio mengambang di bawah.",
+    "shot.kicker": "Antarmuka Asli",
+    "shot.title": "Cuplikan layar aplikasi desktop",
+    "shot.desc": "Tangkapan layar asli dari jendela Dengerin Desktop di Windows. Klik gambar mana saja untuk melihat ukuran penuh.",
+    "shot.miniKicker": "Mode Ringkas",
+    "shot.zoomBtn": "Perbesar Mini Player",
+    "shot.prevAria": "Gambar sebelumnya",
+    "shot.nextAria": "Gambar berikutnya",
+    "shot.closeAria": "Tutup pratinjau",
+    "shot.s1.title": "Eksplorasi & Cari",
+    "shot.s1.desc": "Pencarian langsung YouTube Music, lagu sering diputar, dan bar audio mengambang.",
+    "shot.s1.aria": "Perbesar tangkapan layar Eksplorasi & Cari",
+    "shot.s1.alt": "Tangkapan layar halaman Eksplorasi & Cari dengan pencarian musik, daftar sering diputar, dan bilah pemutar Eco Audio.",
+    "shot.s2.title": "Rekomendasi Untuk Anda",
+    "shot.s2.desc": "Mix personal, kurasi pilihan studio, serta kontrol Putar Semua dan Putar Acak.",
+    "shot.s2.aria": "Perbesar tangkapan layar Untuk Anda",
+    "shot.s2.alt": "Tangkapan layar tab Untuk Anda menampilkan Personal Mix, Koleksi Populer & Pilihan Studio, serta Sering Kamu Putar.",
+    "shot.s3.title": "Equalizer Audio 5-Band",
+    "shot.s3.desc": "Filter 60 Hz hingga 14 kHz secara lokal dengan preset cepat seperti Vocal Booster.",
+    "shot.s3.aria": "Perbesar tangkapan layar Equalizer Audio 5-Band",
+    "shot.s3.alt": "Tangkapan layar dialog Equalizer Audio 5-Band menampilkan preset suara dan slider 60 Hz hingga 14 kHz.",
+    "shot.s4.title": "Sleep Timer",
+    "shot.s4.desc": "Timer cepat 15 hingga 60 menit, berhenti di akhir lagu, dan fade-out halus 5 detik.",
+    "shot.s4.aria": "Perbesar tangkapan layar Sleep Timer",
+    "shot.s4.alt": "Tangkapan layar dialog Sleep Timer dengan tombol durasi cepat 15 sampai 60 menit dan opsi berhenti di akhir lagu.",
+    "shot.s5.title": "Mini Player Mengambang (Always on Top)",
+    "shot.s5.desc": "Jendela kecil yang dapat disematkan di atas aplikasi lain untuk kontrol jeda, lagu berikutnya, progres putar, dan volume cepat.",
+    "shot.s5.aria": "Perbesar tangkapan layar Mini Player Mengambang",
+    "shot.s5.alt": "Tangkapan layar jendela Mini Player Dengerin dengan lencana HQ, status Pinned, kontrol playback, dan slider volume.",
     "dl.kicker": "Rilis Resmi GitHub",
     "dl.title": "Pilih paket sesuai sistem operasi",
     "dl.desc": "Tautan unduhan ditarik langsung dari rilis terbaru repositori komporkode/dengar atau mengarah ke arsip GitHub Releases.",
@@ -219,6 +297,7 @@ const I18N = {
     "meta.desc": "Lightweight desktop music player powered by Go and Wails with offline local disk cache, 5-band equalizer, and multi-source audio failover.",
     "skip": "Skip to main content",
     "nav.download": "Download",
+    "nav.screens": "Screens",
     "nav.features": "Features",
     "nav.releases": "Releases",
     "nav.specs": "Specs",
@@ -232,7 +311,36 @@ const I18N = {
     "hero.lead": "Built with Go and Wails. Stream YouTube Music with local disk cache, 5-band equalizer, and 1-click updates.",
     "hero.ctaPrimary": "Download Dengerin",
     "hero.ctaSecondary": "View Source on GitHub",
-    "hero.mediaAlt": "Dark Dengerin Desktop audio player artwork paired with matte black studio headphones.",
+    "hero.zoomAria": "Enlarge main Dengerin Desktop screenshot",
+    "hero.mediaAlt": "Real Dengerin Desktop screenshot showing the Explore & Search screen with the floating player bar below.",
+    "shot.kicker": "Real Interface",
+    "shot.title": "Desktop interface screenshots",
+    "shot.desc": "Actual captures taken from Dengerin Desktop on Windows. Select any screenshot to view full size.",
+    "shot.miniKicker": "Compact Mode",
+    "shot.zoomBtn": "Inspect Mini Player",
+    "shot.prevAria": "Previous screenshot",
+    "shot.nextAria": "Next screenshot",
+    "shot.closeAria": "Close preview",
+    "shot.s1.title": "Explore & Search",
+    "shot.s1.desc": "Direct YouTube Music search, frequent tracks, and the floating audio bar.",
+    "shot.s1.aria": "Enlarge Explore & Search screenshot",
+    "shot.s1.alt": "Explore & Search view with catalog search bar, frequently played tracks, and Eco Audio bottom player.",
+    "shot.s2.title": "For You Recommendations",
+    "shot.s2.desc": "Personal mix hero, popular studio picks, and Play All / Shuffle controls.",
+    "shot.s2.aria": "Enlarge For You Recommendations screenshot",
+    "shot.s2.alt": "For You tab showing Personal Mix banner, Popular & Studio selections, and Frequent Tracks.",
+    "shot.s3.title": "5-Band Audio Equalizer",
+    "shot.s3.desc": "Local 60 Hz to 14 kHz band sliders paired with presets like Vocal Booster.",
+    "shot.s3.aria": "Enlarge 5-Band Audio Equalizer screenshot",
+    "shot.s3.alt": "5-Band Audio Equalizer modal showing sound presets and 60 Hz to 14 kHz gain sliders.",
+    "shot.s4.title": "Sleep Timer",
+    "shot.s4.desc": "Quick 15 to 60 minute timers, stop after current track, and 5-second fade-out.",
+    "shot.s4.aria": "Enlarge Sleep Timer screenshot",
+    "shot.s4.alt": "Sleep Timer modal with 15 to 60 minute quick buttons and stop at end of track control.",
+    "shot.s5.title": "Floating Mini Player (Always on Top)",
+    "shot.s5.desc": "Compact window pinned over other apps for instant pause, track skip, seek, and volume controls.",
+    "shot.s5.aria": "Enlarge Floating Mini Player screenshot",
+    "shot.s5.alt": "Compact Dengerin Mini Player window showing HQ badge, Pinned status, playback controls, and volume slider.",
     "dl.kicker": "Official GitHub Releases",
     "dl.title": "Choose the package for your system",
     "dl.desc": "Download links are fetched directly from the komporkode/dengar release feed with fallback links to GitHub Releases.",
@@ -415,6 +523,17 @@ class DengarSiteController {
     this.langBtns = Array.from(document.querySelectorAll("button[data-lang]"));
     this.copyBtn = document.getElementById("copy-build-btn");
     this.buildCode = document.getElementById("build-code-block");
+
+    this.lightboxDialog = document.getElementById("screenshot-lightbox");
+    this.lightboxImg = document.getElementById("lightbox-img");
+    this.lightboxTitle = document.getElementById("lightbox-title");
+    this.lightboxCaption = document.getElementById("lightbox-caption");
+    this.lightboxCounter = document.getElementById("lightbox-counter");
+    this.lightboxPrev = document.getElementById("lightbox-prev");
+    this.lightboxNext = document.getElementById("lightbox-next");
+    this.lightboxClose = document.getElementById("lightbox-close");
+    this.activeShotIndex = 0;
+    this.lastShotTrigger = null;
   }
 
   init() {
@@ -423,6 +542,7 @@ class DengarSiteController {
     this.bindRetry();
     this.bindCopyCommand();
     this.setupNavigationDrawer();
+    this.setupLightbox();
     this.applyLanguage("id", false);
     this.selectPlatformTab(this.activeOs, false);
     this.fetchLatestRelease();
@@ -485,6 +605,7 @@ class DengarSiteController {
     this.renderTabsLabels();
     this.renderReleaseHeader();
     this.renderPlatformPanel();
+    this.renderLightbox();
     this.updateHeroCta();
 
     if (shouldAnnounce) {
@@ -893,7 +1014,7 @@ class DengarSiteController {
       });
     });
 
-    window.matchMedia("(min-width: 48rem)").addEventListener("change", (event) => {
+    window.matchMedia("(min-width: 56rem)").addEventListener("change", (event) => {
       if (event.matches && isOpen) {
         onClosed(false);
       }
@@ -904,6 +1025,88 @@ class DengarSiteController {
         closeDrawer(true);
       }
     });
+  }
+
+  setupLightbox() {
+    const dialog = this.lightboxDialog;
+    if (!dialog || !this.lightboxImg) return;
+
+    const triggers = Array.from(document.querySelectorAll("[data-shot]"));
+    triggers.forEach((trigger) => {
+      trigger.addEventListener("click", () => {
+        const id = trigger.getAttribute("data-shot");
+        const index = SCREENSHOTS.findIndex((item) => item.id === id);
+        if (index === -1) return;
+        this.lastShotTrigger = trigger;
+        this.activeShotIndex = index;
+        this.renderLightbox();
+        if (!dialog.open) {
+          dialog.showModal();
+        }
+        this.lightboxClose?.focus();
+      });
+    });
+
+    const step = (delta) => {
+      this.activeShotIndex = (this.activeShotIndex + delta + SCREENSHOTS.length) % SCREENSHOTS.length;
+      this.renderLightbox();
+    };
+
+    this.lightboxPrev?.addEventListener("click", () => step(-1));
+    this.lightboxNext?.addEventListener("click", () => step(1));
+    this.lightboxClose?.addEventListener("click", () => dialog.close());
+
+    dialog.addEventListener("keydown", (event) => {
+      if (!dialog.open) return;
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        step(-1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        step(1);
+      }
+    });
+
+    // Mandatory fallback for browsers lacking <dialog closedby="any"> (e.g. Safari)
+    if (!("closedBy" in HTMLDialogElement.prototype)) {
+      dialog.addEventListener("click", (event) => {
+        if (event.target !== dialog) return;
+        const rect = dialog.getBoundingClientRect();
+        const isDialogContent =
+          rect.top <= event.clientY &&
+          event.clientY <= rect.top + rect.height &&
+          rect.left <= event.clientX &&
+          event.clientX <= rect.left + rect.width;
+        if (isDialogContent) return;
+        dialog.close();
+      });
+    }
+
+    dialog.addEventListener("close", () => {
+      if (this.lastShotTrigger && document.contains(this.lastShotTrigger)) {
+        this.lastShotTrigger.focus();
+      }
+    });
+  }
+
+  renderLightbox() {
+    const item = SCREENSHOTS[this.activeShotIndex];
+    if (!item || !this.lightboxImg) return;
+
+    this.lightboxImg.src = item.src;
+    this.lightboxImg.width = item.width;
+    this.lightboxImg.height = item.height;
+    this.lightboxImg.alt = t(this.lang, item.altKey);
+
+    if (this.lightboxTitle) {
+      this.lightboxTitle.textContent = t(this.lang, item.titleKey);
+    }
+    if (this.lightboxCaption) {
+      this.lightboxCaption.textContent = t(this.lang, item.descKey);
+    }
+    if (this.lightboxCounter) {
+      this.lightboxCounter.textContent = `${this.activeShotIndex + 1} / ${SCREENSHOTS.length}`;
+    }
   }
 }
 

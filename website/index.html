@@ -10,7 +10,7 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Dengerin Desktop - Pemutar Musik YouTube Bebas Iklan">
   <meta property="og:description" content="Putar katalog YouTube Music bebas iklan di Windows, Linux, dan macOS dengan cache disk lokal dan equalizer studio 5-band.">
-  <meta property="og:image" content="/assets/hero-showcase.jpg">
+  <meta property="og:image" content="/assets/screenshots/screen-explore.jpg">
 
   <link rel="icon" type="image/svg+xml" href="/assets/dengar.svg">
   <link rel="apple-touch-icon" href="/assets/appicon.png">
@@ -116,6 +116,25 @@
         <path d="M12 8v4" />
         <path d="M12 16h.01" />
       </symbol>
+      <symbol id="icon-maximize" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M16 4l4 0l0 4" />
+        <path d="M14 10l6 -6" />
+        <path d="M8 20l-4 0l0 -4" />
+        <path d="M4 20l6 -6" />
+        <path d="M16 20l4 0l0 -4" />
+        <path d="M14 14l6 6" />
+        <path d="M8 4l-4 0l0 4" />
+        <path d="M4 4l6 6" />
+      </symbol>
+      <symbol id="icon-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M15 6l-6 6l6 6" />
+      </symbol>
+      <symbol id="icon-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M9 6l6 6l-6 6" />
+      </symbol>
     </defs>
   </svg>
 
@@ -124,13 +143,14 @@
   <header class="site-header">
     <div class="container header-inner">
       <a href="#top" class="brand-link">
-        <img src="/assets/dengar.svg" alt="" width="32" height="32" class="brand-mark">
+        <img src="/assets/dengar.svg" alt="" width="28" height="28" class="brand-mark">
         <span>Dengerin</span>
       </a>
 
       <nav class="desktop-nav" data-i18n-aria="nav.primaryAria" aria-label="Utama">
         <ul>
           <li><a href="#unduh" class="nav-link" data-i18n="nav.download">Unduh</a></li>
+          <li><a href="#tampilan" class="nav-link" data-i18n="nav.screens">Tampilan</a></li>
           <li><a href="#fitur" class="nav-link" data-i18n="nav.features">Fitur</a></li>
           <li><a href="#rilis" class="nav-link" data-i18n="nav.releases">Rilis</a></li>
           <li><a href="#spesifikasi" class="nav-link" data-i18n="nav.specs">Spesifikasi</a></li>
@@ -147,9 +167,9 @@
           href="https://github.com/komporkode/dengar"
           target="_blank"
           rel="noopener noreferrer"
-          class="btn btn-secondary btn-compact github-header-link"
+          class="btn btn-secondary github-header-link"
         >
-          <svg class="ui-icon" aria-hidden="true" width="18" height="18"><use href="#icon-brand-github"></use></svg>
+          <svg class="ui-icon" aria-hidden="true" width="16" height="16"><use href="#icon-brand-github"></use></svg>
           <span data-i18n="nav.github">GitHub</span>
         </a>
 
@@ -162,7 +182,7 @@
           data-i18n-aria="nav.menuOpen"
           aria-label="Buka menu navigasi"
         >
-          <svg class="ui-icon" aria-hidden="true" width="20" height="20"><use href="#icon-menu-2"></use></svg>
+          <svg class="ui-icon" aria-hidden="true" width="18" height="18"><use href="#icon-menu-2"></use></svg>
         </button>
       </div>
     </div>
@@ -189,6 +209,7 @@
 
         <ul class="nav-drawer-list">
           <li><a href="#unduh" data-i18n="nav.download">Unduh</a></li>
+          <li><a href="#tampilan" data-i18n="nav.screens">Tampilan</a></li>
           <li><a href="#fitur" data-i18n="nav.features">Fitur</a></li>
           <li><a href="#rilis" data-i18n="nav.releases">Rilis</a></li>
           <li><a href="#spesifikasi" data-i18n="nav.specs">Spesifikasi</a></li>
@@ -235,23 +256,32 @@
         </div>
 
         <figure class="hero-media">
-          <div class="media-frame">
+          <button
+            type="button"
+            class="media-frame shot-trigger shot-hero-btn"
+            data-shot="explore"
+            data-i18n-aria="hero.zoomAria"
+            aria-label="Perbesar tangkapan layar utama Dengerin Desktop"
+          >
             <picture>
               <source
                 type="image/webp"
-                srcset="/assets/hero-showcase-760w.webp 760w, /assets/hero-showcase.webp 1376w"
+                srcset="/assets/screenshots/screen-explore-640w.webp 640w, /assets/screenshots/screen-explore.webp 1024w"
                 sizes="(max-width: 60rem) 94vw, 54vw"
               >
               <img
-                src="/assets/hero-showcase.jpg"
-                alt="Antarmuka audio gelap Dengerin Desktop bersama headphone studio hitam matte."
+                src="/assets/screenshots/screen-explore.jpg"
+                alt="Tangkapan layar asli Dengerin Desktop menampilkan halaman Eksplorasi & Cari beserta pemutar audio mengambang di bawah."
                 data-i18n-alt="hero.mediaAlt"
-                width="1376"
-                height="768"
+                width="1024"
+                height="682"
                 fetchpriority="high"
               >
             </picture>
-          </div>
+            <span class="shot-zoom-badge" aria-hidden="true">
+              <svg class="ui-icon" width="16" height="16"><use href="#icon-maximize"></use></svg>
+            </span>
+          </button>
         </figure>
       </div>
     </section>
@@ -356,7 +386,201 @@
       </div>
     </section>
 
-    <section id="fitur" class="band">
+    <section id="tampilan" class="band">
+      <div class="container">
+        <header class="section-head">
+          <span class="section-kicker" data-i18n="shot.kicker">Antarmuka Asli</span>
+          <h2 data-i18n="shot.title">Cuplikan layar aplikasi desktop</h2>
+          <p class="section-desc" data-i18n="shot.desc">
+            Tangkapan layar asli dari jendela Dengerin Desktop di Windows. Klik gambar mana saja untuk melihat ukuran penuh.
+          </p>
+        </header>
+
+        <div class="gallery-grid">
+          <figure class="shot-card">
+            <button
+              type="button"
+              class="shot-trigger shot-frame"
+              data-shot="explore"
+              data-i18n-aria="shot.s1.aria"
+              aria-label="Perbesar tangkapan layar Eksplorasi & Cari"
+            >
+              <picture>
+                <source
+                  type="image/webp"
+                  srcset="/assets/screenshots/screen-explore-640w.webp 640w, /assets/screenshots/screen-explore.webp 1024w"
+                  sizes="(max-width: 48rem) 94vw, 46vw"
+                >
+                <img
+                  src="/assets/screenshots/screen-explore.jpg"
+                  alt="Tangkapan layar halaman Eksplorasi & Cari dengan pencarian musik, daftar sering diputar, dan bilah pemutar Eco Audio."
+                  data-i18n-alt="shot.s1.alt"
+                  width="1024"
+                  height="682"
+                  loading="lazy"
+                >
+              </picture>
+              <span class="shot-zoom-badge" aria-hidden="true">
+                <svg class="ui-icon" width="16" height="16"><use href="#icon-maximize"></use></svg>
+              </span>
+            </button>
+            <figcaption class="shot-meta">
+              <h3 data-i18n="shot.s1.title">Eksplorasi &amp; Cari</h3>
+              <p class="shot-caption" data-i18n="shot.s1.desc">
+                Pencarian langsung YouTube Music, lagu sering diputar, dan bar audio mengambang.
+              </p>
+            </figcaption>
+          </figure>
+
+          <figure class="shot-card">
+            <button
+              type="button"
+              class="shot-trigger shot-frame"
+              data-shot="foryou"
+              data-i18n-aria="shot.s2.aria"
+              aria-label="Perbesar tangkapan layar Untuk Anda"
+            >
+              <picture>
+                <source
+                  type="image/webp"
+                  srcset="/assets/screenshots/screen-foryou-640w.webp 640w, /assets/screenshots/screen-foryou.webp 1024w"
+                  sizes="(max-width: 48rem) 94vw, 46vw"
+                >
+                <img
+                  src="/assets/screenshots/screen-foryou.jpg"
+                  alt="Tangkapan layar tab Untuk Anda menampilkan Personal Mix, Koleksi Populer & Pilihan Studio, serta Sering Kamu Putar."
+                  data-i18n-alt="shot.s2.alt"
+                  width="1024"
+                  height="682"
+                  loading="lazy"
+                >
+              </picture>
+              <span class="shot-zoom-badge" aria-hidden="true">
+                <svg class="ui-icon" width="16" height="16"><use href="#icon-maximize"></use></svg>
+              </span>
+            </button>
+            <figcaption class="shot-meta">
+              <h3 data-i18n="shot.s2.title">Rekomendasi Untuk Anda</h3>
+              <p class="shot-caption" data-i18n="shot.s2.desc">
+                Mix personal, kurasi pilihan studio, serta kontrol Putar Semua dan Putar Acak.
+              </p>
+            </figcaption>
+          </figure>
+
+          <figure class="shot-card">
+            <button
+              type="button"
+              class="shot-trigger shot-frame"
+              data-shot="equalizer"
+              data-i18n-aria="shot.s3.aria"
+              aria-label="Perbesar tangkapan layar Equalizer Audio 5-Band"
+            >
+              <picture>
+                <source
+                  type="image/webp"
+                  srcset="/assets/screenshots/screen-equalizer-640w.webp 640w, /assets/screenshots/screen-equalizer.webp 1024w"
+                  sizes="(max-width: 48rem) 94vw, 46vw"
+                >
+                <img
+                  src="/assets/screenshots/screen-equalizer.jpg"
+                  alt="Tangkapan layar dialog Equalizer Audio 5-Band menampilkan preset suara dan slider 60 Hz hingga 14 kHz."
+                  data-i18n-alt="shot.s3.alt"
+                  width="1024"
+                  height="682"
+                  loading="lazy"
+                >
+              </picture>
+              <span class="shot-zoom-badge" aria-hidden="true">
+                <svg class="ui-icon" width="16" height="16"><use href="#icon-maximize"></use></svg>
+              </span>
+            </button>
+            <figcaption class="shot-meta">
+              <h3 data-i18n="shot.s3.title">Equalizer Audio 5-Band</h3>
+              <p class="shot-caption" data-i18n="shot.s3.desc">
+                Filter 60 Hz hingga 14 kHz secara lokal dengan preset cepat seperti Vocal Booster.
+              </p>
+            </figcaption>
+          </figure>
+
+          <figure class="shot-card">
+            <button
+              type="button"
+              class="shot-trigger shot-frame"
+              data-shot="sleeptimer"
+              data-i18n-aria="shot.s4.aria"
+              aria-label="Perbesar tangkapan layar Sleep Timer"
+            >
+              <picture>
+                <source
+                  type="image/webp"
+                  srcset="/assets/screenshots/screen-sleeptimer-640w.webp 640w, /assets/screenshots/screen-sleeptimer.webp 1024w"
+                  sizes="(max-width: 48rem) 94vw, 46vw"
+                >
+                <img
+                  src="/assets/screenshots/screen-sleeptimer.jpg"
+                  alt="Tangkapan layar dialog Sleep Timer dengan tombol durasi cepat 15 sampai 60 menit dan opsi berhenti di akhir lagu."
+                  data-i18n-alt="shot.s4.alt"
+                  width="1024"
+                  height="682"
+                  loading="lazy"
+                >
+              </picture>
+              <span class="shot-zoom-badge" aria-hidden="true">
+                <svg class="ui-icon" width="16" height="16"><use href="#icon-maximize"></use></svg>
+              </span>
+            </button>
+            <figcaption class="shot-meta">
+              <h3 data-i18n="shot.s4.title">Sleep Timer</h3>
+              <p class="shot-caption" data-i18n="shot.s4.desc">
+                Timer cepat 15 hingga 60 menit, berhenti di akhir lagu, dan fade-out halus 5 detik.
+              </p>
+            </figcaption>
+          </figure>
+        </div>
+
+        <figure class="miniplayer-spotlight">
+          <div class="miniplayer-copy">
+            <span class="section-kicker" data-i18n="shot.miniKicker">Mode Ringkas</span>
+            <h3 data-i18n="shot.s5.title">Mini Player Mengambang (Always on Top)</h3>
+            <p class="shot-caption" data-i18n="shot.s5.desc">
+              Jendela kecil yang dapat disematkan di atas aplikasi lain untuk kontrol jeda, lagu berikutnya, progres putar, dan volume cepat.
+            </p>
+            <div>
+              <button
+                type="button"
+                class="btn btn-secondary btn-compact"
+                data-shot="miniplayer"
+                data-i18n="shot.zoomBtn"
+              >
+                Perbesar Mini Player
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="shot-trigger shot-mini-frame"
+            data-shot="miniplayer"
+            data-i18n-aria="shot.s5.aria"
+            aria-label="Perbesar tangkapan layar Mini Player Mengambang"
+          >
+            <picture>
+              <source type="image/webp" srcset="/assets/screenshots/screen-miniplayer.webp">
+              <img
+                src="/assets/screenshots/screen-miniplayer.png"
+                alt="Tangkapan layar jendela Mini Player Dengerin dengan lencana HQ, status Pinned, kontrol playback, dan slider volume."
+                data-i18n-alt="shot.s5.alt"
+                width="420"
+                height="175"
+                loading="lazy"
+              >
+            </picture>
+          </button>
+        </figure>
+      </div>
+    </section>
+
+    <section id="fitur" class="band band-surface">
       <div class="container features-layout">
         <div class="features-intro">
           <header class="section-head">
@@ -415,7 +639,7 @@
       </div>
     </section>
 
-    <section id="rilis" class="band band-surface">
+    <section id="rilis" class="band">
       <div class="container">
         <header class="section-head">
           <h2 data-i18n="rel.title">Riwayat pembaruan terbaru</h2>
@@ -541,7 +765,7 @@
       </div>
     </section>
 
-    <section id="spesifikasi" class="band">
+    <section id="spesifikasi" class="band band-surface">
       <div class="container">
         <header class="section-head">
           <h2 data-i18n="spec.title">Komponen teknis &amp; kompilasi mandiri</h2>
@@ -613,6 +837,41 @@ wails build -clean</code></pre>
       </nav>
     </div>
   </footer>
+
+  <dialog id="screenshot-lightbox" class="lightbox-dialog" closedby="any" aria-labelledby="lightbox-title">
+    <div class="lightbox-shell">
+      <div class="lightbox-head">
+        <div class="lightbox-heading">
+          <span id="lightbox-counter" class="lightbox-counter">1 / 5</span>
+          <h3 id="lightbox-title">Eksplorasi &amp; Cari</h3>
+        </div>
+        <div class="lightbox-controls">
+          <button type="button" id="lightbox-prev" class="lightbox-nav-btn" data-i18n-aria="shot.prevAria" aria-label="Gambar sebelumnya">
+            <svg class="ui-icon" aria-hidden="true" width="18" height="18"><use href="#icon-chevron-left"></use></svg>
+          </button>
+          <button type="button" id="lightbox-next" class="lightbox-nav-btn" data-i18n-aria="shot.nextAria" aria-label="Gambar berikutnya">
+            <svg class="ui-icon" aria-hidden="true" width="18" height="18"><use href="#icon-chevron-right"></use></svg>
+          </button>
+          <button type="button" id="lightbox-close" class="lightbox-nav-btn" data-i18n-aria="shot.closeAria" aria-label="Tutup pratinjau">
+            <svg class="ui-icon" aria-hidden="true" width="18" height="18"><use href="#icon-x"></use></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="lightbox-stage">
+        <img
+          id="lightbox-img"
+          src="/assets/screenshots/screen-explore.webp"
+          alt="Tangkapan layar Dengerin Desktop."
+          width="1024"
+          height="682"
+          fetchpriority="low"
+        >
+      </div>
+
+      <p id="lightbox-caption" class="lightbox-caption"></p>
+    </div>
+  </dialog>
 
   <div id="live-announcer" class="sr-only-live" aria-live="polite" aria-atomic="true"></div>
 </body>

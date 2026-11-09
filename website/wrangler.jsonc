@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "dengerin",
+  "compatibility_date": "2026-11-08",
+  "assets": {
+    "directory": ".",
+    "not_found_handling": "404-page"
+  }
+}
+
