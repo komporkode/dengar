@@ -151,10 +151,12 @@ const I18N = {
     "hero.ctaPrimary": "Unduh Dengerin",
     "hero.ctaSecondary": "Lihat Kode di GitHub",
     "hero.zoomAria": "Perbesar tangkapan layar utama Dengerin Desktop",
+    "hero.zoomHint": "Klik gambar untuk melihat ukuran penuh",
     "hero.mediaAlt": "Tangkapan layar asli Dengerin Desktop menampilkan halaman Eksplorasi & Cari beserta pemutar audio mengambang di bawah.",
     "shot.kicker": "Antarmuka Asli",
     "shot.title": "Cuplikan layar aplikasi desktop",
     "shot.desc": "Tangkapan layar asli dari jendela Dengerin Desktop di Windows. Klik gambar mana saja untuk melihat ukuran penuh.",
+    "shot.expandLabel": "Perbesar",
     "shot.miniKicker": "Mode Ringkas",
     "shot.zoomBtn": "Perbesar Mini Player",
     "shot.prevAria": "Gambar sebelumnya",
@@ -312,10 +314,12 @@ const I18N = {
     "hero.ctaPrimary": "Download Dengerin",
     "hero.ctaSecondary": "View Source on GitHub",
     "hero.zoomAria": "Enlarge main Dengerin Desktop screenshot",
+    "hero.zoomHint": "Click image to view full size",
     "hero.mediaAlt": "Real Dengerin Desktop screenshot showing the Explore & Search screen with the floating player bar below.",
     "shot.kicker": "Real Interface",
     "shot.title": "Desktop interface screenshots",
     "shot.desc": "Actual captures taken from Dengerin Desktop on Windows. Select any screenshot to view full size.",
+    "shot.expandLabel": "Enlarge",
     "shot.miniKicker": "Compact Mode",
     "shot.zoomBtn": "Inspect Mini Player",
     "shot.prevAria": "Previous screenshot",
@@ -533,7 +537,6 @@ class DengarSiteController {
     this.lightboxNext = document.getElementById("lightbox-next");
     this.lightboxClose = document.getElementById("lightbox-close");
     this.activeShotIndex = 0;
-    this.lastShotTrigger = null;
   }
 
   init() {
@@ -762,9 +765,19 @@ class DengarSiteController {
 
     const version = this.releaseData?.tag_name || FALLBACK_RELEASE.tag_name;
     const pubDate = formatDate(this.releaseData?.published_at, this.lang);
-    this.releaseMeta.textContent = pubDate
-      ? `${t(this.lang, "dl.metaPrefix")} ${version}  |  ${t(this.lang, "dl.published")} ${pubDate}`
-      : `${t(this.lang, "dl.metaPrefix")} ${version}`;
+
+    const versionChunk = document.createElement("span");
+    versionChunk.className = "release-meta-item";
+    versionChunk.textContent = `${t(this.lang, "dl.metaPrefix")} ${version}`;
+
+    if (pubDate) {
+      const dateChunk = document.createElement("span");
+      dateChunk.className = "release-meta-item";
+      dateChunk.textContent = `${t(this.lang, "dl.published")} ${pubDate}`;
+      this.releaseMeta.replaceChildren(versionChunk, dateChunk);
+    } else {
+      this.releaseMeta.replaceChildren(versionChunk);
+    }
   }
 
   renderPlatformPanel() {
@@ -1031,19 +1044,33 @@ class DengarSiteController {
     const dialog = this.lightboxDialog;
     if (!dialog || !this.lightboxImg) return;
 
+    const openShotById = (id, triggerEl) => {
+      const index = SCREENSHOTS.findIndex((item) => item.id === id);
+      if (index === -1) return;
+      if (triggerEl && document.activeElement !== triggerEl) {
+        triggerEl.focus();
+      }
+      this.activeShotIndex = index;
+      this.renderLightbox();
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+      this.lightboxClose?.focus();
+    };
+
     const triggers = Array.from(document.querySelectorAll("[data-shot]"));
     triggers.forEach((trigger) => {
       trigger.addEventListener("click", () => {
-        const id = trigger.getAttribute("data-shot");
-        const index = SCREENSHOTS.findIndex((item) => item.id === id);
-        if (index === -1) return;
-        this.lastShotTrigger = trigger;
-        this.activeShotIndex = index;
-        this.renderLightbox();
-        if (!dialog.open) {
-          dialog.showModal();
+        openShotById(trigger.getAttribute("data-shot"), trigger);
+      });
+    });
+
+    document.querySelectorAll(".hero-media-caption, .shot-zoom-hint").forEach((hint) => {
+      hint.addEventListener("click", () => {
+        const trigger = hint.closest("figure")?.querySelector("button[data-shot]");
+        if (trigger) {
+          openShotById(trigger.getAttribute("data-shot"), trigger);
         }
-        this.lightboxClose?.focus();
       });
     });
 
@@ -1067,32 +1094,36 @@ class DengarSiteController {
       }
     });
 
-    // Mandatory fallback for browsers lacking <dialog closedby="any"> (e.g. Safari)
+    // Fallback for browsers lacking <dialog closedby="any"> (e.g. Safari)
     if (!("closedBy" in HTMLDialogElement.prototype)) {
-      dialog.addEventListener("click", (event) => {
-        if (event.target !== dialog) return;
+      const isOutside = (event) => {
         const rect = dialog.getBoundingClientRect();
-        const isDialogContent =
-          rect.top <= event.clientY &&
-          event.clientY <= rect.top + rect.height &&
-          rect.left <= event.clientX &&
-          event.clientX <= rect.left + rect.width;
-        if (isDialogContent) return;
-        dialog.close();
+        return (
+          event.clientX < rect.left ||
+          event.clientX > rect.right ||
+          event.clientY < rect.top ||
+          event.clientY > rect.bottom
+        );
+      };
+      let pressedOutside = false;
+      dialog.addEventListener("pointerdown", (event) => {
+        pressedOutside = isOutside(event);
+      });
+      dialog.addEventListener("pointerup", (event) => {
+        if (pressedOutside && isOutside(event)) {
+          dialog.close();
+        }
       });
     }
-
-    dialog.addEventListener("close", () => {
-      if (this.lastShotTrigger && document.contains(this.lastShotTrigger)) {
-        this.lastShotTrigger.focus();
-      }
-    });
   }
 
   renderLightbox() {
     const item = SCREENSHOTS[this.activeShotIndex];
     if (!item || !this.lightboxImg) return;
 
+    if (this.lightboxDialog) {
+      this.lightboxDialog.dataset.shot = item.id;
+    }
     this.lightboxImg.src = item.src;
     this.lightboxImg.width = item.width;
     this.lightboxImg.height = item.height;
