@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="id" id="top">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>Dengerin Desktop - Pemutar Musik YouTube Bebas Iklan</title>
+  <meta name="description" content="Aplikasi desktop Go dan Wails ringan untuk memutar katalog YouTube Music bebas iklan dengan cache lokal offline, equalizer 5-band, dan playlist P2P.">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Dengerin Desktop - Pemutar Musik YouTube Bebas Iklan">
+  <meta property="og:description" content="Putar katalog YouTube Music bebas iklan di Windows, Linux, dan macOS dengan cache disk lokal dan equalizer studio 5-band.">
+  <meta property="og:image" content="/assets/hero-showcase.jpg">
+
+  <link rel="icon" type="image/svg+xml" href="/assets/dengar.svg">
+  <link rel="apple-touch-icon" href="/assets/appicon.png">
+
+  <link rel="preload" href="/assets/fonts/plus-jakarta-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/plus-jakarta-sans-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+
+  <link rel="stylesheet" href="/styles/main.css">
+  <script type="module" src="/scripts/app.js"></script>
+</head>
+<body>
+  <svg hidden aria-hidden="true">
+    <defs>
+      <symbol id="icon-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
+        <path d="M7 11l5 5l5 -5" />
+        <path d="M12 4l0 12" />
+      </symbol>
+      <symbol id="icon-brand-windows" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M17.8 20l-12 -1.5c-1 -.1 -1.8 -.9 -1.8 -1.9v-9.2c0 -1 .8 -1.8 1.8 -1.9l12 -1.5c1.2 -.1 2.2 .8 2.2 1.9v12.1c0 1.2 -1.1 2.1 -2.2 1.9l0 .1" />
+        <path d="M12 5l0 14" />
+        <path d="M4 12l16 0" />
+      </symbol>
+      <symbol id="icon-brand-ubuntu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M10 5a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+        <path d="M17.723 7.41a7.992 7.992 0 0 0 -3.74 -2.162m-3.971 0a7.993 7.993 0 0 0 -3.789 2.216m-1.881 3.215a8 8 0 0 0 -.342 2.32c0 .738 .1 1.453 .287 2.132m1.96 3.428a7.993 7.993 0 0 0 3.759 2.19m4 0a7.993 7.993 0 0 0 3.747 -2.186m1.962 -3.43a8.008 8.008 0 0 0 .287 -2.131c0 -.764 -.107 -1.503 -.307 -2.203" />
+        <path d="M3 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+        <path d="M17 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+      </symbol>
+      <symbol id="icon-brand-apple" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M8.286 7.008c-3.216 0 -4.286 3.23 -4.286 5.92c0 3.229 2.143 8.072 4.286 8.072c1.165 -.05 1.799 -.538 3.214 -.538c1.406 0 1.607 .538 3.214 .538s4.286 -3.229 4.286 -5.381c-.03 -.011 -2.649 -.434 -2.679 -3.23c-.02 -2.335 2.589 -3.179 2.679 -3.228c-1.096 -1.606 -3.162 -2.113 -3.75 -2.153c-1.535 -.12 -3.032 1.077 -3.75 1.077c-.729 0 -2.036 -1.077 -3.214 -1.077" />
+        <path d="M12 4a2 2 0 0 0 2 -2a2 2 0 0 0 -2 2" />
+      </symbol>
+      <symbol id="icon-brand-github" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+      </symbol>
+      <symbol id="icon-menu-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M4 6l16 0" />
+        <path d="M4 12l16 0" />
+        <path d="M4 18l16 0" />
+      </symbol>
+      <symbol id="icon-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M18 6l-12 12" />
+        <path d="M6 6l12 12" />
+      </symbol>
+      <symbol id="icon-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M6 9l6 6l6 -6" />
+      </symbol>
+      <symbol id="icon-external-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
+        <path d="M11 13l9 -9" />
+        <path d="M15 4h5v5" />
+      </symbol>
+      <symbol id="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667l0 -8.666" />
+        <path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
+      </symbol>
+      <symbol id="icon-adjustments-horizontal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M12 6a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+        <path d="M4 6l8 0" />
+        <path d="M16 6l4 0" />
+        <path d="M6 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+        <path d="M4 12l2 0" />
+        <path d="M10 12l10 0" />
+        <path d="M15 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+        <path d="M4 18l11 0" />
+        <path d="M19 18l1 0" />
+      </symbol>
+      <symbol id="icon-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M3 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+        <path d="M15 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+        <path d="M15 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+        <path d="M8.7 10.7l6.6 -3.4" />
+        <path d="M8.7 13.3l6.6 3.4" />
+      </symbol>
+      <symbol id="icon-device-desktop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M3 5a1 1 0 0 1 1 -1h16a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-10" />
+        <path d="M7 20h10" />
+        <path d="M9 16v4" />
+        <path d="M15 16v4" />
+      </symbol>
+      <symbol id="icon-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" />
+        <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" />
+      </symbol>
+      <symbol id="icon-alert-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" />
+        <path d="M12 8v4" />
+        <path d="M12 16h.01" />
+      </symbol>
+    </defs>
+  </svg>
+
+  <a href="#hero-heading" class="skip-link visually-hidden" data-i18n="skip">Lewati ke konten utama</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#top" class="brand-link">
+        <img src="/assets/dengar.svg" alt="" width="32" height="32" class="brand-mark">
+        <span>Dengerin</span>
+      </a>
+
+      <nav class="desktop-nav" data-i18n-aria="nav.primaryAria" aria-label="Utama">
+        <ul>
+          <li><a href="#unduh" class="nav-link" data-i18n="nav.download">Unduh</a></li>
+          <li><a href="#fitur" class="nav-link" data-i18n="nav.features">Fitur</a></li>
+          <li><a href="#rilis" class="nav-link" data-i18n="nav.releases">Rilis</a></li>
+          <li><a href="#spesifikasi" class="nav-link" data-i18n="nav.specs">Spesifikasi</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <div class="lang-switch" role="group" data-i18n-aria="nav.langAria" aria-label="Pilihan bahasa">
+          <button type="button" class="lang-btn" data-lang="id" aria-pressed="true">ID</button>
+          <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+
+        <a
+          href="https://github.com/komporkode/dengar"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-secondary btn-compact github-header-link"
+        >
+          <svg class="ui-icon" aria-hidden="true" width="18" height="18"><use href="#icon-brand-github"></use></svg>
+          <span data-i18n="nav.github">GitHub</span>
+        </a>
+
+        <button
+          id="drawer-open"
+          type="button"
+          class="drawer-trigger"
+          aria-expanded="false"
+          aria-controls="nav-drawer"
+          data-i18n-aria="nav.menuOpen"
+          aria-label="Buka menu navigasi"
+        >
+          <svg class="ui-icon" aria-hidden="true" width="20" height="20"><use href="#icon-menu-2"></use></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="nav-drawer" id="nav-drawer" popover="manual">
+    <div class="nav-drawer-scroller">
+      <nav class="nav-drawer-sheet" tabindex="-1" data-i18n-aria="nav.drawerAria" aria-label="Menu seluler">
+        <div class="nav-drawer-head">
+          <span class="brand-link">
+            <img src="/assets/dengar.svg" alt="" width="28" height="28" class="brand-mark">
+            <span>Dengerin</span>
+          </span>
+          <button
+            id="drawer-close"
+            type="button"
+            class="drawer-trigger"
+            data-i18n-aria="nav.menuClose"
+            aria-label="Tutup menu"
+          >
+            <svg class="ui-icon" aria-hidden="true" width="20" height="20"><use href="#icon-x"></use></svg>
+          </button>
+        </div>
+
+        <ul class="nav-drawer-list">
+          <li><a href="#unduh" data-i18n="nav.download">Unduh</a></li>
+          <li><a href="#fitur" data-i18n="nav.features">Fitur</a></li>
+          <li><a href="#rilis" data-i18n="nav.releases">Rilis</a></li>
+          <li><a href="#spesifikasi" data-i18n="nav.specs">Spesifikasi</a></li>
+        </ul>
+
+        <a
+          href="https://github.com/komporkode/dengar"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-secondary"
+        >
+          <svg class="ui-icon" aria-hidden="true" width="18" height="18"><use href="#icon-brand-github"></use></svg>
+          <span data-i18n="hero.ctaSecondary">Lihat Kode di GitHub</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <main id="main-shell">
+    <section class="hero-section">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <h1 id="hero-heading" tabindex="-1" data-i18n="hero.title">
+            Putar musik YouTube bebas iklan, langsung dari desktop.
+          </h1>
+          <p class="hero-lead" data-i18n="hero.lead">
+            Dibangun dengan Go dan Wails. Putar katalog YouTube Music dengan cache lokal, equalizer 5-band, dan update otomatis.
+          </p>
+          <div class="hero-actions">
+            <a href="#unduh" id="hero-download-btn" class="btn btn-primary">
+              <svg class="ui-icon" aria-hidden="true" width="18" height="18"><use href="#icon-download"></use></svg>
+              <span id="hero-download-label">Unduh Dengerin v1.4.1 (Windows)</span>
+            </a>
+            <a
+              href="https://github.com/komporkode/dengar"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn btn-secondary"
+            >
+              <svg class="ui-icon" aria-hidden="true" width="18" height="18"><use href="#icon-brand-github"></use></svg>
+              <span data-i18n="hero.ctaSecondary">Lihat Kode di GitHub</span>
+            </a>
+          </div>
+        </div>
+
+        <figure class="hero-media">
+          <div class="media-frame">
+            <picture>
+              <source
+                type="image/webp"
+                srcset="/assets/hero-showcase-760w.webp 760w, /assets/hero-showcase.webp 1376w"
+                sizes="(max-width: 60rem) 94vw, 54vw"
+              >
+              <img
+                src="/assets/hero-showcase.jpg"
+                alt="Antarmuka audio gelap Dengerin Desktop bersama headphone studio hitam matte."
+                data-i18n-alt="hero.mediaAlt"
+                width="1376"
+                height="768"
+                fetchpriority="high"
+              >
+            </picture>
+          </div>
+        </figure>
+      </div>
+    </section>
+
+    <section id="unduh" class="band band-surface">
+      <div class="container download-hub-wrap">
+        <header class="section-head">
+          <span class="section-kicker" data-i18n="dl.kicker">Rilis Resmi GitHub</span>
+          <h2 data-i18n="dl.title">Pilih paket sesuai sistem operasi</h2>
+          <p class="section-desc" data-i18n="dl.desc">
+            Tautan unduhan ditarik langsung dari rilis terbaru repositori komporkode/dengar atau mengarah ke arsip GitHub Releases.
+          </p>
+        </header>
+
+        <div class="release-bar">
+          <div class="release-status-group">
+            <span id="release-status-pill" class="status-pill" data-state="loading">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span id="release-status-text" data-i18n="dl.statusLoading">Memeriksa rilis terbaru...</span>
+            </span>
+            <span id="release-meta" class="release-meta">Versi v1.4.1</span>
+          </div>
+
+          <a
+            href="https://github.com/komporkode/dengar/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-secondary btn-compact"
+          >
+            <svg class="ui-icon" aria-hidden="true" width="16" height="16"><use href="#icon-external-link"></use></svg>
+            <span data-i18n="dl.allReleases">Semua Rilis di GitHub</span>
+          </a>
+        </div>
+
+        <div class="platform-panel">
+          <div id="release-error-banner" class="error-banner" role="alert" hidden>
+            <div class="error-banner-lead">
+              <svg class="ui-icon" aria-hidden="true" width="18" height="18"><use href="#icon-alert-circle"></use></svg>
+              <span id="release-error-text"></span>
+            </div>
+            <button id="release-retry-btn" type="button" class="btn btn-secondary btn-compact">
+              <svg class="ui-icon" aria-hidden="true" width="16" height="16"><use href="#icon-refresh"></use></svg>
+              <span data-i18n="dl.retry">Coba Muat Ulang</span>
+            </button>
+          </div>
+
+          <div class="platform-tablist" role="tablist" data-i18n-aria="dl.tablistAria" aria-label="Pilih platform desktop">
+            <button
+              type="button"
+              role="tab"
+              id="tab-windows"
+              data-os="windows"
+              aria-selected="true"
+              aria-controls="platform-panel"
+              class="platform-tab"
+            >
+              <svg class="ui-icon" aria-hidden="true" width="18" height="18"><use href="#icon-brand-windows"></use></svg>
+              <span data-tab-label>Windows (64-bit)</span>
+              <span data-tab-detected class="detected-tag" hidden></span>
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              id="tab-linux"
+              data-os="linux"
+              aria-selected="false"
+              aria-controls="platform-panel"
+              tabindex="-1"
+              class="platform-tab"
+            >
+              <svg class="ui-icon" aria-hidden="true" width="18" height="18"><use href="#icon-brand-ubuntu"></use></svg>
+              <span data-tab-label>Linux (x64)</span>
+              <span data-tab-detected class="detected-tag" hidden></span>
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              id="tab-macos"
+              data-os="macos"
+              aria-selected="false"
+              aria-controls="platform-panel"
+              tabindex="-1"
+              class="platform-tab"
+            >
+              <svg class="ui-icon" aria-hidden="true" width="18" height="18"><use href="#icon-brand-apple"></use></svg>
+              <span data-tab-label>macOS (Universal)</span>
+              <span data-tab-detected class="detected-tag" hidden></span>
+            </button>
+          </div>
+
+          <div id="platform-panel" class="platform-body" role="tabpanel" aria-labelledby="tab-windows">
+            <div id="artifact-list" class="artifact-list"></div>
+
+            <aside class="platform-notes">
+              <h3 id="platform-notes-title">Catatan Windows 10 &amp; 11</h3>
+              <ul id="platform-notes-list"></ul>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="fitur" class="band">
+      <div class="container features-layout">
+        <div class="features-intro">
+          <header class="section-head">
+            <span class="section-kicker" data-i18n="feat.kicker">Arsitektur Audio</span>
+            <h2 data-i18n="feat.title">Dirancang untuk pemutaran stabil tanpa pelacakan</h2>
+            <p class="section-desc" data-i18n="feat.desc">
+              Dengerin memisahkan mesin streaming dan cache di backend Go agar antarmuka Svelte tetap responsif saat memutar audio jangka panjang.
+            </p>
+          </header>
+          <p class="arch-note" data-i18n="feat.mediaCap">
+            Kendali frekuensi 5-band (60Hz hingga 14kHz) berjalan lokal via Web Audio API dan internal CORS streaming proxy.
+          </p>
+        </div>
+
+        <div class="capability-grid">
+          <article class="capability-item">
+            <div class="capability-head">
+              <svg class="ui-icon capability-icon" aria-hidden="true" width="22" height="22"><use href="#icon-refresh"></use></svg>
+              <h3 data-i18n="feat.c1.title">Failover Multi-Sumber</h3>
+            </div>
+            <p data-i18n="feat.c1.desc">
+              Menarik stream audio Opus/AAC langsung lewat katalog YouTube Music dengan rotasi instance otomatis ke Piped dan Invidious bila server lambat, serta menyaring podcast atau vlog.
+            </p>
+          </article>
+
+          <article class="capability-item">
+            <div class="capability-head">
+              <svg class="ui-icon capability-icon" aria-hidden="true" width="22" height="22"><use href="#icon-adjustments-horizontal"></use></svg>
+              <h3 data-i18n="feat.c2.title">Cache Lokal &amp; Equalizer</h3>
+            </div>
+            <p data-i18n="feat.c2.desc">
+              Menyimpan lagu putaran ke disk dengan batas kuota LRU yang dapat diatur (termasuk pindah drive), ditambah equalizer studio 5-band, 8 preset suara, crossfade, dan mode hemat kuota.
+            </p>
+          </article>
+
+          <article class="capability-item">
+            <div class="capability-head">
+              <svg class="ui-icon capability-icon" aria-hidden="true" width="22" height="22"><use href="#icon-share"></use></svg>
+              <h3 data-i18n="feat.c3.title">Playlist Mosaik &amp; Berbagi P2P</h3>
+            </div>
+            <p data-i18n="feat.c3.desc">
+              Membuat cover art kolase 2x2 otomatis dari empat lagu teratas, mengimpor playlist publik YouTube atau Spotify, serta bertukar daftar putar melalui kode Base64 atau berkas JSON.
+            </p>
+          </article>
+
+          <article class="capability-item">
+            <div class="capability-head">
+              <svg class="ui-icon capability-icon" aria-hidden="true" width="22" height="22"><use href="#icon-device-desktop"></use></svg>
+              <h3 data-i18n="feat.c4.title">Integrasi Native Desktop</h3>
+            </div>
+            <p data-i18n="feat.c4.desc">
+              Menyediakan Floating Mini Player (Always on Top), kontrol media keyboard (Windows SMTC), System Tray, Discord Rich Presence, timer tidur smooth fade-out, dan 1-click updater.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="rilis" class="band band-surface">
+      <div class="container">
+        <header class="section-head">
+          <h2 data-i18n="rel.title">Riwayat pembaruan terbaru</h2>
+          <p class="section-desc" data-i18n="rel.desc">
+            Disarikan langsung dari berkas CHANGELOG.md repositori proyek. Tekan Ctrl+F untuk mencari catatan versi tertentu secara instan.
+          </p>
+        </header>
+
+        <div class="changelog-list">
+          <details class="changelog-item" name="changelog" open>
+            <summary class="changelog-summary">
+              <span class="changelog-summary-left">
+                <span class="version-tag">v1.4.1</span>
+                <span data-i18n="rel.141.title">Isolasi Lagu Populer &amp; Sinkronisasi Versi</span>
+              </span>
+              <span class="changelog-summary-left">
+                <span class="changelog-date" data-i18n="rel.141.date">8 November 2026</span>
+                <svg class="ui-icon changelog-chevron" aria-hidden="true" width="18" height="18"><use href="#icon-chevron-down"></use></svg>
+              </span>
+            </summary>
+            <div class="changelog-content">
+              <p class="changelog-lead" data-i18n="rel.141.lead">
+                Memisahkan state katalog tren beranda dari hasil pencarian agar query artis tidak menimpa daftar Lagu Populer saat input dibersihkan.
+              </p>
+              <ul class="changelog-points">
+                <li data-i18n="rel.141.p1">State daftar Lagu Populer terlindungi saat melakukan pencarian musisi.</li>
+                <li data-i18n="rel.141.p2">Menghapus teks pencarian langsung mengembalikan katalog tren beragam.</li>
+                <li data-i18n="rel.141.p3">Label versi pada dialog Pengaturan dan tombol Apa yang Baru terhubung dinamis ke konstanta rilis.</li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="changelog-item" name="changelog">
+            <summary class="changelog-summary">
+              <span class="changelog-summary-left">
+                <span class="version-tag">v1.4.0</span>
+                <span data-i18n="rel.140.title">Redesign Antrean, Aksesibilitas &amp; Auto-Update</span>
+              </span>
+              <span class="changelog-summary-left">
+                <span class="changelog-date" data-i18n="rel.140.date">7 November 2026</span>
+                <svg class="ui-icon changelog-chevron" aria-hidden="true" width="18" height="18"><use href="#icon-chevron-down"></use></svg>
+              </span>
+            </summary>
+            <div class="changelog-content">
+              <p class="changelog-lead" data-i18n="rel.140.lead">
+                Pembaruan antarmuka antrean 1 baris, progress bar updater live (MB/s), dukungan navigasi Escape dan keyboard penuh, serta stabilitas cold-start.
+              </p>
+              <ul class="changelog-points">
+                <li data-i18n="rel.140.p1">Auto-updater menampilkan byte terunduh, kecepatan transfer, dan restart in-place otomatis.</li>
+                <li data-i18n="rel.140.p2">Dukungan aksesibilitas Escape, aria-label lengkap, focus-visible kontras tinggi, dan prefers-reduced-motion.</li>
+                <li data-i18n="rel.140.p3">Perombakan laci antrean dengan aksi Bersihkan Sisa dan perbaikan konflik file .tmp saat cold start.</li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="changelog-item" name="changelog">
+            <summary class="changelog-summary">
+              <span class="changelog-summary-left">
+                <span class="version-tag">v1.3.2</span>
+                <span data-i18n="rel.132.title">Infinite Scroll Pencarian &amp; Pipeline Installer</span>
+              </span>
+              <span class="changelog-summary-left">
+                <span class="changelog-date" data-i18n="rel.132.date">3 November 2026</span>
+                <svg class="ui-icon changelog-chevron" aria-hidden="true" width="18" height="18"><use href="#icon-chevron-down"></use></svg>
+              </span>
+            </summary>
+            <div class="changelog-content">
+              <p class="changelog-lead" data-i18n="rel.132.lead">
+                Memulihkan token kontinuitas pencarian tanpa batas, persistensi batas disk cache LRU, serta kelengkapan build NSIS installer Windows pada CI/CD.
+              </p>
+              <ul class="changelog-points">
+                <li data-i18n="rel.132.p1">Pencarian memuat 20+ lagu lanjutan secara otomatis saat halaman digulir.</li>
+                <li data-i18n="rel.132.p2">Kuota penyimpanan LRU (500 MB hingga Tanpa Batas) tersimpan permanen setelah restart.</li>
+                <li data-i18n="rel.132.p3">Pipeline GitHub Actions menghasilkan artefak Multi-OS lengkap.</li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="changelog-item" name="changelog">
+            <summary class="changelog-summary">
+              <span class="changelog-summary-left">
+                <span class="version-tag">v1.3.0</span>
+                <span data-i18n="rel.130.title">Lokasi Folder Cache Kustom &amp; Mode Eco Default</span>
+              </span>
+              <span class="changelog-summary-left">
+                <span class="changelog-date" data-i18n="rel.130.date">3 November 2026</span>
+                <svg class="ui-icon changelog-chevron" aria-hidden="true" width="18" height="18"><use href="#icon-chevron-down"></use></svg>
+              </span>
+            </summary>
+            <div class="changelog-content">
+              <p class="changelog-lead" data-i18n="rel.130.lead">
+                Menambahkan kebebasan memilih direktori cache di drive eksternal dengan migrasi file audio otomatis dan pengingat direktori upgrade di installer.
+              </p>
+              <ul class="changelog-points">
+                <li data-i18n="rel.130.p1">Pindahkan direktori cache audio antar-drive tanpa kehilangan lagu tersimpan offline.</li>
+                <li data-i18n="rel.130.p2">Mode Eco aktif sebagai bawaan untuk hemat kuota data.</li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="changelog-item" name="changelog">
+            <summary class="changelog-summary">
+              <span class="changelog-summary-left">
+                <span class="version-tag">v1.2.0</span>
+                <span data-i18n="rel.120.title">SMTC Windows, Discord RPC &amp; Impor Playlist</span>
+              </span>
+              <span class="changelog-summary-left">
+                <span class="changelog-date" data-i18n="rel.120.date">3 November 2026</span>
+                <svg class="ui-icon changelog-chevron" aria-hidden="true" width="18" height="18"><use href="#icon-chevron-down"></use></svg>
+              </span>
+            </summary>
+            <div class="changelog-content">
+              <p class="changelog-lead" data-i18n="rel.120.lead">
+                Integrasi tombol media hardware, Discord Rich Presence via Named Pipe, tab lagu offline terpin, dan algoritma rekomendasi FYP multi-artis.
+              </p>
+              <ul class="changelog-points">
+                <li data-i18n="rel.120.p1">Impor tautan playlist publik YouTube maupun Spotify langsung ke pustaka lokal.</li>
+                <li data-i18n="rel.120.p2">Lagu favorit dan offline terlindungi agar tidak ikut terhapus pembersihan cache LRU.</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section id="spesifikasi" class="band">
+      <div class="container">
+        <header class="section-head">
+          <h2 data-i18n="spec.title">Komponen teknis &amp; kompilasi mandiri</h2>
+          <p class="section-desc" data-i18n="spec.desc">
+            Seluruh kode backend dan frontend terbuka di bawah lisensi GNU GPL-3.0 untuk diperiksa atau dikompilasi langsung di perangkat Anda.
+          </p>
+        </header>
+
+        <div class="specs-grid">
+          <dl class="spec-dl">
+            <div class="spec-card">
+              <dt data-i18n="spec.dt1">Backend &amp; Runtime</dt>
+              <dd data-i18n="spec.dd1">Go 1.25 + Wails v2.17</dd>
+            </div>
+            <div class="spec-card">
+              <dt data-i18n="spec.dt2">Antarmuka Desktop</dt>
+              <dd data-i18n="spec.dd2">Svelte 5, TypeScript, Tailwind CSS v4</dd>
+            </div>
+            <div class="spec-card">
+              <dt data-i18n="spec.dt3">Penyimpanan Lokal</dt>
+              <dd data-i18n="spec.dd3">Atomic JSON lokal tanpa server akun cloud</dd>
+            </div>
+            <div class="spec-card">
+              <dt data-i18n="spec.dt4">Lisensi Perangkat Lunak</dt>
+              <dd data-i18n="spec.dd4">GNU General Public License v3.0 (GPL-3.0)</dd>
+            </div>
+          </dl>
+
+          <div class="build-box">
+            <div class="build-box-head">
+              <h3 data-i18n="spec.buildTitle">Bangun langsung dari source code</h3>
+              <button id="copy-build-btn" type="button" class="btn btn-secondary btn-compact">
+                <svg class="ui-icon" aria-hidden="true" width="16" height="16"><use href="#icon-copy"></use></svg>
+                <span data-copy-label data-i18n="spec.copyBtn">Salin Perintah</span>
+              </button>
+            </div>
+
+            <pre class="code-pre" tabindex="0"><code id="build-code-block">git clone https://github.com/komporkode/dengar.git
+cd dengar
+wails build -clean</code></pre>
+
+            <p class="arch-note" data-i18n="spec.copyReq">
+              Prasyarat: Go 1.25+, Node.js 20+, dan Wails CLI v2.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a href="#top" class="brand-link">
+          <img src="/assets/dengar.svg" alt="" width="28" height="28" class="brand-mark">
+          <span>Dengerin Desktop</span>
+        </a>
+        <p class="footer-note" data-i18n="footer.note">
+          Aplikasi pemutar audio YouTube desktop open-source berlisensi GNU GPL-3.0. Copyright (C) 2026 Komporkode.
+        </p>
+      </div>
+
+      <nav class="footer-links" data-i18n-aria="footer.linksAria" aria-label="Tautan proyek">
+        <a href="https://github.com/komporkode/dengar" target="_blank" rel="noopener noreferrer" data-i18n="footer.repo">Repositori GitHub</a>
+        <a href="https://github.com/komporkode/dengar/releases" target="_blank" rel="noopener noreferrer" data-i18n="footer.releases">Daftar Rilis</a>
+        <a href="https://github.com/komporkode/dengar/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" data-i18n="footer.changelog">Changelog</a>
+        <a href="https://github.com/komporkode/dengar/issues" target="_blank" rel="noopener noreferrer" data-i18n="footer.issues">Laporkan Bug</a>
+        <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer" data-i18n="footer.license">Lisensi GPL-3.0</a>
+      </nav>
+    </div>
+  </footer>
+
+  <div id="live-announcer" class="sr-only-live" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>
