@@ -32,12 +32,19 @@ Vercel akan menyajikan `website/index.html`, `website/404.html`, serta header ke
 
 ## Opsi 2: Deploy di Cloudflare Pages
 
-1. Hubungkan repositori `komporkode/dengar` pada dasbor **Cloudflare Workers & Pages**.
-2. Gunakan nama proyek bebas yang diinginkan (misalnya `dengerin` untuk menghasilkan domain `dengerin.pages.dev`).
-3. Konfigurasi Build:
+1. Buka dasbor **Workers & Pages > Create application**, lalu pastikan masuk ke menu **Pages** (klik tab **Pages** atau tautan **"Looking to deploy Pages? Get started"** di bagian bawah halaman, bukan form **Workers** default agar opsi *Build output directory* muncul).
+2. Pilih **Import an existing Git repository** dan hubungkan repositori `komporkode/dengar`.
+3. Gunakan nama proyek bebas yang diinginkan (misalnya `dengerin` untuk menghasilkan domain `dengerin.pages.dev`).
+4. Konfigurasi Build:
    - **Framework preset:** `None`
    - **Build command:** *(kosongkan)*
    - **Build output directory:** `website`
-4. Klik **Save and Deploy**.
+5. Klik **Save and Deploy**.
+
+Jika ingin upload langsung ke Cloudflare Pages tanpa konfigurasi build dari GitHub, Anda juga bisa memilih **Upload assets** di menu Pages atau menjalankan:
+
+```bash
+npx wrangler pages deploy website --project-name=dengerin
+```
 
 Cloudflare Pages akan menyajikan `website/index.html`, `website/404.html`, serta header keamanan dan cache dari `website/_headers`.
